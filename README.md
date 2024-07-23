@@ -23,5 +23,5 @@ Most other information pertaining to specifics of the engine, such as the use of
 * [Sonic Worlds Next](https://github.com/Techokami/SonicWorldsNext): Inspiration for the creation of this engine, and the derivation of some ideas/concepts (such as the physics tables)
 * [Godot Engine](https://github.com/godotengine/godot): Being an excellent basis for projects like this 
 * Sonic Moonlight: The fangame that served as a catalyst for this engine to come into fruition.
-* [KlashiCola](https://github.com/Klashicola): Original assets
+* [KlashiCola](https://github.com/Klashicola): Original assets, programming
 * [c08oprkiua](https://github.com/c08oprkiua): Main programmer
