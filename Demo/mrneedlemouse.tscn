@@ -1,0 +1,213 @@
+[gd_scene load_steps=14 format=3 uid="uid://fqh0i1dgi84m"]
+
+[ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_mpnpc"]
+[ext_resource type="Texture2D" uid="uid://bgjdsawmfrbbj" path="res://Demo/assets/Sonic.png" id="3_rpo5c"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qm444"]
+size = Vector2(20, 36)
+
+[sub_resource type="Animation" id="Animation_iq3sf"]
+resource_name = "crouch"
+length = 0.40001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [12, 13]
+}
+
+[sub_resource type="Animation" id="Animation_qvr7q"]
+resource_name = "falling"
+length = 0.50001
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [43, 44, 45]
+}
+
+[sub_resource type="Animation" id="Animation_tqr3a"]
+resource_name = "jump_ball"
+length = 0.50001
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 1,
+"values": [32, 33, 34, 35, 36]
+}
+
+[sub_resource type="Animation" id="Animation_hw6c2"]
+resource_name = "run_1"
+length = 0.40001
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [24, 25, 26, 27]
+}
+
+[sub_resource type="Animation" id="Animation_qois4"]
+resource_name = "run_mach"
+length = 0.40001
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [28, 29, 30, 31]
+}
+
+[sub_resource type="Animation" id="Animation_vg7os"]
+resource_name = "skid"
+length = 0.40001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [64, 65, 66]
+}
+
+[sub_resource type="Animation" id="Animation_kgsx7"]
+resource_name = "spindash"
+length = 0.60001
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [37, 38, 39, 40, 41, 42]
+}
+
+[sub_resource type="Animation" id="Animation_scyfb"]
+resource_name = "standing"
+length = 9.00001
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 3.3, 3.6, 3.9, 4.4, 4.8, 5.2, 5.6, 6, 6.4, 6.8, 7.2, 7.6, 8, 8.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 6, 7, 8, 7, 8, 9, 7, 8, 7, 8, 7, 1, 0]
+}
+
+[sub_resource type="Animation" id="Animation_wdns5"]
+resource_name = "walk"
+length = 0.80001
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [16, 17, 18, 19, 20, 21, 22, 23]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_djpht"]
+_data = {
+"crouch": SubResource("Animation_iq3sf"),
+"falling": SubResource("Animation_qvr7q"),
+"jump_ball": SubResource("Animation_tqr3a"),
+"run_1": SubResource("Animation_hw6c2"),
+"run_mach": SubResource("Animation_qois4"),
+"skid": SubResource("Animation_vg7os"),
+"spindash": SubResource("Animation_kgsx7"),
+"standing": SubResource("Animation_scyfb"),
+"walk": SubResource("Animation_wdns5")
+}
+
+[node name="mrneedlemouse" type="CharacterBody2D"]
+floor_stop_on_slope = false
+floor_constant_speed = true
+floor_snap_length = 20.0
+safe_margin = 1.0
+script = ExtResource("1_mpnpc")
+anim_stand = &"standing"
+anim_crouch = &"crouch"
+anim_roll = &"jump_ball"
+anim_walk = &"walk"
+anim_run_1 = &"walk"
+anim_run_2 = &"walk"
+anim_run_3 = &"run_1"
+anim_run_max = &"run_mach"
+anim_skid = &"skid"
+anim_jump = &"jump_ball"
+anim_free_fall = &"falling"
+button_up = &"ui_up"
+button_down = &"ui_down"
+button_left = &"ui_left"
+button_right = &"ui_right"
+button_jump = &"ui_select"
+button_roll = &"ui_down"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 6)
+shape = SubResource("RectangleShape2D_qm444")
+debug_color = Color(2.21401e-06, 0.552011, 0.644684, 0.42)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("3_rpo5c")
+hframes = 16
+vframes = 18
+frame = 12
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_djpht")
+}
+autoplay = "walk"
