@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://bytxq44ex4la0"]
+
+[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_8c4a3"]
+[ext_resource type="Texture2D" uid="uid://bt7uq7iftsubg" path="res://Demo/assets/background.png" id="1_40r55"]
+[ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_icfuv"]
+
+[node name="TestScene" type="Node2D"]
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground"]
+position = Vector2(561, 36)
+texture = ExtResource("1_40r55")
+
+[node name="mrneedlemouse" parent="." instance=ExtResource("1_8c4a3")]
+
+[node name="Spindash" type="Node" parent="mrneedlemouse"]
+script = ExtResource("2_icfuv")
+spindash_max_charge = 20.0

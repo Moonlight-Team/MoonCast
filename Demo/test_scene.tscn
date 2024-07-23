@@ -59,7 +59,3 @@ shape = SubResource("RectangleShape2D_347g5")
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("2_qkeds")
 spindash_max_charge = 20.0
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="mrneedlemouse"]
-polygon = PackedVector2Array(-29, 3, -10, -12, 10, -12, 27, 3, 0, 23)
-disabled = true
