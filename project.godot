@@ -20,11 +20,11 @@ config/icon="res://MoonCast/assets/wingedver.svg"
 
 [display]
 
-window/size/viewport_width=576
-window/size/viewport_height=324
+window/size/viewport_width=420
+window/size/viewport_height=224
+window/size/mode=3
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep_height"
-window/stretch/scale_mode="integer"
+window/stretch/aspect="keep_width"
 
 [rendering]
 
