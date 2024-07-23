@@ -1,7 +1,7 @@
 [gd_scene load_steps=14 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_mpnpc"]
-[ext_resource type="Texture2D" uid="uid://c0uhq1d2a1baf" path="res://Demo/assets/Sonic.png" id="3_rpo5c"]
+[ext_resource type="Texture2D" uid="uid://cwujo3qvqes6y" path="res://Demo/assets/Sonic.png" id="3_rpo5c"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_qm444"]
 size = Vector2(20, 36)

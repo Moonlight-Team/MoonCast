@@ -1,14 +1,16 @@
-[gd_scene load_steps=4 format=3 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=5 format=3 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_8c4a3"]
-[ext_resource type="Texture2D" uid="uid://bt7uq7iftsubg" path="res://Demo/assets/background.png" id="1_40r55"]
+[ext_resource type="Texture2D" uid="uid://hp4j007bura0" path="res://Demo/assets/background.png" id="1_40r55"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_icfuv"]
+[ext_resource type="AudioStream" uid="uid://cy8tqj4i6op4p" path="res://Demo/assets/Audio/Music/April City.ogg" id="4_4fkrd"]
 
 [node name="TestScene" type="Node2D"]
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="."]
 
 [node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground"]
+texture_filter = 1
 position = Vector2(561, 36)
 texture = ExtResource("1_40r55")
 
@@ -17,3 +19,7 @@ texture = ExtResource("1_40r55")
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("2_icfuv")
 spindash_max_charge = 20.0
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_4fkrd")
+autoplay = true
