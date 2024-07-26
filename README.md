@@ -1,6 +1,8 @@
 # MoonCast Engine
 #### A 2D and 3D Sonic physics engine for Godot 4, aiming to be modular, robust, and easy to use. 
 
+![logo](https://github.com/Moonlight-Team/MoonCast/blob/main/splash.png)
+
 ## Features:
 * Both 3D and 2D character support
 * Tight and complementary integration into Godot's systems, including collision and physics

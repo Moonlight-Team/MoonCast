@@ -1,61 +1,67 @@
-[gd_scene load_steps=6 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=7 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
-size = Vector2(1000, 20)
+size = Vector2(1031, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6cpsv"]
 size = Vector2(500, 500)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_347g5"]
-size = Vector2(100, 20)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_drx2y"]
+size = Vector2(200, 500)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_3edfo"]
 
 [node name="TestScene" type="Node2D"]
 
-[node name="StaticBody2D" type="StaticBody2D" parent="."]
+[node name="FlatGround" type="StaticBody2D" parent="."]
 position = Vector2(214, 570)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FlatGround"]
 shape = SubResource("RectangleShape2D_fahr2")
 
-[node name="StaticBody2D2" type="StaticBody2D" parent="."]
+[node name="SlightSlope" type="StaticBody2D" parent="."]
 position = Vector2(850, 513)
 rotation = -0.16057
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SlightSlope"]
 shape = SubResource("RectangleShape2D_fahr2")
 
-[node name="StaticBody2D6" type="StaticBody2D" parent="."]
+[node name="PlatformToJumpUpTo" type="StaticBody2D" parent="."]
 position = Vector2(1529, 568)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D6"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformToJumpUpTo"]
 shape = SubResource("RectangleShape2D_6cpsv")
 
-[node name="StaticBody2D3" type="StaticBody2D" parent="."]
+[node name="BigVerticalWall" type="StaticBody2D" parent="."]
 position = Vector2(-617, 493)
-rotation = 0.223402
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D3"]
-shape = SubResource("RectangleShape2D_fahr2")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BigVerticalWall"]
+position = Vector2(231, 100)
+shape = SubResource("RectangleShape2D_drx2y")
 
-[node name="StaticBody2D4" type="StaticBody2D" parent="."]
-position = Vector2(-518, 490)
-rotation = 0.734784
+[node name="SlopeTest" type="StaticBody2D" parent="."]
+position = Vector2(-248, 558)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D4"]
-shape = SubResource("RectangleShape2D_347g5")
-
-[node name="StaticBody2D5" type="StaticBody2D" parent="."]
-position = Vector2(-552, 429)
-rotation = 1.37881
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D5"]
-shape = SubResource("RectangleShape2D_347g5")
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SlopeTest"]
+position = Vector2(-1, 2)
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
 
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
+position = Vector2(83, 6)
+floor_snap_length = 32.0
+can_roll = false
 
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("2_qkeds")
 spindash_max_charge = 20.0
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="mrneedlemouse"]
+position = Vector2(-35, 0)
+polygon = PackedVector2Array(5, 0, 10, 3, 0, 11, -10, 3, -5, 0)
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="mrneedlemouse"]
+position = Vector2(31, 5)
+shape = SubResource("CircleShape2D_3edfo")
