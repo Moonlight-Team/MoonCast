@@ -318,19 +318,24 @@ func process_ground() -> void:
 	
 	var last_collision:KinematicCollision2D = get_last_slide_collision()
 	if is_instance_valid(last_collision):
-		var last_collision_object:PhysicsBody2D = instance_from_id(last_collision.get_collider_id())
-		
 		var ground_angle:float = get_floor_angle(up_direction)
-		assert(is_equal_approx(get_floor_angle(up_direction), last_collision.get_angle(up_direction)))
-		#var ground_angle:float = Vector2.from_angle(last_collision_object.rotation).normalized().direction_to(up_direction).angle()
-		if ground_velocity > physics.ground_min_speed:
-			rotation = ground_angle * direction
+		#If we're moving
+		if absf(ground_velocity) > physics.ground_min_speed:
+			#We figure out if we're going uphill or downhill based on assessing the
+			#normalized position delta, AKA the angle between current position and the last one
+			var assess_angle:Vector2 = get_position_delta().normalized().sign()
+			var going_uphill:bool = is_equal_approx(assess_angle.y, signf(up_direction.y))
+			
+			if going_uphill:
+				rotation = ground_angle * -signf(get_position_delta().normalized().x)
+				
+			else:
+				rotation = ground_angle * signf(get_position_delta().normalized().x)
 		else: #stand upright on a hill when, well, standing
 			rotation = 0
-		if Engine.get_physics_frames() % 60 == 0:
-			
-			print(Vector2.from_angle(ground_angle))
-			prints(rotation, "is rotation and", ground_angle, "is the ground angle")
+	#The character will jitter from the change in rotation if we don't snap them
+	#to the floor after all that
+	apply_floor_snap()
 	
 	#If this is negative, the player is pressing left. If positive, they're pressing right.
 	#If zero, they're pressing nothing (or their input is being ignored cause they shouldn't move)

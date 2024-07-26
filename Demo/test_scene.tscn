@@ -51,8 +51,6 @@ polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21
 
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
-floor_snap_length = 32.0
-can_roll = false
 
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("2_qkeds")
@@ -61,7 +59,9 @@ spindash_max_charge = 20.0
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="mrneedlemouse"]
 position = Vector2(-35, 0)
 polygon = PackedVector2Array(5, 0, 10, 3, 0, 11, -10, 3, -5, 0)
+disabled = true
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="mrneedlemouse"]
 position = Vector2(31, 5)
 shape = SubResource("CircleShape2D_3edfo")
+disabled = true
