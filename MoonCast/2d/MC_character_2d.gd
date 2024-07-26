@@ -287,19 +287,19 @@ func process_air() -> void:
 	#EXPERIMENTAL: Collision detection *without* using raycasts
 	
 	if is_on_floor():
-		var floor_collision:KinematicCollision2D = get_last_slide_collision()
-		if is_instance_valid(floor_collision):
-			rotation = floor_collision.get_angle(up_direction)
+		update_rotation()
 		state = PlayerStates.STATE_GROUND
 		jumping = false
+		#Apply any momentum to the character's ground velocity
 		ground_velocity = sin(rotation) * (velocity_1.y + 0.5) + cos(rotation) * velocity_1.x
 	
 	# air-based movement
+	var input_direction:float = 0.0
+	if can_move:
+		input_direction = Input.get_axis(button_left, button_right)
 	#Only let the player accelerate if they aren't already at max speed
-	if Input.is_action_pressed(button_right) and velocity_1.x < physics.ground_top_speed:
-		velocity_1.x += physics.air_acceleration
-	elif Input.is_action_pressed(button_left) and velocity_1.x > -physics.ground_top_speed:
-		velocity_1.x -= physics.air_acceleration
+	if absf(velocity_1.x) < physics.ground_top_speed and not is_zero_approx(input_direction):
+		velocity_1.x += physics.air_acceleration * input_direction
 	
 	# Allow the player to change the duration of the jump by releasing the jump
 	# button early
@@ -316,23 +316,7 @@ func process_ground() -> void:
 	if not is_zero_approx(ground_velocity):
 		direction = signf(ground_velocity)
 	
-	var last_collision:KinematicCollision2D = get_last_slide_collision()
-	if is_instance_valid(last_collision):
-		var ground_angle:float = get_floor_angle(up_direction)
-		#If we're moving
-		if absf(ground_velocity) > physics.ground_min_speed:
-			#We figure out if we're going uphill or downhill based on assessing the
-			#normalized position delta, AKA the angle between current position and the last one
-			var assess_angle:Vector2 = get_position_delta().normalized().sign()
-			var going_uphill:bool = is_equal_approx(assess_angle.y, signf(up_direction.y))
-			
-			if going_uphill:
-				rotation = ground_angle * -signf(get_position_delta().normalized().x)
-				
-			else:
-				rotation = ground_angle * signf(get_position_delta().normalized().x)
-		else: #stand upright on a hill when, well, standing
-			rotation = 0
+	update_rotation()
 	#The character will jitter from the change in rotation if we don't snap them
 	#to the floor after all that
 	apply_floor_snap()
@@ -494,6 +478,26 @@ func process_ground() -> void:
 				crouching = false
 				play_animation(anim_stand)
 			can_move = true
+
+func update_rotation() -> void:
+	var last_collision:KinematicCollision2D = get_last_slide_collision()
+	if is_instance_valid(last_collision):
+		var ground_angle:float = get_floor_angle(up_direction)
+		#If we're moving
+		if absf(ground_velocity) > physics.ground_min_speed:
+			#We figure out if we're going uphill or downhill based on assessing the
+			#normalized position delta, AKA the angle between current position and the last one
+			var assess_angle:Vector2 = get_position_delta().normalized().sign()
+			var going_uphill:bool = is_equal_approx(assess_angle.y, signf(up_direction.y))
+			
+			if going_uphill:
+				#rotation = ground_angle * -signf(get_position_delta().normalized().x)
+				rotation = ground_angle * assess_angle.y
+			else:
+				#rotation = ground_angle * signf(get_position_delta().normalized().x)
+				rotation = ground_angle * assess_angle.y
+		else: #stand upright on a hill when, well, standing
+			rotation = 0
 
 func _physics_process(_delta: float) -> void:
 	animation_set = false
