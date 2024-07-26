@@ -204,12 +204,25 @@ func setup_collision() -> void:
 	#will be mostly used for ledge animation detection, as the collision system 
 	#handles most of the rest for detection that these would traditionally be used 
 	#for.
-	for collison_shapes in get_shape_owners():
-		pass
+	var down_left_corner:Vector2
+	var down_right_corner:Vector2
+	
+	for collision_shapes in get_shape_owners():
+		for shapes in shape_owner_get_shape_count(collision_shapes):
+			#Get the shape itself
+			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
+			#Get the shape's node, for stuff like position
+			var this_shape_node:Node2D = shape_owner_get_owner(collision_shapes)
+			#Calculate which region the node (and thus shape) falls under
+			var this_shape_quadrant:Vector2 = Vector2(signf(this_shape_node.position.x), signf(this_shape_node.position.y))
+			print(this_shape_node.position)
+			print(this_shape_quadrant)
+			print(this_shape.get_rect())
 
 func _ready() -> void:
 	#Set up nodes
 	setup_children()
+	setup_collision()
 	#Calculate the physics speed adjustment value
 	var physics_tick:float = ProjectSettings.get_setting("physics/common/physics_ticks_per_second", 60.0)
 	physics_tick_adjust = 60.0 * (60.0 / physics_tick)
@@ -292,6 +305,10 @@ func process_air() -> void:
 	# button early
 	if not Input.is_action_pressed(button_jump) and jumping:
 		velocity_1.y = maxf(velocity_1.y, -physics.jump_short_limit)
+	
+	#Lose momentum if we hit a wall
+	if is_on_wall():
+		ground_velocity = 0
 
 ##Process the player's ground physics
 func process_ground() -> void:
@@ -299,20 +316,21 @@ func process_ground() -> void:
 	if not is_zero_approx(ground_velocity):
 		direction = signf(ground_velocity)
 	
-	apply_floor_snap()
 	var last_collision:KinematicCollision2D = get_last_slide_collision()
 	if is_instance_valid(last_collision):
 		var last_collision_object:PhysicsBody2D = instance_from_id(last_collision.get_collider_id())
-		var ground_angle:float = last_collision.get_angle(up_direction)
+		
+		var ground_angle:float = get_floor_angle(up_direction)
+		assert(is_equal_approx(get_floor_angle(up_direction), last_collision.get_angle(up_direction)))
+		#var ground_angle:float = Vector2.from_angle(last_collision_object.rotation).normalized().direction_to(up_direction).angle()
 		if ground_velocity > physics.ground_min_speed:
 			rotation = ground_angle * direction
 		else: #stand upright on a hill when, well, standing
 			rotation = 0
-		
 		if Engine.get_physics_frames() % 60 == 0:
-			print(last_collision_object.global_position.angle_to_point(global_position))
+			
+			print(Vector2.from_angle(ground_angle))
 			prints(rotation, "is rotation and", ground_angle, "is the ground angle")
-	apply_floor_snap()
 	
 	#If this is negative, the player is pressing left. If positive, they're pressing right.
 	#If zero, they're pressing nothing (or their input is being ignored cause they shouldn't move)
@@ -347,6 +365,12 @@ func process_ground() -> void:
 			ground_velocity -= sin(rotation) * physics.ground_slope_factor
 	
 	elif rolling: #Calculate rolling
+		if not can_roll:
+			push_error("The player ", name, " was rolling despite the option to being disabled. 
+			This may be the result of an improperly implemented ability.
+			Rolling has been automatically stopped.")
+			rolling = false
+		
 		#Allow the player to actively slow down if they try to
 		if not is_equal_approx(direction, signf(input_direction)):
 				ground_velocity += physics.rolling_active_stop * input_direction
