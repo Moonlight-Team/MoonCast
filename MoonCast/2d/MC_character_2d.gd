@@ -98,6 +98,7 @@ var animated_sprite1:AnimatedSprite2D = null
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
 
+#physics values
 ##The player's current state. 
 ##A signal is emitted when this value is changed, which calls the "contact" ability functions.
 var state:int = PlayerStates.STATE_AIR:
@@ -130,17 +131,31 @@ var jumping:bool = false
 var rolling:bool = false
 ##If true, the player is crouching
 var crouching:bool = false
+##If true, the player can be stuck to the ground
+var can_ground_snap:bool = true
 
 ## the ground velocity
 var ground_velocity:float = 0
-## the ground velocity during the previous frame
-var prev_ground_velocity:float = 0
-## sonic's current velocity
+##The character's current velocity
 var velocity_1:Vector2 = Vector2.ZERO
-##Sonic's last position
+##The character's direction of travel.
+##Equivalent to get_position_delta().normalized().sign()
+var velocity_direction:Vector2
+
+#values from the previous physics frame
+## the ground velocity during the previous frame
+var last_ground_velocity:float = 0.0
+##The character's last position
 var last_position:Vector2 = Vector2.ZERO
+##The character's previous rotation
+var last_rotation:float = 0.0
+
+
+#init-time computed constants
 ##An adjusted value to make sure the physics "run at the right speed" regardless of tick rate.
 var physics_tick_adjust:float = 0.0
+##The sotred value of max_angle
+var default_max_angle:float = floor_max_angle
 
 #processing signals, for the Ability ECS
 ##Emitted before processing physics 
@@ -226,6 +241,7 @@ func _ready() -> void:
 	#Calculate the physics speed adjustment value
 	var physics_tick:float = ProjectSettings.get_setting("physics/common/physics_ticks_per_second", 60.0)
 	physics_tick_adjust = 60.0 * (60.0 / physics_tick)
+	default_max_angle = floor_max_angle
 
 ##A wrapper function to play animations, with built in validity checking.
 ##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will
@@ -292,6 +308,8 @@ func process_air() -> void:
 		jumping = false
 		#Apply any momentum to the character's ground velocity
 		ground_velocity = sin(rotation) * (velocity_1.y + 0.5) + cos(rotation) * velocity_1.x
+	else:
+		rotation = move_toward(rotation, 0.0, 0.01)
 	
 	# air-based movement
 	var input_direction:float = 0.0
@@ -314,14 +332,20 @@ func process_air() -> void:
 func process_ground() -> void:
 	#Check direction.
 	if not is_zero_approx(ground_velocity):
-		direction = get_position_delta().normalized().sign().x
+		direction = velocity_direction.x
 	
 	update_rotation()
-	#The character will jitter from the change in rotation if we don't snap them
-	#to the floor after all that, but don't do that if they want to jump or they
-	#won't be able to leave the slope
-	if not Input.is_action_pressed(button_jump):
+	#Check if the player wants to (and can) jump before applying floor snap
+	if Input.is_action_pressed(button_jump) and can_jump:
+		can_ground_snap = false
+		jumping = true
+	else:
+		#Apply floor snap so that rotation logic does not cause funniness in 
+		#speed calcualtions. The character will jitter from the change in rotation 
+		#if we don't snap them to the floor after the rotation calculations, but 
+		#they won't be able to leave the slope if that snap occurs when they want to jump
 		apply_floor_snap()
+	
 	
 	#If this is negative, the player is pressing left. If positive, they're pressing right.
 	#If zero, they're pressing nothing (or their input is being ignored cause they shouldn't move)
@@ -333,9 +357,9 @@ func process_ground() -> void:
 	if not rolling:
 		
 		if is_zero_approx(input_direction): #handle input-less deceleration
-			#declines at a constant rate
-			if not is_zero_approx(ground_velocity) and not (rolling or crouching):
+			if not is_zero_approx(ground_velocity):
 				ground_velocity -= physics.ground_deceleration * direction
+			#snap ground velocity to the minimum ground speed
 			if absf(ground_velocity) < physics.ground_min_speed:
 				ground_velocity = 0
 		#If input matches the direction we're going
@@ -374,9 +398,8 @@ func process_ground() -> void:
 		#apply slope factors
 		if is_zero_approx(rotation): #If we're on level ground
 			#If we're also moving
-			#if not is_zero_approx(ground_velocity) and not crouching:
 			if not is_zero_approx(ground_velocity):
-				ground_velocity = move_toward(ground_velocity, 0, physics.rolling_flat_factor * direction)
+				ground_velocity = move_toward(ground_velocity, 0, physics.rolling_flat_factor)
 		else: #We're on a hill of some sort
 			#If we are rolling uphill
 			if is_equal_approx(direction, signf(rotation)):
@@ -405,14 +428,13 @@ func process_ground() -> void:
 		rolling = false
 	
 	# fall off of walls if you aren't going fast enough
-	if absf(rotation) >= PI/3 and (absf(ground_velocity) < physics.ground_slope_slip_speed or (ground_velocity != 0 and signf(ground_velocity) != signf(prev_ground_velocity))):
+	if (absf(ground_velocity) < physics.ground_slope_slip_speed or (ground_velocity != 0 and signf(ground_velocity) != signf(last_ground_velocity))):
 		up_direction = Vector2.UP
+		floor_max_angle = default_max_angle
 		state = PlayerStates.STATE_AIR
-		#rotation = 0
-		#position = Vector2(position.x-sin(rotation)*2,position.y+cos(rotation)*2)
-		#since rotation = 0, we can do some extreme math assumptions
-		position.y += 2
-		#rolling = false
+		rotation = 0
+	else:
+		floor_max_angle = deg_to_rad(90)
 	
 	#ensure the character is facing the right direction
 	#run checks, because having the nodes for this is not assumable
@@ -447,19 +469,25 @@ func process_ground() -> void:
 		elif absf(ground_velocity) > physics.ground_min_speed: #moving at all
 			play_animation(anim_walk)
 		elif not crouching: #standing still
-			play_animation(anim_stand)
+			if Input.is_action_pressed(button_up):
+				play_animation(anim_look_up)
+			else:
+				play_animation(anim_stand)
 	
-	#jumping
-	if can_jump and Input.is_action_pressed(button_jump):
-		if not jumping:
-			state = PlayerStates.STATE_AIR
-			velocity_1 += Vector2(sin(rotation), -cos(rotation)) * physics.jump_velocity
-			rotation = 0
-			play_animation(anim_jump, true)
-			jumping = true
-			rolling = false
-	else:
-		apply_floor_snap()
+	#jumping logic
+	
+	#This is a split off check so that floor snapping is not applied if they want to jump
+	if jumping:
+		state = PlayerStates.STATE_AIR
+		#Reset the max angle the player can't jump off walls
+		floor_max_angle = default_max_angle
+		#Add velocity to the jump
+		velocity_1 += Vector2(sin(rotation), -cos(rotation)) * physics.jump_velocity
+		#Reset rotation
+		rotation = 0
+		#Update states, animations
+		play_animation(anim_jump, true)
+		rolling = false
 	
 	#Do rolling or crouching checks
 	if absf(ground_velocity) > physics.rolling_min_speed: #can roll, by internal standards
@@ -474,7 +502,7 @@ func process_ground() -> void:
 		rolling = false
 		#Only crouch while the input is still held down
 		if Input.is_action_pressed(button_down):
-			if not crouching:
+			if not crouching: #only crouch if we weren't before
 				crouching = true
 				can_move = false
 				play_animation(anim_crouch, true)
@@ -493,24 +521,22 @@ func update_rotation() -> void:
 		#If we're moving
 		if absf(ground_velocity) > physics.ground_min_speed:
 			#We figure out if we're going uphill or downhill based on assessing the
-			#normalized position delta, AKA the angle between current position and the last one
-			var assess_angle:Vector2 = get_position_delta().normalized().sign()
-			#Check to make sure we're going "up", compared with the up_direction because
-			#it may not always be consistent, eg. wall or ceiling mode
-			var going_uphill:bool = is_equal_approx(assess_angle.y, signf(up_direction.y))
+			#direction the character is going, AKA the angle between current position 
+			#and the last one
 			
-			if going_uphill:
-				rotation = ground_angle * assess_angle.y * assess_angle.x
-			else:
-				rotation = ground_angle * assess_angle.y * assess_angle.x
+			rotation = ground_angle * velocity_direction.y * velocity_direction.x
 		else: #stand upright on a hill when, well, standing
 			rotation = 0
 	else:
 		pass
 
 func _physics_process(_delta: float) -> void:
+	#reset this flag specifically
 	animation_set = false
 	pre_physics.emit(self)
+	
+	velocity_direction = get_position_delta().normalized().sign()
+	
 	if state == PlayerStates.STATE_AIR:
 		process_air()
 		state_air.emit(self)
@@ -518,7 +544,7 @@ func _physics_process(_delta: float) -> void:
 		process_ground()
 		state_ground.emit(self)
 	
-	prev_ground_velocity = ground_velocity
+	last_ground_velocity = ground_velocity
 	velocity = velocity_1 * physics_tick_adjust
 	move_and_slide()
 	

@@ -1,8 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=8 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
-[ext_resource type="Script" path="res://Demo/abilities/big_jump.gd" id="3_2jr52"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(1031, 20)
@@ -76,6 +75,3 @@ disabled = true
 position = Vector2(31, 5)
 shape = SubResource("CircleShape2D_3edfo")
 disabled = true
-
-[node name="BigJumpForTesting" type="Node" parent="mrneedlemouse"]
-script = ExtResource("3_2jr52")
