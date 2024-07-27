@@ -8,7 +8,7 @@
 size = Vector2(1031, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6cpsv"]
-size = Vector2(500, 500)
+size = Vector2(800, 500)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_drx2y"]
 size = Vector2(200, 500)
@@ -34,7 +34,7 @@ rotation = -0.16057
 shape = SubResource("RectangleShape2D_fahr2")
 
 [node name="PlatformToJumpUpTo" type="StaticBody2D" parent="."]
-position = Vector2(1529, 568)
+position = Vector2(1738, 582)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformToJumpUpTo"]
 shape = SubResource("RectangleShape2D_6cpsv")

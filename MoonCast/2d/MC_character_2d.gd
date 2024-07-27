@@ -312,14 +312,16 @@ func process_air() -> void:
 
 ##Process the player's ground physics
 func process_ground() -> void:
-	#Check direction. This is needed first in order to rotate properly with the ground
+	#Check direction.
 	if not is_zero_approx(ground_velocity):
-		direction = signf(ground_velocity)
+		direction = get_position_delta().normalized().sign().x
 	
 	update_rotation()
 	#The character will jitter from the change in rotation if we don't snap them
-	#to the floor after all that
-	apply_floor_snap()
+	#to the floor after all that, but don't do that if they want to jump or they
+	#won't be able to leave the slope
+	if not Input.is_action_pressed(button_jump):
+		apply_floor_snap()
 	
 	#If this is negative, the player is pressing left. If positive, they're pressing right.
 	#If zero, they're pressing nothing (or their input is being ignored cause they shouldn't move)
@@ -327,27 +329,29 @@ func process_ground() -> void:
 	if can_move:
 		input_direction = Input.get_axis(button_left, button_right)
 	
+	#ie. we are running on foot
 	if not rolling:
-		#apply acceleration if we're not at top speed and have input
-		if not is_zero_approx(input_direction) and absf(ground_velocity) < physics.ground_top_speed:
-			#multiplying by input_direction in these calculations automatically flips the
-			#positivity of these values to match the player direction
-			
-			ground_velocity += physics.ground_acceleration * input_direction
-			#If input is in a different direction than the ground velocity...
-			if not is_equal_approx(direction, signf(input_direction)):
-				#apply skid mechanic
-				ground_velocity += physics.ground_skid_speed * input_direction
-				play_animation(anim_skid)
-		else: #handle input-less deceleration
+		
+		if is_zero_approx(input_direction): #handle input-less deceleration
 			#declines at a constant rate
 			if not is_zero_approx(ground_velocity) and not (rolling or crouching):
 				ground_velocity -= physics.ground_deceleration * direction
 			if absf(ground_velocity) < physics.ground_min_speed:
 				ground_velocity = 0
+		#If input matches the direction we're going
+		elif is_equal_approx(direction, signf(input_direction)):
+			#If we *can* add speed (can't go above the top speed)
+			if absf(ground_velocity) < physics.ground_top_speed:
+				#multiplying by input_direction in these calculations automatically flips the
+				#positivity of these values to match the player direction
+				ground_velocity += physics.ground_acceleration * input_direction
+		#We're going opposite to the direction, so apply skid mechanic
+		else:
+			ground_velocity += physics.ground_skid_speed * input_direction
+			play_animation(anim_skid)
 		
 		#apply gravity force if we are moving and not on a steep hill
-		if not is_zero_approx(ground_velocity) and absf(rotation) < floor_max_angle:
+		if not absf(ground_velocity) < physics.ground_min_speed and absf(rotation) < floor_max_angle:
 			#apply gravity if you are on a slope and not standing still
 			ground_velocity += sin(rotation) * physics.air_gravity_strength
 			#Apply the standing/running slope factor
@@ -355,12 +359,12 @@ func process_ground() -> void:
 	
 	elif rolling: #Calculate rolling
 		if not can_roll:
-			push_error("The player ", name, " was rolling despite the option to being disabled. 
+			push_error("The player ", name, " was rolling despite the option to roll being disabled. 
 			This may be the result of an improperly implemented ability.
 			Rolling has been automatically stopped.")
 			rolling = false
 		
-		#Allow the player to actively slow down if they try to
+		#Allow the player to actively slow down if they try to move in the opposite direction
 		if not is_equal_approx(direction, signf(input_direction)):
 				ground_velocity += physics.rolling_active_stop * input_direction
 		
@@ -454,6 +458,8 @@ func process_ground() -> void:
 			play_animation(anim_jump, true)
 			jumping = true
 			rolling = false
+	else:
+		apply_floor_snap()
 	
 	#Do rolling or crouching checks
 	if absf(ground_velocity) > physics.rolling_min_speed: #can roll, by internal standards
@@ -481,6 +487,7 @@ func process_ground() -> void:
 
 func update_rotation() -> void:
 	var last_collision:KinematicCollision2D = get_last_slide_collision()
+	
 	if is_instance_valid(last_collision):
 		var ground_angle:float = get_floor_angle(up_direction)
 		#If we're moving
@@ -488,16 +495,18 @@ func update_rotation() -> void:
 			#We figure out if we're going uphill or downhill based on assessing the
 			#normalized position delta, AKA the angle between current position and the last one
 			var assess_angle:Vector2 = get_position_delta().normalized().sign()
+			#Check to make sure we're going "up", compared with the up_direction because
+			#it may not always be consistent, eg. wall or ceiling mode
 			var going_uphill:bool = is_equal_approx(assess_angle.y, signf(up_direction.y))
 			
 			if going_uphill:
-				#rotation = ground_angle * -signf(get_position_delta().normalized().x)
-				rotation = ground_angle * assess_angle.y
+				rotation = ground_angle * assess_angle.y * assess_angle.x
 			else:
-				#rotation = ground_angle * signf(get_position_delta().normalized().x)
-				rotation = ground_angle * assess_angle.y
+				rotation = ground_angle * assess_angle.y * assess_angle.x
 		else: #stand upright on a hill when, well, standing
 			rotation = 0
+	else:
+		pass
 
 func _physics_process(_delta: float) -> void:
 	animation_set = false
