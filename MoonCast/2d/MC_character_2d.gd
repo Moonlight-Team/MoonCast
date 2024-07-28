@@ -9,6 +9,10 @@ enum PlayerStates {
 	STATE_WALL
 }
 
+const perf_ground_velocity:StringName = &"Ground Velocity"
+const perf_ground_angle:StringName = &"Ground Angle"
+const perf_state:StringName = &"Player State"
+
 ##The physics table for this player
 @export var physics:MoonCastPhysicsTable = MoonCastPhysicsTable.new()
 ##If this is set to false, the character cannot roll. 
@@ -141,6 +145,8 @@ var velocity_1:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
 ##Equivalent to get_position_delta().normalized().sign()
 var velocity_direction:Vector2
+##The current ground angle
+var ground_angle:float
 
 #values from the previous physics frame
 ## the ground velocity during the previous frame
@@ -156,6 +162,12 @@ var last_rotation:float = 0.0
 var physics_tick_adjust:float = 0.0
 ##The sotred value of max_angle
 var default_max_angle:float = floor_max_angle
+##The name of the custom performance monitor for ground_velocity
+var self_perf_ground_vel:StringName
+##The name of the custom performance monitor for ground_angle
+var self_perf_ground_angle:StringName
+##The name of the custom performance monitor for state
+var self_perf_state:StringName
 
 #processing signals, for the Ability ECS
 ##Emitted before processing physics 
@@ -234,14 +246,33 @@ func setup_collision() -> void:
 			print(this_shape_quadrant)
 			print(this_shape.get_rect())
 
+##Set up the custom performance monitors for the player
+func setup_performance_monitors() -> void:
+	self_perf_ground_angle = name + &"/" + perf_ground_angle
+	self_perf_ground_vel = name + &"/" + perf_ground_velocity
+	self_perf_state = name + &"/" + perf_state
+	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"ground_angle"])
+	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
+	Performance.add_custom_monitor(self_perf_state, get, [&"state"])
+
+##Clean up the custom performance monitors for the player
+func cleanup_performance_monitors() -> void:
+	Performance.remove_custom_monitor(self_perf_ground_angle)
+	Performance.remove_custom_monitor(self_perf_ground_vel)
+	Performance.remove_custom_monitor(self_perf_state)
+
 func _ready() -> void:
 	#Set up nodes
 	setup_children()
 	setup_collision()
+	setup_performance_monitors()
 	#Calculate the physics speed adjustment value
 	var physics_tick:float = ProjectSettings.get_setting("physics/common/physics_ticks_per_second", 60.0)
 	physics_tick_adjust = 60.0 * (60.0 / physics_tick)
 	default_max_angle = floor_max_angle
+
+func _exit_tree() -> void:
+	cleanup_performance_monitors()
 
 ##A wrapper function to play animations, with built in validity checking.
 ##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will
@@ -304,6 +335,7 @@ func process_air() -> void:
 	
 	if is_on_floor():
 		update_rotation()
+		apply_floor_snap()
 		state = PlayerStates.STATE_GROUND
 		jumping = false
 		#Apply any momentum to the character's ground velocity
@@ -330,6 +362,7 @@ func process_air() -> void:
 
 ##Process the player's ground physics
 func process_ground() -> void:
+	can_ground_snap = true
 	#Check direction.
 	if not is_zero_approx(ground_velocity):
 		direction = velocity_direction.x
@@ -339,11 +372,12 @@ func process_ground() -> void:
 	if Input.is_action_pressed(button_jump) and can_jump:
 		can_ground_snap = false
 		jumping = true
-	else:
-		#Apply floor snap so that rotation logic does not cause funniness in 
-		#speed calcualtions. The character will jitter from the change in rotation 
-		#if we don't snap them to the floor after the rotation calculations, but 
-		#they won't be able to leave the slope if that snap occurs when they want to jump
+	
+	#Apply floor snap so that rotation logic does not cause funniness in 
+	#speed calcualtions. The character will jitter from the change in rotation 
+	#if we don't snap them to the floor after the rotation calculations, but 
+	#sometimes we don't want them to, like when jumping, so it happens only when allowed
+	if can_ground_snap:
 		apply_floor_snap()
 	
 	
@@ -353,9 +387,11 @@ func process_ground() -> void:
 	if can_move:
 		input_direction = Input.get_axis(button_left, button_right)
 	
+	#If this is true, the player is changing direction
+	var changing_direction:bool = not is_equal_approx(direction, signf(input_direction))
+	
 	#ie. we are running on foot
 	if not rolling:
-		
 		if is_zero_approx(input_direction): #handle input-less deceleration
 			if not is_zero_approx(ground_velocity):
 				ground_velocity -= physics.ground_deceleration * direction
@@ -363,7 +399,7 @@ func process_ground() -> void:
 			if absf(ground_velocity) < physics.ground_min_speed:
 				ground_velocity = 0
 		#If input matches the direction we're going
-		elif is_equal_approx(direction, signf(input_direction)):
+		elif changing_direction:
 			#If we *can* add speed (can't go above the top speed)
 			if absf(ground_velocity) < physics.ground_top_speed:
 				#multiplying by input_direction in these calculations automatically flips the
@@ -389,7 +425,7 @@ func process_ground() -> void:
 			rolling = false
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
-		if not is_equal_approx(direction, signf(input_direction)):
+		if not changing_direction:
 				ground_velocity += physics.rolling_active_stop * input_direction
 		
 		#Always apply gravity when rolling
@@ -417,6 +453,7 @@ func process_ground() -> void:
 	#check for walls
 	if is_on_wall():
 		ground_velocity = 0
+		velocity_1.x = 0
 	
 	#apply the ground velocity to the "actual" velocity
 	velocity_1 = Vector2.from_angle(rotation) * ground_velocity
@@ -428,7 +465,8 @@ func process_ground() -> void:
 		rolling = false
 	
 	# fall off of walls if you aren't going fast enough
-	if (absf(ground_velocity) < physics.ground_slope_slip_speed or (ground_velocity != 0 and signf(ground_velocity) != signf(last_ground_velocity))):
+	#if (absf(ground_velocity) < physics.ground_slope_slip_speed or (ground_velocity != 0 and signf(ground_velocity) != signf(last_ground_velocity))):
+	if (absf(ground_velocity) < physics.ground_slope_slip_speed or changing_direction):
 		up_direction = Vector2.UP
 		floor_max_angle = default_max_angle
 		state = PlayerStates.STATE_AIR
@@ -517,7 +555,7 @@ func update_rotation() -> void:
 	var last_collision:KinematicCollision2D = get_last_slide_collision()
 	
 	if is_instance_valid(last_collision):
-		var ground_angle:float = get_floor_angle(up_direction)
+		ground_angle = get_floor_angle(up_direction)
 		#If we're moving
 		if absf(ground_velocity) > physics.ground_min_speed:
 			#We figure out if we're going uphill or downhill based on assessing the
