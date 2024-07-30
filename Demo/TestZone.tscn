@@ -1313,7 +1313,7 @@ sources/0 = SubResource("TileSetAtlasSource_eo2df")
 [sub_resource type="Resource" id="Resource_wa3sn"]
 script = ExtResource("4_ruljh")
 ground_min_speed = 0.2
-ground_slope_slip_speed = 2.5
+ground_stick_speed = 2.5
 ground_top_speed = 6.0
 ground_acceleration = 0.046875
 ground_deceleration = 0.046875

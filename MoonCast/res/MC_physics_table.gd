@@ -7,7 +7,7 @@ class_name MoonCastPhysicsTable
 ##The minimum speed the player needs to be moving to not be considered to be at a standstill.
 @export var ground_min_speed:float = 0.2
 ##The minimum speed the player needs to be moving at to not slip down slopes.
-@export var ground_slope_slip_speed:float = 2.5
+@export var ground_stick_speed:float = 2.5
 ##The top speed the player can reach on the ground without external factors.
 @export var ground_top_speed:float = 6.0
 ##How much the player will accelerate on the ground.

@@ -62,16 +62,16 @@ shape = SubResource("RectangleShape2D_ttkpr")
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
 
-[node name="Spindash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("2_qkeds")
-spindash_max_charge = 20.0
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="mrneedlemouse"]
-position = Vector2(-35, 0)
+[node name="GemShape" type="CollisionPolygon2D" parent="mrneedlemouse"]
+position = Vector2(-27, 13)
 polygon = PackedVector2Array(5, 0, 10, 3, 0, 11, -10, 3, -5, 0)
 disabled = true
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="mrneedlemouse"]
-position = Vector2(31, 5)
+[node name="CircleShape" type="CollisionShape2D" parent="mrneedlemouse"]
+position = Vector2(10, 8)
 shape = SubResource("CircleShape2D_3edfo")
 disabled = true
+
+[node name="Spindash" type="Node" parent="mrneedlemouse"]
+script = ExtResource("2_qkeds")
+spindash_max_charge = 20.0

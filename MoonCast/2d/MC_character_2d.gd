@@ -6,7 +6,6 @@ class_name MoonCastPlayer2D
 enum PlayerStates {
 	STATE_AIR,
 	STATE_GROUND,
-	STATE_WALL
 }
 
 enum WallMode {
@@ -15,7 +14,7 @@ enum WallMode {
 	##The player is on a wall that is to the right of the player, in a 2D sense
 	WALL_RIGHT = 90,
 	##The player is on a wall that is to the left of the player, in a 2D sense
-	WALL_LEFT = -90,
+	WALL_LEFT = 270,
 	##The player is on the ceiling
 	CEILING = 180
 }
@@ -130,7 +129,7 @@ var state:int = PlayerStates.STATE_AIR:
 				PlayerStates.STATE_GROUND:
 					contact_ground.emit(self)
 ##The direction the player is facing. Either -1 for left or 1 for right.
-var direction:float = 1.0
+var facing_direction:float = 1.0
 ##Set to true when an animation is set in the physics frame 
 ##so that some other animations don't override it.
 ##Automatically reset to false at the start of each physics frame
@@ -183,12 +182,19 @@ var last_rotation:float = 0.0
 var physics_tick_adjust:float = 0.0
 ##The sotred value of max_angle
 var default_max_angle:float = floor_max_angle
+
+##The lowest left point for collision among the player's hitboxes
+var ground_left_corner:Vector2
+##The lowest right point for collision among the player's hitboxes
+var ground_right_corner:Vector2
+
 ##The name of the custom performance monitor for ground_velocity
 var self_perf_ground_vel:StringName
 ##The name of the custom performance monitor for ground_angle
 var self_perf_ground_angle:StringName
 ##The name of the custom performance monitor for state
 var self_perf_state:StringName
+
 
 #processing signals, for the Ability ECS
 ##Emitted before processing physics 
@@ -252,8 +258,6 @@ func setup_collision() -> void:
 	#will be mostly used for ledge animation detection, as the collision system 
 	#handles most of the rest for detection that these would traditionally be used 
 	#for.
-	var down_left_corner:Vector2
-	var down_right_corner:Vector2
 	
 	for collision_shapes in get_shape_owners():
 		for shapes in shape_owner_get_shape_count(collision_shapes):
@@ -261,11 +265,27 @@ func setup_collision() -> void:
 			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
 			#Get the shape's node, for stuff like position
 			var this_shape_node:Node2D = shape_owner_get_owner(collision_shapes)
-			#Calculate which region the node (and thus shape) falls under
-			var this_shape_quadrant:Vector2 = Vector2(signf(this_shape_node.position.x), signf(this_shape_node.position.y))
-			print(this_shape_node.position)
-			print(this_shape_quadrant)
-			print(this_shape.get_rect())
+			
+			#If this shape's node isn't higher up than the player's origin
+			#(ie. it's on the player's lower half)
+			if this_shape_node.position.y >= 0:
+				var shape_outmost_point:Vector2 = this_shape.get_rect().end
+				#the lower right corner of the shape
+				var collision_outmost_right:Vector2 = this_shape_node.position + shape_outmost_point
+				#The lower left corner of the shape
+				var collision_outmost_left:Vector2 = this_shape_node.position + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
+				
+				#If it's farther down vertically than either of the max points
+				if collision_outmost_left.y >= ground_left_corner.y or collision_outmost_right.y >= ground_right_corner.y:
+					#If it's farther left than the most left point so far...
+					if collision_outmost_left.x < ground_left_corner.x:
+						ground_left_corner = collision_outmost_left
+					#Otherwise, if it's farther right that the most right point so far...
+					if collision_outmost_right.x > ground_right_corner.x:
+						ground_right_corner = collision_outmost_right
+	
+	prints("results:\n", ground_left_corner, ground_right_corner)
+	print((ground_left_corner.abs().x + ground_right_corner.abs().x) / 2.0)
 
 ##Set up the custom performance monitors for the player
 func setup_performance_monitors() -> void:
@@ -360,6 +380,19 @@ func set_wall_mode(mode:WallMode) -> void:
 
 ##Process the player's air physics
 func process_air() -> void:
+	# Allow the player to change the duration of the jump by releasing the jump
+	# button early
+	if not Input.is_action_pressed(button_jump) and jumping:
+		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
+	
+	# air-based movement
+	var input_direction:float = 0.0
+	if can_move:
+		input_direction = Input.get_axis(button_left, button_right)
+	#Only let the player accelerate if they aren't already at max speed
+	if absf(space_velocity.x) < physics.ground_top_speed and not is_zero_approx(input_direction):
+		space_velocity.x += physics.air_acceleration * input_direction
+	
 	#WIP: calculate air drag
 	if space_velocity.y < 0 and space_velocity.y > -4:
 		space_velocity.x -= (space_velocity.x * 0.125) / 256
@@ -370,27 +403,13 @@ func process_air() -> void:
 	#EXPERIMENTAL: Collision detection *without* using raycasts
 	
 	if is_on_floor():
-		update_rotation()
-		apply_floor_snap()
 		state = PlayerStates.STATE_GROUND
+		update_rotation(true)
 		jumping = false
 		#Apply any momentum to the character's ground velocity
-		ground_velocity = sin(rotation) * (space_velocity.y + 0.5) + cos(rotation) * space_velocity.x
+		ground_velocity = sin(rotation_degrees) * (space_velocity.y + 0.5) + cos(rotation_degrees) * space_velocity.x
 	else:
-		rotation = move_toward(rotation, 0.0, 0.01)
-	
-	# air-based movement
-	var input_direction:float = 0.0
-	if can_move:
-		input_direction = Input.get_axis(button_left, button_right)
-	#Only let the player accelerate if they aren't already at max speed
-	if absf(space_velocity.x) < physics.ground_top_speed and not is_zero_approx(input_direction):
-		space_velocity.x += physics.air_acceleration * input_direction
-	
-	# Allow the player to change the duration of the jump by releasing the jump
-	# button early
-	if not Input.is_action_pressed(button_jump) and jumping:
-		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
+		update_rotation(false)
 	
 	#Lose momentum if we hit a wall
 	if is_on_wall():
@@ -401,7 +420,7 @@ func process_ground() -> void:
 	can_ground_snap = true
 	#Check direction.
 	if not is_zero_approx(ground_velocity):
-		direction = signf(ground_velocity)
+		facing_direction = signf(ground_velocity)
 	
 	#update_rotation()
 	#check things that would want us to not floor snap
@@ -425,13 +444,20 @@ func process_ground() -> void:
 		input_direction = Input.get_axis(button_left, button_right)
 	
 	#If this is true, the player is changing direction
-	var changing_direction:bool = not is_equal_approx(direction, signf(input_direction))
+	var changing_direction:bool = not is_equal_approx(facing_direction, signf(input_direction))
 	
 	#ie. we are running on foot
 	if not rolling:
+		#apply gravity force if we are moving and not on a steep hill
+		if not absf(ground_velocity) < physics.ground_min_speed and absf(rotation) < floor_max_angle:
+			#apply gravity if you are on a slope and not standing still
+			ground_velocity += sin(rotation_degrees) * physics.air_gravity_strength
+			#Apply the standing/running slope factor
+			ground_velocity -= sin(rotation_degrees) * physics.ground_slope_factor
+		
 		if is_zero_approx(input_direction): #handle input-less deceleration
 			if not is_zero_approx(ground_velocity):
-				ground_velocity -= physics.ground_deceleration * direction
+				ground_velocity -= physics.ground_deceleration * facing_direction
 			#snap ground velocity to the minimum ground speed
 			if absf(ground_velocity) < physics.ground_min_speed:
 				ground_velocity = 0
@@ -447,38 +473,32 @@ func process_ground() -> void:
 			ground_velocity += physics.ground_skid_speed * input_direction
 			play_animation(anim_skid)
 		
-		#apply gravity force if we are moving and not on a steep hill
-		if not absf(ground_velocity) < physics.ground_min_speed and absf(rotation) < floor_max_angle:
-			#apply gravity if you are on a slope and not standing still
-			ground_velocity += sin(rotation) * physics.air_gravity_strength
-			#Apply the standing/running slope factor
-			ground_velocity -= sin(rotation) * physics.ground_slope_factor
-	
-	elif rolling: #Calculate rolling
-		if not can_roll:
-			push_error("The player ", name, " was rolling despite the option to roll being disabled. 
+	#A check to make sure the player isn't rolling when they shouldn't be able to
+	elif not can_roll and rolling:
+		push_error("The player ", name, " was rolling despite the option to roll being disabled. 
 			This may be the result of an improperly implemented ability.
 			Rolling has been automatically stopped.")
-			rolling = false
-		
-		#Allow the player to actively slow down if they try to move in the opposite direction
-		if not changing_direction:
-				ground_velocity += physics.rolling_active_stop * input_direction
-		
-		#Always apply gravity when rolling
-		ground_velocity += sin(rotation) * physics.air_gravity_strength
-		
+		rolling = false
+	elif rolling: #Calculate rolling
 		#apply slope factors
 		if is_zero_approx(rotation): #If we're on level ground
 			#If we're also moving
 			if not is_zero_approx(ground_velocity):
-				ground_velocity = move_toward(ground_velocity, 0, physics.rolling_flat_factor)
+				ground_velocity -= physics.rolling_flat_factor * -facing_direction
 		else: #We're on a hill of some sort
-			#If we are rolling uphill
-			if is_equal_approx(direction, signf(rotation)):
-				ground_velocity -= sin(rotation) * physics.rolling_uphill_factor
+			if is_equal_approx(facing_direction, signf(sin(rotation_degrees))):
+				#We are rolling uphill
+				ground_velocity -= sin(rotation_degrees) * physics.rolling_uphill_factor
 			else: #rolling downhill
-				ground_velocity -= sin(rotation) * physics.rolling_downhill_factor * direction
+				ground_velocity -= sin(rotation_degrees) * physics.rolling_downhill_factor
+		
+		#Allow the player to actively slow down if they try to move in the opposite direction
+		if changing_direction:
+			ground_velocity += physics.rolling_active_stop * input_direction
+		
+		#Always apply gravity when rolling
+		ground_velocity += sin(rotation_degrees) * physics.air_gravity_strength
+		
 		
 		#If the player isn't moving fast enough to still be rolling
 		#This check happens regardless on hill value because the player
@@ -491,34 +511,36 @@ func process_ground() -> void:
 	if is_on_wall():
 		ground_velocity = 0
 	
-	#apply the ground velocity to the "actual" velocity
-	space_velocity = Vector2.from_angle(rotation) * ground_velocity
 	
 	#enter the air state if the player is not on the ground anymore
 	if not is_on_floor():
-		state = PlayerStates.STATE_AIR
-		rotation = 0
-		rolling = false
-	
-	# fall off of walls if you aren't going fast enough
-	#if (absf(ground_velocity) < physics.ground_slope_slip_speed or (ground_velocity != 0 and signf(ground_velocity) != signf(last_ground_velocity))):
-	if ground_wall_mode != WallMode.GROUND and (absf(ground_velocity) < physics.ground_slope_slip_speed or changing_direction):
 		set_wall_mode(WallMode.GROUND)
 		floor_max_angle = default_max_angle
 		state = PlayerStates.STATE_AIR
 		rotation = 0
-	else:
-		floor_max_angle = deg_to_rad(WallMode.WALL_RIGHT)
+	
+	# fall off of walls if you aren't going fast enough, change directions, and are not in ground mode
+	#"walls" are defined by the default_max_angle
+	#if (absf(ground_velocity) < physics.ground_stick_speed or (ground_velocity != 0 and signf(ground_velocity) != signf(last_ground_velocity))):
+	if ((absf(ground_velocity) < physics.ground_stick_speed) or changing_direction) and absf(rotation) > default_max_angle and ground_wall_mode != WallMode.GROUND:
+		floor_block_on_wall = true
+		set_wall_mode(WallMode.GROUND)
+		floor_max_angle = default_max_angle
+		state = PlayerStates.STATE_AIR
+		rotation = 0
+	else: #Set floor mode since, we're going fast enough to stick to the floor
+		floor_block_on_wall = false
+		floor_max_angle = deg_to_rad(90.0)
 	
 	#ensure the character is facing the right direction
 	#run checks, because having the nodes for this is not assumable
 	if not is_zero_approx(ground_velocity):
-		if direction < 0: #left
+		if facing_direction < 0: #left
 			if is_instance_valid(sprite1):
 				sprite1.flip_h = true
 			if is_instance_valid(animated_sprite1):
 				animated_sprite1.flip_h = true
-		elif direction > 0: #right
+		elif facing_direction > 0: #right
 			if is_instance_valid(sprite1):
 				sprite1.flip_h = false
 			if is_instance_valid(animated_sprite1):
@@ -551,20 +573,26 @@ func process_ground() -> void:
 	#jumping logic
 	
 	#This is a split off check so that floor snapping is not applied if they want to jump
+	var rotation_vector:Vector2 = Vector2.from_angle(rotation)
 	if jumping:
 		state = PlayerStates.STATE_AIR
 		#Reset the max angle the player can't jump off walls
 		floor_max_angle = default_max_angle
 		#Add velocity to the jump
-		space_velocity += Vector2(sin(rotation), -cos(rotation)) * physics.jump_velocity
+		space_velocity.x -= physics.jump_velocity * rotation_vector.y
+		space_velocity.y -= physics.jump_velocity * rotation_vector.x
 		#Reset rotation
 		rotation = 0
 		#Update states, animations
 		play_animation(anim_jump, true)
 		rolling = false
+	else:
+		#apply the ground velocity to the "actual" velocity
+		space_velocity.x = ground_velocity * rotation_vector.x
+		space_velocity.y = ground_velocity * -rotation_vector.y
 	
 	#Do rolling or crouching checks
-	if absf(ground_velocity) > physics.rolling_min_speed: #can roll, by internal standards
+	if absf(ground_velocity) > physics.rolling_min_speed: #can roll
 		#We're moving too fast to crouch
 		crouching = false
 		#Roll if the player tries to and we can
@@ -587,22 +615,62 @@ func process_ground() -> void:
 				play_animation(anim_stand)
 			can_move = true
 
+##Check for collision. This function is for both being 
+##airborne and on the ground.
+func check_collision() -> void:
+	#Godot handles collisions and positioning, so we only have
+	#to handle how the player reacts to those things
+	
+	var last_collision:KinematicCollision2D = get_last_slide_collision()
+	if is_instance_valid(last_collision):
+		var collision_quadrant:Vector2 = global_position.direction_to(last_collision.get_position()).sign()
+		
+		#wall collision check
+		#If we're moving in the same direction as the direction of the wall we collided with
+		if is_on_wall() and space_velocity.sign().is_equal_approx(collision_quadrant):
+			#If we're on the ground
+			if is_on_floor():
+				ground_velocity = 0.0
+			else: #we're in the air
+				space_velocity.x = 0.0
+	
+	if is_on_floor():
+		state = PlayerStates.STATE_GROUND
+	else:
+		state = PlayerStates.STATE_AIR
+
 ##Update the rotation of the character, as well as other relted variables such as the ground_angle
 func update_rotation(floor_snap:bool = false) -> void:
 	var last_collision:KinematicCollision2D = get_last_slide_collision()
 	#Only do something if the last collision was valid
-	if is_instance_valid(last_collision):
+	
+	if is_instance_valid(last_collision) and is_on_floor():
 		#Use the global position of the collision to find out where the 
 		#collision is relative to the player, since get_floor_angle is absolute
-		var collision_pos:Vector2 = last_collision.get_position() - global_position
-		#Simplify the position to make quadrant math easier
-		collision_pos = collision_pos.sign()
+		var collision_pos:Vector2 = global_position.direction_to(last_collision.get_position()).sign()
+		if global_position.angle_to_point(last_collision.get_position()) > floor_max_angle:
+			pass
+		
 		var raw_floor_angle:float = get_floor_angle(up_direction)
 		
-		
-		ground_angle = raw_floor_angle * direction * collision_pos.x * collision_pos.y
+		ground_angle = raw_floor_angle * facing_direction
+		if not is_on_wall():
+			ground_angle *= collision_pos.x * collision_pos.y
 		#if not is_zero_approx(raw_floor_angle):
 		#	ground_angle *= collision_pos.x * collision_pos.y
+		
+		if not is_on_wall() and absf(ground_velocity) > physics.ground_stick_speed:
+			var ground_angle_deg:float = rad_to_deg(ground_angle)
+			if ground_angle_deg >= 0 and ground_angle_deg < 45.0:
+				set_wall_mode(WallMode.GROUND)
+			elif ground_angle_deg >= 45.0 and ground_angle_deg < 135.0:
+				set_wall_mode(WallMode.WALL_RIGHT)
+			elif ground_angle_deg >= 135.0 and ground_angle_deg < 225.0:
+				set_wall_mode(WallMode.CEILING)
+			elif ground_angle_deg >= 225.0 and ground_angle_deg < 315.0:
+				set_wall_mode(WallMode.WALL_LEFT)
+			elif ground_angle_deg >= 315.0:
+				set_wall_mode(WallMode.GROUND)
 		
 		#If we're moving
 		if absf(ground_velocity) > physics.ground_min_speed:
@@ -611,6 +679,11 @@ func update_rotation(floor_snap:bool = false) -> void:
 			#and the last one
 			
 			rotation = ground_angle * velocity_direction.y * velocity_direction.x + wall_mode_rot_mult
+		else:
+			rotation = 0
+	elif state == PlayerStates.STATE_AIR:
+		rotation = move_toward(rotation, 0.0, rotation_adjustment_speed)
+	
 	if floor_snap:
 		apply_floor_snap()
 

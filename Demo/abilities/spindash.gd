@@ -26,7 +26,7 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 			spindashing = false
 			player.can_jump = true
 			player.can_move = true
-			player.ground_velocity = minf(spindash_total, spindash_max_charge) * player.direction
+			player.ground_velocity = minf(spindash_total, spindash_max_charge) * player.facing_direction
 			player.play_animation(player.anim_roll)
 			player.rolling = true
 			spindash_total = 0

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_mpnpc"]
 [ext_resource type="Texture2D" uid="uid://q5thi20c5oyo" path="res://Demo/assets/Sonic.png" id="3_rpo5c"]
-[ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_xg4u3"]
+[ext_resource type="Script" path="res://Demo/abilities/big_jump.gd" id="3_xgiyr"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -13,7 +13,7 @@ length = 0.40001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -30,7 +30,7 @@ loop_mode = 2
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -47,7 +47,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -64,7 +64,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -81,7 +81,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -97,7 +97,7 @@ length = 0.40001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -114,7 +114,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -131,7 +131,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -148,7 +148,7 @@ loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/path = NodePath("Sprites:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -194,24 +194,27 @@ button_right = &"ui_right"
 button_jump = &"ui_select"
 button_roll = &"ui_down"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="RectangleShape" type="CollisionShape2D" parent="."]
 position = Vector2(0, 5)
 shape = SubResource("RectangleShape2D_x7kbe")
-debug_color = Color(2.21401e-06, 0.552011, 0.644684, 0.42)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprites" type="Sprite2D" parent="."]
 texture_filter = 1
+position = Vector2(3, 25)
 texture = ExtResource("3_rpo5c")
+offset = Vector2(-3, -25)
 hframes = 16
 vframes = 18
+frame = 12
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+[node name="Anims" type="AnimationPlayer" parent="."]
 libraries = {
 "": SubResource("AnimationLibrary_djpht")
 }
 autoplay = "walk"
 
-[node name="DebugMode" type="Node" parent="."]
-script = ExtResource("3_xg4u3")
+[node name="Cam" type="Camera2D" parent="."]
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="BigJump" type="Node" parent="."]
+script = ExtResource("3_xgiyr")
+enabled = false
