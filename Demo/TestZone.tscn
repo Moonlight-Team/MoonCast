@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=11 format=3 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_8c4a3"]
 [ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="1_40r55"]
@@ -6,6 +6,8 @@
 [ext_resource type="AudioStream" uid="uid://dootfswbvbafw" path="res://Demo/assets/Audio/Music/April City.ogg" id="4_4fkrd"]
 [ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="4_ruljh"]
 [ext_resource type="Texture2D" uid="uid://bot8e7aljq2o1" path="res://Demo/assets/spritesheet-export.png" id="5_ctefi"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_28rcd"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_eo2df"]
 texture = ExtResource("5_ctefi")
@@ -1052,7 +1054,7 @@ texture_region_size = Vector2i(128, 128)
 2:11/0 = 0
 2:11/0/physics_layer_0/linear_velocity = Vector2(0, 0)
 2:11/0/physics_layer_0/angular_velocity = 0.0
-2:11/0/physics_layer_0/polygon_0/points = PackedVector2Array(19, -16, 38, -43, 48, -64, 64, -64, 64, 64, -64, 64, -64, 0, -37, 0, -3, -7)
+2:11/0/physics_layer_0/polygon_0/points = PackedVector2Array(17.625, -16.375, 30.625, -30.125, 38, -43, 48, -64, 64, -64, 64, 64, -64, 64, -64, 0, -37, 0, -16.125, -2.125, 2.625, -8.125)
 3:11/0 = 0
 3:11/0/physics_layer_0/linear_velocity = Vector2(0, 0)
 3:11/0/physics_layer_0/angular_velocity = 0.0
@@ -1308,6 +1310,7 @@ texture_region_size = Vector2i(128, 128)
 [sub_resource type="TileSet" id="TileSet_h13a1"]
 tile_size = Vector2i(128, 128)
 physics_layer_0/collision_layer = 1
+physics_layer_0/physics_material = SubResource("PhysicsMaterial_28rcd")
 sources/0 = SubResource("TileSetAtlasSource_eo2df")
 
 [sub_resource type="Resource" id="Resource_wa3sn"]
@@ -1341,11 +1344,11 @@ texture = ExtResource("1_40r55")
 
 [node name="TileMap" type="TileMap" parent="."]
 texture_filter = 1
-position = Vector2(4, 0)
+position = Vector2(5, 0)
 tile_set = SubResource("TileSet_h13a1")
 rendering_quadrant_size = 4
 format = 2
-layer_0/tile_data = PackedInt32Array(262139, 0, 4, 327711, 65536, 13, 327703, 65536, 13, 327695, 65536, 13, 327687, 65536, 13, 393215, 65536, 13, 393207, 65536, 13, 327719, 65536, 13, 327727, 65536, 13, 852015, 458752, 17, 852007, 393216, 17, 851999, 458752, 17, 851991, 393216, 17, 851983, 458752, 17, 851976, 393216, 17, 851968, 458752, 17, 917496, 393216, 17, 917488, 393216, 17, 393199, 65536, 13, 65535, 65536, 13, 0, 65536, 13, 1, 65536, 13, 2, 65536, 13, 3, 65536, 13, 4, 65536, 13, 5, 65536, 13, 6, 65536, 13, 7, 65536, 13, 8, 65536, 13, 9, 65536, 13, 10, 65536, 13, 11, 65536, 13, 12, 65536, 13, 13, 65536, 13, 14, 65536, 13, 15, 65536, 13, 16, 65536, 13, 17, 65536, 13, 18, 65536, 13, 19, 131072, 11, 65555, 0, 15, 65554, 0, 15, 65553, 0, 15, 65552, 0, 15, 65551, 0, 15, 65550, 0, 15, 65549, 0, 15, 65548, 0, 15, 65547, 0, 15, 65546, 0, 15, 65545, 0, 15, 65544, 0, 15, 65543, 0, 15, 65542, 0, 15, 65541, 0, 15, 65540, 0, 15, 65539, 0, 15, 65538, 0, 15, 65537, 0, 15, 65536, 0, 15, 131071, 0, 15, 196607, 0, 15, 131072, 0, 15, 131073, 0, 15, 131074, 0, 15, 131075, 0, 15, 131076, 0, 15, 131077, 0, 15, 131078, 0, 15, 131079, 0, 15, 131080, 0, 15, 131081, 0, 15, 131082, 0, 15, 131083, 0, 15, 131084, 0, 15, 131085, 0, 15, 131086, 0, 15, 131087, 0, 15, 131088, 0, 15, 131089, 0, 15, 131090, 0, 15, 131091, 0, 15, -65517, 131072, 10, -65516, 196608, 10, 20, 196608, 11)
+layer_0/tile_data = PackedInt32Array(262139, 0, 4, 327711, 65536, 13, 327703, 65536, 13, 327695, 65536, 13, 327687, 65536, 13, 393215, 65536, 13, 393207, 65536, 13, 327719, 65536, 13, 327727, 65536, 13, 852015, 458752, 17, 852007, 393216, 17, 851999, 458752, 17, 851991, 393216, 17, 851983, 458752, 17, 851976, 393216, 17, 851968, 458752, 17, 917496, 393216, 17, 917488, 393216, 17, 393199, 65536, 13, 65535, 65536, 13, 0, 65536, 13, 1, 65536, 13, 2, 65536, 13, 3, 65536, 13, 4, 65536, 13, 5, 65536, 13, 6, 65536, 13, 7, 65536, 13, 8, 65536, 13, 9, 65536, 13, 10, 65536, 13, 11, 65536, 13, 12, 65536, 13, 13, 65536, 13, 14, 65536, 13, 15, 65536, 13, 16, 65536, 13, 17, 65536, 13, 18, 65536, 13, 65555, 0, 15, 65554, 0, 15, 65553, 0, 15, 65552, 0, 15, 65551, 0, 15, 65550, 0, 15, 65549, 0, 15, 65548, 0, 15, 65547, 0, 15, 65546, 0, 15, 65545, 0, 15, 65544, 0, 15, 65543, 0, 15, 65542, 0, 15, 65541, 0, 15, 65540, 0, 15, 65539, 0, 15, 65538, 0, 15, 65537, 0, 15, 65536, 0, 15, 131071, 0, 15, 196607, 0, 15, 131072, 0, 15, 131073, 0, 15, 131074, 0, 15, 131075, 0, 15, 131076, 0, 15, 131077, 0, 15, 131078, 0, 15, 131079, 0, 15, 131080, 0, 15, 131081, 0, 15, 131082, 0, 15, 131083, 0, 15, 131084, 0, 15, 131085, 0, 15, 131086, 0, 15, 131087, 0, 15, 131088, 0, 15, 131089, 0, 15, 131090, 0, 15, 131091, 0, 15, -65517, 131072, 10, -65516, 196608, 10, 20, 196608, 11, 19, 131072, 11)
 
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_8c4a3")]
 position = Vector2(91, 24)
