@@ -43,4 +43,4 @@ class_name MoonCastPhysicsTable
 ##The upwards velocity of jumping.
 @export var jump_velocity:float = 6.5
 ##The "inactive" velocity of a jump when the jump button is released before the peak of the jump.
-@export var jump_short_limit:float
+@export var jump_short_limit:float = 4.0

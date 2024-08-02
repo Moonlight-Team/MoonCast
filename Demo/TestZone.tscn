@@ -1331,7 +1331,7 @@ rolling_active_stop = 0.125
 rolling_uphill_factor = 0.078125
 rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
-jump_short_limit = 0.0
+jump_short_limit = 4.0
 
 [node name="TestScene" type="Node2D"]
 
