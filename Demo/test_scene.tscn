@@ -1,8 +1,9 @@
-[gd_scene load_steps=9 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=10 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_txt8d"]
+[ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(1031, 20)
@@ -64,7 +65,7 @@ shape = SubResource("RectangleShape2D_ttkpr")
 position = Vector2(83, 6)
 
 [node name="GemShape" type="CollisionPolygon2D" parent="mrneedlemouse"]
-position = Vector2(-26, 11)
+position = Vector2(-26, 9)
 polygon = PackedVector2Array(5, 0, 10, 3, 0, 11, -10, 3, -5, 0)
 disabled = true
 
@@ -82,3 +83,10 @@ script = ExtResource("3_txt8d")
 button_enable_debug = &"debug_toggle"
 button_scene_pause = &"debug_pause"
 button_scene_frame_advance = &"debug_frame_advance"
+
+[node name="DropDash" type="Node" parent="mrneedlemouse"]
+script = ExtResource("4_0bcpf")
+chargeup_time = 0.1
+forward_speed = 8.0
+neutral_speed = 4.0
+charge_button = &"ui_select"
