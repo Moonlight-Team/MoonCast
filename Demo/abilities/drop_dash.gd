@@ -25,6 +25,8 @@ func _ready() -> void:
 func set_charged() -> void:
 	if can_charge and charging:
 		charged = true
+	else:
+		charged = false
 	can_charge = false
 	charging = false
 
@@ -49,7 +51,10 @@ func _air_state_2D(player:MoonCastPlayer2D) -> void:
 func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
 	charge_timer.stop()
 	if charged:
-		if signf(player.facing_direction) == signf(player.ground_velocity):
+		if is_equal_approx(signf(player.facing_direction), signf(player.ground_velocity)):
 			player.ground_velocity = player.facing_direction * forward_speed
 		else:
 			player.ground_velocity = player.facing_direction * neutral_speed
+		player.rolling = true
+		player.play_animation(player.anim_roll)
+		charged = false

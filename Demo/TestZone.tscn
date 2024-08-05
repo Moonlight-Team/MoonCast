@@ -1325,13 +1325,19 @@ ground_slope_factor = 0.125
 air_top_speed = 6.0
 air_acceleration = 0.09375
 air_gravity_strength = 0.21875
-rolling_flat_factor = 0.0234375
 rolling_min_speed = 0.2
 rolling_active_stop = 0.125
+rolling_flat_factor = 0.0234375
 rolling_uphill_factor = 0.078125
 rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
 jump_short_limit = 4.0
+button_up = &"ui_up"
+button_down = &"ui_down"
+button_left = &"ui_left"
+button_right = &"ui_right"
+button_jump = &"ui_accept"
+button_roll = &"ui_select"
 
 [node name="TestScene" type="Node2D"]
 
