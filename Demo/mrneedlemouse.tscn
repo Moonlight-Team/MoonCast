@@ -7,7 +7,7 @@
 [sub_resource type="Resource" id="Resource_eyxug"]
 script = ExtResource("2_wcqqf")
 ground_min_speed = 0.2
-ground_stick_speed = 0.0
+ground_stick_speed = 2.5
 ground_top_speed = 6.0
 ground_acceleration = 0.046875
 ground_deceleration = 0.046875
@@ -28,7 +28,7 @@ button_down = &"ui_down"
 button_left = &"ui_left"
 button_right = &"ui_right"
 button_jump = &"ui_accept"
-button_roll = &"ui_select"
+button_roll = &"ui_down"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -249,12 +249,6 @@ anim_run_max = &"run_mach"
 anim_skid = &"skid"
 anim_jump = &"jump_ball"
 anim_free_fall = &"falling"
-button_up = &"ui_up"
-button_down = &"ui_down"
-button_left = &"ui_left"
-button_right = &"ui_right"
-button_jump = &"ui_select"
-button_roll = &"ui_down"
 
 [node name="RectangleShape" type="CollisionShape2D" parent="."]
 position = Vector2(0, 5)

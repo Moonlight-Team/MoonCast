@@ -1,14 +1,19 @@
 extends MoonCastAbility
 
 class_name DropDash
-
-@export var chargeup_time:float
-
+##How long, in seconds, it will take to charge the drop dash.
+@export var chargeup_time:float = 1.0 / 3.0 #20 frames when at 60fps, so that's about 1/3 of a second
+##The speed the drop dash will launch at when actively 
+##moving forward at time of launch.
 @export var forward_speed:float
-
+##The speed the drop dash will launch at when 
 @export var neutral_speed:float
-
-@export var charge_button:StringName
+##The button to be held in order to charge the drop dash.
+@export var charge_button:StringName = &"ui_select"
+##The animation name for charging the drop dash in midair.
+@export var anim_charge:StringName
+##The animation name for "launching" the drop dash upon landing.
+@export var anim_launch:StringName
 
 ##If the drop dash can be charged
 var can_charge:bool = false
@@ -16,17 +21,16 @@ var can_charge:bool = false
 var charging:bool = false
 ##If the drop dash is fully charged
 var charged:bool = false
-
+##The chargeup timer for the drop dash
 var charge_timer:Timer = Timer.new()
 
 func _ready() -> void:
 	add_child(charge_timer)
 
 func set_charged() -> void:
-	if can_charge and charging:
-		charged = true
-	else:
-		charged = false
+	#drop dash will only be charged both when the player has 
+	#can charge it, and when it has been charging
+	charged = can_charge and charging
 	can_charge = false
 	charging = false
 
@@ -37,13 +41,15 @@ func _air_contact_2D(player:MoonCastPlayer2D) -> void:
 func _air_state_2D(player:MoonCastPlayer2D) -> void:
 	if can_charge:
 		var charge_held:bool = Input.is_action_pressed(charge_button)
+		#If we *were* charging, but now are not
 		if charging and not charge_held:
 			can_charge = false
 			charging = false
 			player.play_animation(player.anim_jump)
 		elif charge_held and not charging:
 			charging = true
-			player.play_animation(&"drop_dash", true)
+			player.play_animation(anim_charge, true)
+			#start the charge timer
 			if not charge_timer.is_connected(&"timeout", set_charged):
 				charge_timer.connect(&"timeout", set_charged, CONNECT_ONE_SHOT)
 			charge_timer.start(chargeup_time)
@@ -56,5 +62,6 @@ func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
 		else:
 			player.ground_velocity = player.facing_direction * neutral_speed
 		player.rolling = true
-		player.play_animation(player.anim_roll)
+		#player.play_animation(player.anim_roll)
+		player.play_animation(anim_launch)
 		charged = false

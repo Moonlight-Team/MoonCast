@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=12 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
@@ -16,6 +16,9 @@ size = Vector2(200, 500)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ttkpr"]
 size = Vector2(400, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dbk"]
+size = Vector2(100, 20)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_3edfo"]
 
@@ -71,9 +74,15 @@ rotation = -0.322886
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SteeperSlopeRight"]
 shape = SubResource("RectangleShape2D_ttkpr")
 
+[node name="46DegreeSlope" type="StaticBody2D" parent="."]
+position = Vector2(1319, 356)
+rotation = -0.802851
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="46DegreeSlope"]
+shape = SubResource("RectangleShape2D_r0dbk")
+
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
-use_classic_rotation = true
 
 [node name="GemShape" type="CollisionPolygon2D" parent="mrneedlemouse"]
 position = Vector2(-26, 9)
@@ -97,10 +106,6 @@ button_scene_frame_advance = &"debug_frame_advance"
 
 [node name="DropDash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("4_0bcpf")
-chargeup_time = 0.1
-forward_speed = 8.0
-neutral_speed = 4.0
-charge_button = &"ui_select"
 
 [node name="Area2D" type="Area2D" parent="."]
 modulate = Color(0, 0.612316, 0.612316, 1)

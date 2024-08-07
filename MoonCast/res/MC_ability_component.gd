@@ -21,7 +21,7 @@ var _active_air_state:bool = true
 var _active_ground_contact:bool = true
 var _active_ground_state:bool = true
 var _active_wall_contact:bool = true
-var _active_wall_state:bool = true
+var _active_custom_state:bool = true
 
 #Sidestep for the fact that GDScript classes can't be identified by get_class()
 func _init() -> void:
@@ -59,9 +59,10 @@ func setup_ability_2D(parent:MoonCastPlayer2D) -> void:
 	_wall_contact_2D(parent)
 	if _active_wall_contact:
 		parent.connect(&"contact_wall", _wall_contact_2D)
-	_wall_state_2D(parent)
-	if _active_wall_state:
-		parent.connect(&"state_wall", _wall_state_2D)
+	
+	_custom_state_2D(parent)
+	if _active_custom_state:
+		_setup_custom_state_2D(parent)
 	
 	_setup_2D(parent)
 
@@ -96,5 +97,9 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 func _wall_contact_2D(player:MoonCastPlayer2D) -> void:
 	_active_wall_contact = false
 @warning_ignore("unused_parameter")
-func _wall_state_2D(player:MoonCastPlayer2D) -> void:
-	_active_wall_state = false
+func _setup_custom_state_2D(player:MoonCastPlayer2D) -> void:
+	pass
+@warning_ignore("unused_parameter")
+func _custom_state_2D(player:MoonCastPlayer2D) -> bool:
+	_active_custom_state = false
+	return true

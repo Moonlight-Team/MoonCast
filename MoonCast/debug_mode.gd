@@ -33,8 +33,7 @@ func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed(button_enable_debug):
 		print("Debug enabled: ", in_debug_mode)
 		in_debug_mode = not in_debug_mode
-	
 
 func _physics_process(_delta: float) -> void:
 	if in_debug_mode:
-		glob_player.position += Input.get_vector(glob_player.button_left, glob_player.button_right, glob_player.button_up, glob_player.button_down)
+		glob_player.position += Input.get_vector(glob_player.physics.button_left, glob_player.physics.button_right, glob_player.physics.button_up, glob_player.physics.button_down) * 2.0

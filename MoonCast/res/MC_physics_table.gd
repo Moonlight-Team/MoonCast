@@ -1,3 +1,4 @@
+@icon("res://MoonCast/assets/Physicstable.svg")
 extends Resource
 ##A class for storing physics stats and other player specific, but dimensionally
 ##agnostic, values, for both 3D and 2D physics in MoonCast.
