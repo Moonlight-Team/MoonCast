@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://b63ecpfrllawj"]
+[gd_scene load_steps=7 format=3 uid="uid://b63ecpfrllawj"]
 
 [ext_resource type="Script" path="res://Demo/main_menu.gd" id="1_6uy4f"]
 [ext_resource type="Texture2D" uid="uid://dakng88728fsv" path="res://MoonCast/assets/wingedver.svg" id="1_t4b0w"]
+[ext_resource type="Texture2D" uid="uid://b2inqji7ccpc" path="res://Demo/assets/dream.png" id="2_bqp32"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7ee8e"]
 bg_color = Color(0, 0, 0, 1)
@@ -110,8 +111,13 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_6uy4f")
 
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(213, 123)
+scale = Vector2(0.73635, 0.73635)
+texture = ExtResource("2_bqp32")
+
 [node name="BlackScreen" type="Panel" parent="."]
-top_level = true
+modulate = Color(1, 1, 1, 0)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -132,15 +138,13 @@ grow_vertical = 2
 layout_mode = 2
 
 [node name="Emblem" type="TextureRect" parent="CenterContainer/VBoxContainer"]
-modulate = Color(0, 0, 0, 1)
-custom_minimum_size = Vector2(4773.81, 0)
+custom_minimum_size = Vector2(250, 0)
 layout_mode = 2
 size_flags_vertical = 3
 texture = ExtResource("1_t4b0w")
 expand_mode = 5
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
-modulate = Color(1, 1, 1, 0)
 custom_minimum_size = Vector2(0, 31)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -158,7 +162,6 @@ text = "Play 3D Level
 "
 
 [node name="Options" type="Button" parent="CenterContainer/VBoxContainer"]
-modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 0

@@ -1366,4 +1366,5 @@ spindash_max_charge = 20.0
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("4_4fkrd")
+volume_db = -12.813
 autoplay = true
