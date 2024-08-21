@@ -1,9 +1,10 @@
-[gd_scene load_steps=12 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=16 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_txt8d"]
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
+[ext_resource type="Texture2D" uid="uid://3d6bhb2q4jta" path="res://MoonCast/assets/Physicstable.svg" id="5_4wg4x"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(1031, 20)
@@ -19,6 +20,15 @@ size = Vector2(400, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dbk"]
 size = Vector2(100, 20)
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_dtehr"]
+normal = Vector2(0, 1)
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ir8kw"]
+normal = Vector2(-1, 0)
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uqlnw"]
+normal = Vector2(1, 0)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_3edfo"]
 
@@ -81,8 +91,27 @@ rotation = -0.802851
 [node name="CollisionShape2D" type="CollisionShape2D" parent="46DegreeSlope"]
 shape = SubResource("RectangleShape2D_r0dbk")
 
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+position = Vector2(661.262, -1193.76)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+shape = SubResource("WorldBoundaryShape2D_dtehr")
+
+[node name="StaticBody2D2" type="StaticBody2D" parent="."]
+position = Vector2(2105, -296)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D2"]
+shape = SubResource("WorldBoundaryShape2D_ir8kw")
+
+[node name="StaticBody2D3" type="StaticBody2D" parent="."]
+position = Vector2(-463, -195)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D3"]
+shape = SubResource("WorldBoundaryShape2D_uqlnw")
+
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
+floor_max_angle = 1.0472
 
 [node name="GemShape" type="CollisionPolygon2D" parent="mrneedlemouse"]
 position = Vector2(-26, 9)
@@ -107,10 +136,16 @@ button_scene_frame_advance = &"debug_frame_advance"
 [node name="DropDash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("4_0bcpf")
 
-[node name="Area2D" type="Area2D" parent="."]
+[node name="WaterShading" type="Area2D" parent="."]
 modulate = Color(0, 0.612316, 0.612316, 1)
 position = Vector2(673, 99)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WaterShading"]
 shape = SubResource("RectangleShape2D_nkpfw")
 debug_color = Color(1, 1, 1, 0.42)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+show_behind_parent = true
+position = Vector2(876, 106)
+scale = Vector2(6, 6)
+texture = ExtResource("5_4wg4x")

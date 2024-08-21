@@ -120,6 +120,8 @@ var ray_ground_right:RayCast2D = RayCast2D.new()
 ##The central raycast, used for balancing. This is based on the central point values 
 ##between ray_ground_left and ray_ground_right.
 var ray_ground_central:RayCast2D = RayCast2D.new()
+##A central node around which all the ground raycasts rotate
+var ground_raycast_wheel:Node2D = Node2D.new()
 ##The timer for the player's ability to jump after landing.
 var jump_timer:Timer = Timer.new()
 ##The timer for the player's ability to move directionally.
@@ -350,10 +352,12 @@ func setup_children() -> void:
 	add_child(jump_timer)
 	control_lock_timer.name = "ControlLockTimer"
 	add_child(control_lock_timer)
-	#Add the raycasts to the scene and place their positions
-	add_child(ray_ground_left)
-	add_child(ray_ground_right)
-	add_child(ray_ground_central)
+	#Add the raycasts to the scene
+	
+	add_child(ground_raycast_wheel)
+	ground_raycast_wheel.add_child(ray_ground_left)
+	ground_raycast_wheel.add_child(ray_ground_right)
+	ground_raycast_wheel.add_child(ray_ground_central)
 	
 	#If we have an AnimatedSprite2D, not having the other two doesn't matter
 	if not is_instance_valid(animated_sprite1):
@@ -524,8 +528,6 @@ func remove_ability(ability_name:StringName) -> void:
 func reset_wall_mode() -> void:
 	ground_angle = 0
 	up_direction = default_gravity
-	#rotation = default_gravity.angle() - deg_to_rad(180.0)
-	rotation = 0
 
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
@@ -564,8 +566,8 @@ func process_ground() -> void:
 	#update rotation
 	#We call the wall mode to update, and if it does, it will automatically
 	#cascade into the ground rotation force-updating
-	update_ground_rotation(update_wall_mode())
-	apply_floor_snap()
+	var update_raycasts:bool = update_wall_mode()
+	update_ground_rotation(update_raycasts)
 	
 	if is_on_floor():
 		grounded = true
@@ -576,17 +578,17 @@ func process_ground() -> void:
 	#right speed to still stick to the walls
 	if absf(ground_velocity) > physics.ground_stick_speed:
 		#Set this to basically all angles (2PI is a circle)
-		floor_max_angle = deg_to_rad(180.0)
+		floor_max_angle = deg_to_rad(360.0)
 		floor_block_on_wall = false
-	#fall off if the player is on a steep slope or wall. This is run only 
-	#if the previous check failed, meaning the player is already not moving
-	#fast enough to stay on the slope
-	elif absf(ground_angle) >= default_max_angle:
-		print("Fell off wall that was ", ground_angle, " radians steep")
-		floor_block_on_wall = true
-		#enter the air (this will do some automatic state
-		#setting things in the background for us)
-		grounded = false
+	else:
+		#fall off if the player is on a steep slope or wall. This is run only 
+		#if the previous check failed, meaning the player is already not moving
+		#fast enough to stay on the slope
+		if absf(ground_angle) >= default_max_angle:
+			floor_block_on_wall = true
+			#enter the air (this will do some automatic state
+			#setting things in the background for us)
+			grounded = false
 	
 	#balancing checks
 	#Balancing is only relevant if the player isn't moving and is on level ground
@@ -643,7 +645,7 @@ func process_ground() -> void:
 		print("Player jumped")
 		grounded = false
 		#Add velocity to the jump
-		space_velocity.x -= physics.jump_velocity * rotation_vector.y
+		space_velocity.x += physics.jump_velocity * rotation_vector.y
 		space_velocity.y -= physics.jump_velocity * rotation_vector.x
 		
 		#Update states, animations
@@ -653,7 +655,6 @@ func process_ground() -> void:
 		#should be vulnerable in midair
 		rolling = not is_jump_vulnerable
 	else:
-		
 		#apply the ground velocity to the "actual" velocity
 		space_velocity.x = ground_velocity * rotation_vector.x
 		space_velocity.y = ground_velocity * -rotation_vector.y
@@ -786,6 +787,7 @@ func update_collision() -> void:
 				space_velocity.x = 0.0
 
 ##Update the wall mode of the player
+##Returns if the rotation mode was changed from calling this function or not
 func update_wall_mode() -> bool:
 	var rotation_changed:bool = false
 	
@@ -794,13 +796,13 @@ func update_wall_mode() -> bool:
 		#We should rotate the wall mode right
 		if ground_angle > floor_max_angle:
 			up_direction = up_direction.rotated(-deg_to_rad(90.0))
-			global_rotation += deg_to_rad(90.0)
+			ground_raycast_wheel.rotation += deg_to_rad(90.0)
 			print("Wall mode rotated right")
 			rotation_changed = true
 		#We should rotate the wall mode left
 		elif ground_angle < -floor_max_angle:
 			up_direction = up_direction.rotated(deg_to_rad(90.0))
-			global_rotation -= deg_to_rad(90.0)
+			ground_raycast_wheel.rotation -= deg_to_rad(90.0)
 			print("Wall mode rotated left")
 			rotation_changed = true
 		else:
@@ -810,8 +812,8 @@ func update_wall_mode() -> bool:
 			rotation_changed = false
 		else:
 			rotation_changed = true
+			print("Fell off a wall?")
 			reset_wall_mode()
-		
 	
 	#Because we changed some important physics things just now, 
 	#including rotation (think the raycasts) and up_direction, 
@@ -834,8 +836,11 @@ func update_ground_rotation(force_update:bool = false) -> void:
 	var right_collision_distance:float = global_position.distance_squared_to(ray_ground_right.get_collision_point())
 	var left_collision_distance:float = global_position.distance_squared_to(ray_ground_left.get_collision_point())
 	
-	if moving and grounded:
+	if grounded:
 		var raw_floor_angle:float = get_floor_angle(up_direction)
+		
+		if Engine.get_physics_frames() % 60 == 0:
+			prints("Ground angle:", rad_to_deg(raw_floor_angle))
 		
 		#Determine which way the player needs to rotate in order to be aligned
 		#with the ground based on which side raycast is colliding
@@ -853,14 +858,17 @@ func update_ground_rotation(force_update:bool = false) -> void:
 		
 		ground_angle = raw_floor_angle * ground_angle_flip
 		
-		if use_classic_rotation:
-			#TODO: Work on this more
-			const rad_30_deg:float = deg_to_rad(30.0)
-			sprite_rotation = snappedf(ground_angle, rad_30_deg)
+		if moving:
+			if use_classic_rotation:
+				#TODO: Work on this more
+				const rad_30_deg:float = deg_to_rad(30.0)
+				sprite_rotation = snappedf(ground_angle, rad_30_deg)
+			else:
+				sprite_rotation = move_toward(last_sprite_rotation, ground_angle, rotation_adjustment_speed)
 		else:
-			sprite_rotation = move_toward(last_sprite_rotation, ground_angle, rotation_adjustment_speed)
+			sprite_rotation = 0
 		sprites_set_rotation(sprite_rotation)
-		
+	
 	#We are standing still, so just stand upright
 	else: 
 		sprites_set_rotation(0.0)
