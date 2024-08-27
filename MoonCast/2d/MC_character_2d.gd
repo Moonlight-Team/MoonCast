@@ -48,13 +48,18 @@ const perf_state:StringName = &"Player State"
 @export var can_midair_roll:bool = false
 ##If true, the player is vulnerable when jumping.
 @export var is_jump_vulnerable:bool = false
-##If true, classic rotation designs will be used, for a more "Genesis" feel.
-##Otherwise, rotation operates smoothly, like in Sonic Mania.
-@export var use_classic_rotation:bool = false
+@export_group("Rotation", "rotation_")
+##If true, classic rotation snapping will be used, for a more "Genesis" feel.
+##Otherwise, rotation operates smoothly, like in Sonic Mania. This is purely aesthetic.
+@export var rotation_classic_snap:bool = false
 ##The amount per frame, in radians, at which the player's rotation will adjust to 
 ##new angles, such as how fast it will move back to 0 when airborne or how fast it 
 ##will adjust to slopes.
 @export var rotation_adjustment_speed:float = 0.1
+##If this is true, collision boxes of the character will not rotate based on 
+##ground angle, mimicking the behavior of RSDK titles.
+@export var rotation_static_collision:bool = false
+
 
 @export_group("Animations", "anim_")
 ##The animation to play when standing still.
@@ -301,6 +306,18 @@ var ground_angle:float
 ##rotation so that physics remain consistent despite certain rotation
 ##settings.
 var sprite_rotation:float
+##The rotation of the collision.
+var collision_rotation:float:
+	get:
+		if rotation_static_collision:
+			return raycast_wheel.rotation
+		else:
+			return rotation
+	set(new_rot):
+		if rotation_static_collision:
+			raycast_wheel.rotation = new_rot
+		else:
+			rotation = new_rot
 
 #values from the previous physics frame
 ## the ground velocity during the previous frame
@@ -741,7 +758,7 @@ func process_rolling() -> void:
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	ground_angle = 0
-	raycast_wheel.rotation = 0
+	collision_rotation = 0
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -768,6 +785,8 @@ func update_collision_rotation() -> void:
 	var on_right_ground:bool = ray_ground_right.is_colliding()
 	
 	var stop_on_wall:bool = (left_wall_collided and space_velocity.x < 0) or (right_wall_collided and space_velocity.x > 0)
+	if stop_on_wall:
+		contact_wall.emit()
 	
 	grounded = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
 	
@@ -790,11 +809,11 @@ func update_collision_rotation() -> void:
 		elif on_right_ground:
 			ground_angle = right_angle
 		
-		raycast_wheel.rotation = ground_angle
+		collision_rotation = ground_angle
 		
 		#set sprite rotations
 		if moving:
-			if use_classic_rotation:
+			if rotation_classic_snap:
 				#TODO: Work on this more
 				const rad_30_deg:float = deg_to_rad(30.0)
 				sprite_rotation = snappedf(ground_angle, rad_30_deg)
@@ -811,10 +830,10 @@ func update_collision_rotation() -> void:
 		#set the ground angle
 		ground_angle = (left_angle + right_angle) / 2.0
 		
-		raycast_wheel.rotation = 0
+		collision_rotation = 0
 		
 		#set sprite rotation
-		if use_classic_rotation:
+		if rotation_classic_snap:
 			sprite_rotation = 0
 		else:
 			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
