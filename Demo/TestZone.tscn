@@ -472,6 +472,7 @@ rolling_uphill_factor = 0.078125
 rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
 jump_short_limit = 4.0
+jump_spam_timer = 0.4
 button_up = &"ui_up"
 button_down = &"ui_down"
 button_left = &"ui_left"

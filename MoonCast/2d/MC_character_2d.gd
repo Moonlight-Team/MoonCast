@@ -106,22 +106,32 @@ var sprite1:Sprite2D = null
 ##The AnimatedSprite2D for this player.
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
 var animated_sprite1:AnimatedSprite2D = null
-##The left side raycast, used for determining balancing and (partially) rotation.
+
+##A central node around which all the raycasts rotate
+var raycast_wheel:Node2D = Node2D.new()
+##The left ground raycast, used for determining balancing and rotation.
 ##[br]
 ##Its position is based on the farthest down and left CollisionShape2D shape that 
 ##is a child of the player (ie. it is not going to account for collision shapes that
 ##aren't going to touch the ground due to other lower shapes), and it points to that 
 ##shape's lowest reaching y value, plus 1 to clip slightly into the ground.
 var ray_ground_left:RayCast2D = RayCast2D.new()
-##The right side raycast, used for determining balancing and (partially) rotation.
+##The right ground raycast, used for determining balancing and rotation.
 ##Its position and target_position are determined the same way ray_ground_left.position
 ##are, but for rightwards values.
 var ray_ground_right:RayCast2D = RayCast2D.new()
 ##The central raycast, used for balancing. This is based on the central point values 
 ##between ray_ground_left and ray_ground_right.
 var ray_ground_central:RayCast2D = RayCast2D.new()
-##A central node around which all the ground raycasts rotate
-var ground_raycast_wheel:Node2D = Node2D.new()
+##The left wall raycast. Used for detecting running into a "wall" relative to the 
+##player's rotation
+var ray_wall_left:RayCast2D = RayCast2D.new()
+##The right wall raycast. Used for detecting running into a "wall" relative to the 
+##player's rotation
+var ray_wall_right:RayCast2D = RayCast2D.new()
+
+
+
 ##The timer for the player's ability to jump after landing.
 var jump_timer:Timer = Timer.new()
 ##The timer for the player's ability to move directionally.
@@ -279,7 +289,7 @@ var is_balancing:bool = false:
 var ground_velocity:float = 0:
 	set(new_gvel):
 		ground_velocity = new_gvel
-		moving = absf(ground_velocity) > physics.ground_min_speed 
+		moving = absf(ground_velocity) > physics.ground_min_speed
 ##The character's current velocity in space.
 var space_velocity:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
@@ -327,8 +337,6 @@ signal contact_wall(player:MoonCastPlayer2D)
 signal contact_air(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is touching the ground
 signal state_ground(player:MoonCastPlayer2D)
-##Emitted every frame when the player is touching a wall
-signal state_wall(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
 
@@ -352,12 +360,20 @@ func setup_children() -> void:
 	add_child(jump_timer)
 	control_lock_timer.name = "ControlLockTimer"
 	add_child(control_lock_timer)
-	#Add the raycasts to the scene
 	
-	add_child(ground_raycast_wheel)
-	ground_raycast_wheel.add_child(ray_ground_left)
-	ground_raycast_wheel.add_child(ray_ground_right)
-	ground_raycast_wheel.add_child(ray_ground_central)
+	#Add the raycasts to the scene
+	raycast_wheel.name = "Raycast Rotator"
+	add_child(raycast_wheel)
+	ray_ground_left.name = "RayGroundLeft"
+	raycast_wheel.add_child(ray_ground_left)
+	ray_ground_right.name = "RayGroundRight"
+	raycast_wheel.add_child(ray_ground_right)
+	ray_ground_central.name = "RayGroundCentral"
+	raycast_wheel.add_child(ray_ground_central)
+	ray_wall_left.name = "RayWallLeft"
+	raycast_wheel.add_child(ray_wall_left)
+	ray_wall_right.name = "RayWallRight"
+	raycast_wheel.add_child(ray_wall_right)
 	
 	#If we have an AnimatedSprite2D, not having the other two doesn't matter
 	if not is_instance_valid(animated_sprite1):
@@ -388,8 +404,8 @@ func setup_collision() -> void:
 	#The lowest right point for collision among the player's hitboxes
 	var ground_right_corner:Vector2
 	
-	for collision_shapes in get_shape_owners():
-		for shapes in shape_owner_get_shape_count(collision_shapes):
+	for collision_shapes:int in get_shape_owners():
+		for shapes:int in shape_owner_get_shape_count(collision_shapes):
 			#Get the shape itself
 			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
 			#Get the shape's node, for stuff like position
@@ -413,19 +429,31 @@ func setup_collision() -> void:
 					if collision_outmost_right.x > ground_right_corner.x:
 						ground_right_corner = collision_outmost_right
 	
-	#Add the raycasts to the scene and place their positions
-	ray_ground_left.name = "RayGroundLeft"
+	#place the raycasts based on the above derived values
+	
 	ray_ground_left.position.x = ground_left_corner.x
-	ray_ground_left.target_position.y = ground_left_corner.y + floor_snap_length
+	ray_ground_left.target_position.y = ground_left_corner.y + 1
 	ray_ground_left.collision_mask = collision_mask
-	ray_ground_right.name = "RayGroundRight"
+	ray_ground_left.add_exception(self)
+	
 	ray_ground_right.position.x = ground_right_corner.x
-	ray_ground_right.target_position.y = ground_right_corner.y + floor_snap_length
+	ray_ground_right.target_position.y = ground_right_corner.y + 1
 	ray_ground_right.collision_mask = collision_mask
-	ray_ground_central.name = "RayGroundCentral"
+	ray_ground_right.add_exception(self)
+	
 	ray_ground_central.position.x = (ground_left_corner.x + ground_right_corner.x) / 2.0
-	ray_ground_central.target_position.y = ((ground_left_corner.y + ground_right_corner.y) / 2.0) + floor_snap_length
+	ray_ground_central.target_position.y = ((ground_left_corner.y + ground_right_corner.y) / 2.0) + 1
 	ray_ground_central.collision_mask = collision_mask
+	ray_ground_central.add_exception(self)
+	
+	
+	#TODO: Place these better; they should be targeting the x pos of the absolute
+	#farthest horizontal collision boxes, not only the ground-valid boxes
+	ray_wall_left.target_position = Vector2(ground_left_corner.x - 1, 0)
+	ray_wall_left.add_exception(self)
+	
+	ray_wall_right.target_position = Vector2(ground_right_corner.x + 1, 0)
+	ray_wall_right.add_exception(self)
 
 ##Set up the custom performance monitors for the player
 func setup_performance_monitors() -> void:
@@ -443,20 +471,17 @@ func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_state)
 
 func _ready() -> void:
-	#Find collision points. Run this first so that the 
-	#raycasts can be placed properly.
-	setup_collision()
 	#Set up nodes
 	setup_children()
+	#Find collision points. Run this after so that the 
+	#raycasts can be placed properly.
+	setup_collision()
 	#setup performance montiors
 	setup_performance_monitors()
 	
 	#After all, why [i]not[/i] use our own API?
 	connect(&"contact_air", enter_air)
 	connect(&"contact_ground", land_on_ground)
-	
-	default_max_angle = floor_max_angle
-	reset_wall_mode()
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()
@@ -478,8 +503,8 @@ func play_animation(anim_name:StringName, force:bool = false) -> void:
 ##A special function for sequencing several animations in a chain. The array this takes in as a 
 ##parameter is assumed to be in the order that you want the animations to play.
 func sequence_animations(animation_array:Array[StringName]) -> void:
-	pass
-
+	for anims:StringName in animation_array:
+		pass
 
 ##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
 ##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will 
@@ -524,10 +549,30 @@ func remove_ability(ability_name:StringName) -> void:
 	else:
 		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\" that was called to be removed")
 
-##Reset wall mode related variables back to their default positions
-func reset_wall_mode() -> void:
-	ground_angle = 0
-	up_direction = default_gravity
+##Returns the given angle as an angle (in radians) between -PI and PI
+func limitAngle(input_angle:float) -> float:
+	const full_circle:float = 2 * PI
+	
+	var sign_of_angle:float = 1
+	if not is_zero_approx(input_angle):
+		sign_of_angle = signf(input_angle)
+	
+	input_angle = fmod(input_angle, full_circle)
+	if absf(input_angle) > PI:
+		input_angle = (full_circle - absf(input_angle)) * sign_of_angle * -1
+	return input_angle
+
+##returns the angle distance between rot1 and rot2, even over the 360deg
+##mark (i.e. 350 and 10 will be 20 degrees apart)
+func angleDist(rot1:float, rot2:float) -> float:
+	rot1 = limitAngle(rot1)
+	rot2 = limitAngle(rot2)
+	if absf(rot1 - rot2) > PI and rot1 > rot2:
+		return absf(limitAngle(rot1) - (limitAngle(rot2) + PI * 2))
+	elif abs(rot1 - rot2) > PI and rot1 < rot2:
+		return absf((limitAngle(rot1) + PI * 2) - (limitAngle(rot2)))
+	else:
+		return absf(rot1 - rot2)
 
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
@@ -554,57 +599,11 @@ func process_air() -> void:
 	
 	# apply gravity
 	space_velocity.y += physics.air_gravity_strength
-	
-	if is_on_floor():
-		print("Ground contacted from air")
-		grounded = true
-	else:
-		update_air_rotation()
+
 
 ##Process the player's ground physics
 func process_ground() -> void:
-	#update rotation
-	#We call the wall mode to update, and if it does, it will automatically
-	#cascade into the ground rotation force-updating
-	var update_raycasts:bool = update_wall_mode()
-	update_ground_rotation(update_raycasts)
 	
-	if is_on_floor():
-		grounded = true
-	else:
-		grounded = false
-	
-	#Check to make sure the player is traveling at the 
-	#right speed to still stick to the walls
-	if absf(ground_velocity) > physics.ground_stick_speed:
-		#Set this to basically all angles (2PI is a circle)
-		floor_max_angle = deg_to_rad(360.0)
-		floor_block_on_wall = false
-	else:
-		#fall off if the player is on a steep slope or wall. This is run only 
-		#if the previous check failed, meaning the player is already not moving
-		#fast enough to stay on the slope
-		if absf(ground_angle) >= default_max_angle:
-			floor_block_on_wall = true
-			#enter the air (this will do some automatic state
-			#setting things in the background for us)
-			grounded = false
-	
-	#balancing checks
-	#Balancing is only relevant if the player isn't moving and is on level ground
-	if is_zero_approx(ground_velocity) and is_zero_approx(ground_angle):
-		#only "balance" if the player is actively over the edge,
-		#sans the other case we'll cover in a second
-		if not ray_ground_central.is_colliding():
-			if not ray_ground_left.is_colliding() or not ray_ground_right.is_colliding():
-				is_balancing = true
-		#This is a funny edge case where the player is standing on something that is
-		#actually smaller than their complete ground hitbox, like a ball or something
-		#TODO: Implement something to do here (maybe a special anim cause why not)
-		elif not ray_ground_left.is_colliding() and not ray_ground_right.is_colliding():
-			is_balancing = true
-		else:
-			is_balancing = false
 	
 	#Calculate movement based on the mode
 	if rolling:
@@ -613,11 +612,25 @@ func process_ground() -> void:
 	else:
 		process_running()
 	
+	#balancing checks
+	#This is also used to decide if the player should snap to the floor, because
+	#the conditions are parallel to what we would check for to *not* snap to the 
+	#floor, such as running off a slope we just ran up
+	is_balancing = not ray_ground_central.is_colliding() and (not ray_ground_left.is_colliding() or not ray_ground_right.is_colliding())
+	
+	if not is_balancing:
+		apply_floor_snap()
+	
+	#fall off if the player is on a steep slope or wall and is not
+	#going fast enough to stick to walls
+	if absf(raycast_wheel.global_rotation >= default_max_angle) and absf(ground_velocity) < physics.ground_stick_speed:
+		grounded = false
+	
 	#Do rolling or crouching checks
 	if absf(ground_velocity) > physics.rolling_min_speed: #can roll
 		#We're moving too fast to crouch
 		crouching = false
-		#Roll if the player can, tries to, and is not already rolling
+		#Roll if the player tries to, and is not already rolling
 		if rolling_enabled and Input.is_action_pressed(physics.button_roll) and not rolling:
 			rolling = true
 	else: #standing or crouching
@@ -642,7 +655,6 @@ func process_ground() -> void:
 	#This is a shorthand for Vector2(cos(ground_angle), sin(ground_angle))
 	var rotation_vector:Vector2 = Vector2.from_angle(ground_angle)
 	if jumping:
-		print("Player jumped")
 		grounded = false
 		#Add velocity to the jump
 		space_velocity.x += physics.jump_velocity * rotation_vector.y
@@ -656,8 +668,8 @@ func process_ground() -> void:
 		rolling = not is_jump_vulnerable
 	else:
 		#apply the ground velocity to the "actual" velocity
-		space_velocity.x = ground_velocity * rotation_vector.x
-		space_velocity.y = ground_velocity * -rotation_vector.y
+		space_velocity = ground_velocity * rotation_vector
+
 
 ##Process the specific movement events for when the player is rolling
 func process_running() -> void:
@@ -729,159 +741,87 @@ func process_rolling() -> void:
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	ground_angle = 0
-	#Set the wall mode so that notions of walls and ground
-	#are reset (eg. so the player can't jump off walls)
-	reset_wall_mode()
-	#Reset the max angle so the player will slide off 
-	#walls, via Godot physics
-	floor_max_angle = default_max_angle
+	raycast_wheel.rotation = 0
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
 func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
-	jumping = false
+	
 	if not Input.is_action_pressed(physics.button_roll):
 		rolling = false
 	#Transfer space_velocity to ground_velocity
-	#ground_velocity = sin(rotation_degrees) * (space_velocity.y + 0.5) + cos(rotation_degrees) * space_velocity.x
 	ground_velocity = sin(rotation) * (space_velocity.y + 0.5) + cos(rotation) * space_velocity.x
-	update_ground_rotation()
-	apply_floor_snap()
 	#TODO: Set can_jump to false and add a jump cooldown 
 	#timer that starts here
+	if jumping:
+		jumping = false
+		can_jump = false
+		jump_timer.connect(&"timeout", func(): can_jump = true if not crouching else false)
+		jump_timer.start(physics.jump_spam_timer)
 
-##Check for collision. This function is for both being 
-##airborne and on the ground.
-func update_collision() -> void:
-	#Godot handles collisions and positioning, so we mostly 
-	#only have to handle how the player uniquely reacts to those things
+##Update collision and rotation.
+func update_collision_rotation() -> void:
+	var left_wall_collided:bool = ray_wall_left.is_colliding()
+	var right_wall_collided:bool = ray_wall_right.is_colliding()
+	var on_center_ground:bool = ray_ground_central.is_colliding()
+	var on_left_ground:bool = ray_ground_left.is_colliding()
+	var on_right_ground:bool = ray_ground_right.is_colliding()
 	
-	#Get the last collision. This will be null if no collisions happened last frame...
-	var last_collision:KinematicCollision2D = get_last_slide_collision()
+	var stop_on_wall:bool = (left_wall_collided and space_velocity.x < 0) or (right_wall_collided and space_velocity.x > 0)
 	
-	if is_on_floor():
-		grounded = true
+	grounded = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
 	
-	if is_instance_valid(last_collision):
-		var collision_quadrant:Vector2 = global_position.direction_to(last_collision.get_position()).sign()
-		
-		if is_on_floor():
-			#If we're on the floor, we're grounded
-			grounded = true
-		else:
-			#It's still possible that we collided with something in the air,
-			#including walls, ceilings, and other random objects
-			grounded = false
-		
-		#wall collision check
-		
-		#Only lose our velocity if we're moving in the
-		# same direction as the direction of the wall we collided with
-		if is_on_wall() and space_velocity.sign().is_equal_approx(collision_quadrant):
-			if grounded:
-				#When we're on the ground, nil ground_velocity
-				ground_velocity = 0.0
-			elif not grounded:
-				#ground_velocity does nothing in the air, so nil
-				#space_velocity directly
-				space_velocity.x = 0.0
-
-##Update the wall mode of the player
-##Returns if the rotation mode was changed from calling this function or not
-func update_wall_mode() -> bool:
-	var rotation_changed:bool = false
-	
-	if absf(ground_velocity) > physics.ground_stick_speed:
-		apply_floor_snap()
-		#We should rotate the wall mode right
-		if ground_angle > floor_max_angle:
-			up_direction = up_direction.rotated(-deg_to_rad(90.0))
-			ground_raycast_wheel.rotation += deg_to_rad(90.0)
-			print("Wall mode rotated right")
-			rotation_changed = true
-		#We should rotate the wall mode left
-		elif ground_angle < -floor_max_angle:
-			up_direction = up_direction.rotated(deg_to_rad(90.0))
-			ground_raycast_wheel.rotation -= deg_to_rad(90.0)
-			print("Wall mode rotated left")
-			rotation_changed = true
-		else:
-			rotation_changed = false
-	else:
-		if up_direction.is_equal_approx(default_gravity):
-			rotation_changed = false
-		else:
-			rotation_changed = true
-			print("Fell off a wall?")
-			reset_wall_mode()
-	
-	#Because we changed some important physics things just now, 
-	#including rotation (think the raycasts) and up_direction, 
-	#we need to refresh the CharacterBody physics
-	if rotation_changed:
-		velocity = Vector2.ZERO
-		move_and_slide()
-		apply_floor_snap()
-	
-	return rotation_changed
-
-
-##Update the rotation of the character when they are on the ground
-func update_ground_rotation(force_update:bool = false) -> void:
-	if force_update:
-		ray_ground_left.force_raycast_update()
-		ray_ground_right.force_raycast_update()
-	#Checking the coordinates directly is unreliable due to relative ground modes,
-	# so instead, we compare the collision points distance to the player's position
-	var right_collision_distance:float = global_position.distance_squared_to(ray_ground_right.get_collision_point())
-	var left_collision_distance:float = global_position.distance_squared_to(ray_ground_left.get_collision_point())
+	var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+	var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 	
 	if grounded:
-		var raw_floor_angle:float = get_floor_angle(up_direction)
+		#null horizontal velocity if the player is on a wall
+		if stop_on_wall:
+			ground_velocity = 0.0
 		
-		if Engine.get_physics_frames() % 60 == 0:
-			prints("Ground angle:", rad_to_deg(raw_floor_angle))
+		#set ground angles
+		if on_left_ground and on_right_ground:
+			if absf(left_angle - right_angle) < PI:
+				ground_angle = limitAngle((left_angle + right_angle) / 2.0)
+			else:
+				ground_angle = limitAngle((left_angle + right_angle + PI * 2.0) / 2.0)
+		elif on_left_ground:
+			ground_angle = left_angle
+		elif on_right_ground:
+			ground_angle = right_angle
 		
-		#Determine which way the player needs to rotate in order to be aligned
-		#with the ground based on which side raycast is colliding
-		var ground_angle_flip:float = 1.0
+		raycast_wheel.rotation = ground_angle
 		
-		#If this happens, the player is on effectively level ground
-		if is_equal_approx(right_collision_distance, left_collision_distance):
-			pass
-		#If the left point is closer
-		if left_collision_distance < right_collision_distance:
-			ground_angle_flip = 1.0
-		#If the right point is closer
-		elif right_collision_distance < left_collision_distance:
-			ground_angle_flip = -1.0
-		
-		ground_angle = raw_floor_angle * ground_angle_flip
-		
+		#set sprite rotations
 		if moving:
 			if use_classic_rotation:
 				#TODO: Work on this more
 				const rad_30_deg:float = deg_to_rad(30.0)
 				sprite_rotation = snappedf(ground_angle, rad_30_deg)
 			else:
-				sprite_rotation = move_toward(last_sprite_rotation, ground_angle, rotation_adjustment_speed)
+				#sprite_rotation = move_toward(last_sprite_rotation, ground_angle, rotation_adjustment_speed)
+				sprite_rotation = move_toward(sprite_rotation, ground_angle, rotation_adjustment_speed)
 		else:
 			sprite_rotation = 0
-		sprites_set_rotation(sprite_rotation)
-	
-	#We are standing still, so just stand upright
-	else: 
-		sprites_set_rotation(0.0)
-	apply_floor_snap()
-
-##Update the rotation of the character when they are in the air
-func update_air_rotation() -> void:
-	sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
-	if use_classic_rotation:
-		const rad_30_deg:float = deg_to_rad(30.0)
-		sprite_rotation = snappedf(sprite_rotation, rad_30_deg)
+	else:
+		#null velocity if the player is on a wall
+		if stop_on_wall:
+			space_velocity.x = 0.0
+		
+		#set the ground angle
+		ground_angle = (left_angle + right_angle) / 2.0
+		
+		raycast_wheel.rotation = 0
+		
+		#set sprite rotation
+		if use_classic_rotation:
+			sprite_rotation = 0
+		else:
+			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
+		#sprite_rotation = 0
 	sprites_set_rotation(sprite_rotation)
 
+##Update the rotation of the character when they are in the air
 func update_animations() -> void:
 	sprites_flip()
 	
@@ -997,4 +937,4 @@ func _physics_process(delta: float) -> void:
 	
 	update_animations()
 	
-	update_collision()
+	update_collision_rotation()

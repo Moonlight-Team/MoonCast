@@ -111,7 +111,8 @@ shape = SubResource("WorldBoundaryShape2D_uqlnw")
 
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
-floor_max_angle = 1.0472
+floor_stop_on_slope = true
+floor_constant_speed = false
 
 [node name="GemShape" type="CollisionPolygon2D" parent="mrneedlemouse"]
 position = Vector2(-26, 9)
@@ -145,6 +146,7 @@ shape = SubResource("RectangleShape2D_nkpfw")
 debug_color = Color(1, 1, 1, 0.42)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0.294641, 0.294641, 0.294641, 1)
 show_behind_parent = true
 position = Vector2(876, 106)
 scale = Vector2(6, 6)

@@ -47,6 +47,9 @@ class_name MoonCastPhysicsTable
 @export var jump_velocity:float = 6.5
 ##The "inactive" velocity of a jump when the jump button is released before the peak of the jump.
 @export var jump_short_limit:float = 4.0
+##The cooldown time, in seconds, between the player landing, and when they will 
+##next be able to jump
+@export var jump_spam_timer:float = 0.4
 
 @export_group("Inputs", "button_")
 ##The action name for pressing up
