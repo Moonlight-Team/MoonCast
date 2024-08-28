@@ -1,0 +1,47 @@
+[gd_scene load_steps=6 format=3 uid="uid://81vx8lyybmm7"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j4mqd"]
+size = Vector2(40, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hx7jx"]
+size = Vector2(40, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4n06j"]
+size = Vector2(20, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_f7rgl"]
+size = Vector2(20, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iv81a"]
+size = Vector2(40, 40)
+
+[node name="TouchControls" type="Node2D"]
+
+[node name="Left" type="TouchScreenButton" parent="."]
+position = Vector2(41, 147)
+shape = SubResource("RectangleShape2D_j4mqd")
+passby_press = true
+visibility_mode = 1
+
+[node name="Right" type="TouchScreenButton" parent="."]
+position = Vector2(101, 147)
+shape = SubResource("RectangleShape2D_hx7jx")
+passby_press = true
+visibility_mode = 1
+
+[node name="Up" type="TouchScreenButton" parent="."]
+position = Vector2(71, 117)
+shape = SubResource("RectangleShape2D_4n06j")
+passby_press = true
+visibility_mode = 1
+
+[node name="Down" type="TouchScreenButton" parent="."]
+position = Vector2(71, 177)
+shape = SubResource("RectangleShape2D_f7rgl")
+passby_press = true
+visibility_mode = 1
+
+[node name="Jump" type="TouchScreenButton" parent="."]
+position = Vector2(340, 161)
+shape = SubResource("RectangleShape2D_iv81a")
+visibility_mode = 1

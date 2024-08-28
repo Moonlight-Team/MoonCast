@@ -300,13 +300,13 @@ var space_velocity:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
 ##Equivalent to get_position_delta().normalized().sign()
 var velocity_direction:Vector2
-##The current ground angle. This is relative to the wall mode.
-var ground_angle:float
+
 ##The rotation of the sprites. This is seperate than the physics
 ##rotation so that physics remain consistent despite certain rotation
 ##settings.
 var sprite_rotation:float
-##The rotation of the collision.
+##The rotation of the collision. when grounded, this is the ground angle.
+##In the air, this should be 0.
 var collision_rotation:float:
 	get:
 		if rotation_static_collision:
@@ -318,19 +318,22 @@ var collision_rotation:float:
 			raycast_wheel.rotation = new_rot
 		else:
 			rotation = new_rot
-
-#values from the previous physics frame
-## the ground velocity during the previous frame
-var last_ground_velocity:float = 0.0
-##The player's previous sprite rotation
-var last_sprite_rotation:float
-
-##The value of floor_max_angle when the player is instantiated
-var default_max_angle:float = floor_max_angle
+##Collision rotation in global units.
+var global_collision_rotation:float:
+	get:
+		if rotation_static_collision:
+			return raycast_wheel.global_rotation
+		else:
+			return global_rotation
+	set(new_rot):
+		if rotation_static_collision:
+			raycast_wheel.global_rotation = new_rot
+		else:
+			global_rotation = new_rot
 
 ##The name of the custom performance monitor for ground_velocity
 var self_perf_ground_vel:StringName
-##The name of the custom performance monitor for ground_angle
+##The name of the custom performance monitor for the ground angle
 var self_perf_ground_angle:StringName
 ##The name of the custom performance monitor for state
 var self_perf_state:StringName
@@ -477,7 +480,7 @@ func setup_performance_monitors() -> void:
 	self_perf_ground_angle = name + &"/" + perf_ground_angle
 	self_perf_ground_vel = name + &"/" + perf_ground_velocity
 	self_perf_state = name + &"/" + perf_state
-	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"ground_angle"])
+	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_rotation"])
 	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
 	Performance.add_custom_monitor(self_perf_state, get, [&"state_is"])
 
@@ -594,6 +597,10 @@ func angleDist(rot1:float, rot2:float) -> float:
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 
+##Returns if the player could be slipping on a slope
+func lose_floor_grip() -> bool:
+	return absf(global_collision_rotation >= floor_max_angle) and absf(ground_velocity) < physics.ground_stick_speed
+
 ##Process the player's air physics
 func process_air() -> void:
 	# Allow the player to change the duration of the jump by releasing the jump
@@ -620,15 +627,6 @@ func process_air() -> void:
 
 ##Process the player's ground physics
 func process_ground() -> void:
-	
-	
-	#Calculate movement based on the mode
-	if rolling:
-		#Calculate rolling
-		process_rolling()
-	else:
-		process_running()
-	
 	#balancing checks
 	#This is also used to decide if the player should snap to the floor, because
 	#the conditions are parallel to what we would check for to *not* snap to the 
@@ -638,9 +636,70 @@ func process_ground() -> void:
 	if not is_balancing:
 		apply_floor_snap()
 	
+	var sine_ground_angle:float = sin(collision_rotation)
+	
+	#Calculate movement based on the mode
+	if rolling:
+		#Calculate rolling
+		#apply slope factors
+		if is_zero_approx(collision_rotation): #If we're on level ground
+			#If we're also moving at all
+			if not is_zero_approx(ground_velocity):
+				ground_velocity -= physics.rolling_flat_factor * facing_direction
+		else: #We're on a hill of some sort
+			#The player is rolling uphill if the sign of ground velocity matches the sign of the sine of the slope
+			var rolling_factor:float = physics.rolling_uphill_factor if signf(ground_velocity) == signf(sine_ground_angle) else physics.rolling_downhill_factor
+			
+			ground_velocity += rolling_factor * sine_ground_angle
+			
+		#Check if the player wants to (and can) jump
+		if Input.is_action_pressed(physics.button_jump) and can_jump:
+			jumping = true
+		
+		#Allow the player to actively slow down if they try to move in the opposite direction
+		if not is_equal_approx(facing_direction, signf(ground_velocity)):
+			ground_velocity += physics.rolling_active_stop * facing_direction
+			facing_direction = -facing_direction
+			sprites_flip()
+	else:
+		#slope factors for being on foot
+		if moving:
+			#apply gravity if we're on a slope and not standing still
+			ground_velocity += sine_ground_angle * physics.air_gravity_strength
+			#Apply the standing/running slope factor if we're not in ceiling mode
+			#These two magic numbers are 45 degrees and 135 degrees as radians, respectively
+			if not (rotation > 0.7853982 and rotation < 2.356194):
+				ground_velocity += sine_ground_angle * physics.ground_slope_factor
+		
+		#Check if the player wants to (and can) jump
+		if Input.is_action_pressed(physics.button_jump) and can_jump:
+			jumping = true
+		
+		#input processing
+		if is_zero_approx(input_direction): #handle input-less deceleration
+			if not is_zero_approx(ground_velocity):
+				ground_velocity -= physics.ground_deceleration * facing_direction
+			#snap ground velocity to the minimum ground speed
+			if not moving:
+				ground_velocity = 0
+		#If input matches the direction we're going
+		elif is_equal_approx(facing_direction, signf(ground_velocity)):
+			#If we *can* add speed (can't add above the top speed)
+			if absf(ground_velocity) < physics.ground_top_speed:
+				ground_velocity += physics.ground_acceleration * facing_direction
+		#We're going opposite to the facing direction, so apply skid mechanic
+		else:
+			ground_velocity += physics.ground_skid_speed * facing_direction
+			#TODO: Add specific checks here to play varying skid 
+			#animations (or none if slow enough)
+			facing_direction = -facing_direction
+			sprites_flip()
+			play_animation(anim_skid)
+	
+	
 	#fall off if the player is on a steep slope or wall and is not
 	#going fast enough to stick to walls
-	if absf(raycast_wheel.global_rotation >= default_max_angle) and absf(ground_velocity) < physics.ground_stick_speed:
+	if lose_floor_grip():
 		grounded = false
 	
 	#Do rolling or crouching checks
@@ -669,9 +728,12 @@ func process_ground() -> void:
 	
 	#jumping logic
 	
-	#This is a shorthand for Vector2(cos(ground_angle), sin(ground_angle))
-	var rotation_vector:Vector2 = Vector2.from_angle(ground_angle)
+	#This is a shorthand for Vector2(cos(collision_rotation), sin(collision_rotation))
+	#we need to calculate this before we leave the ground, becuase collision_rotation
+	#is reset when we do
+	var rotation_vector:Vector2 = Vector2.from_angle(collision_rotation)
 	if jumping:
+		jump.emit(self)
 		grounded = false
 		#Add velocity to the jump
 		space_velocity.x += physics.jump_velocity * rotation_vector.y
@@ -687,77 +749,9 @@ func process_ground() -> void:
 		#apply the ground velocity to the "actual" velocity
 		space_velocity = ground_velocity * rotation_vector
 
-
-##Process the specific movement events for when the player is rolling
-func process_running() -> void:
-	#If this is true, the player is changing direction
-	var changing_direction:bool = not is_equal_approx(facing_direction, signf(ground_velocity))
-	
-	#slope factors for being on foot
-	if moving and grounded:
-		var sine_ground_angle:float = sin((ground_angle))
-		#apply gravity if we're on a slope and not standing still
-		ground_velocity += sine_ground_angle * physics.air_gravity_strength
-		#Apply the standing/running slope factor if we're not in ceiling mode
-		#These two magic numbers are 45 degrees and 135 degrees as radians, respectively
-		if not (rotation > 0.7853982 and rotation < 2.356194):
-			ground_velocity += sine_ground_angle * physics.ground_slope_factor
-	
-	#Check if the player wants to (and can) jump
-	if Input.is_action_pressed(physics.button_jump) and can_jump:
-		jumping = true
-	
-	#input processing
-	if is_zero_approx(input_direction): #handle input-less deceleration
-		if not is_zero_approx(ground_velocity):
-			ground_velocity -= physics.ground_deceleration * facing_direction
-		#snap ground velocity to the minimum ground speed
-		if not (moving and grounded):
-			ground_velocity = 0
-	#If input matches the direction we're going
-	elif not changing_direction:
-		#If we *can* add speed (can't add above the top speed)
-		if absf(ground_velocity) < physics.ground_top_speed:
-			ground_velocity += physics.ground_acceleration * facing_direction
-	#We're going opposite to the facing direction, so apply skid mechanic
-	else:
-		ground_velocity += physics.ground_skid_speed * facing_direction
-		#TODO: Add specific checks here to play varying skid 
-		#animations (or none if slow enough)
-		facing_direction = -facing_direction
-		sprites_flip()
-		play_animation(anim_skid)
-
-##Process the specific movement events for when the player is rolling
-##on the ground.
-func process_rolling() -> void:
-	#apply slope factors
-	if is_zero_approx(ground_angle): #If we're on level ground
-		#If we're also moving at all
-		if not is_zero_approx(ground_velocity):
-			ground_velocity -= physics.rolling_flat_factor * facing_direction
-	else: #We're on a hill of some sort
-		#If the player is rolling uphill
-		if is_equal_approx(facing_direction, signf(-ground_angle)):
-			ground_velocity += sin(ground_angle) * physics.rolling_uphill_factor
-		else: #rolling downhill
-			ground_velocity += sin(ground_angle) * physics.rolling_downhill_factor
-	
-	#Check if the player wants to (and can) jump
-	if Input.is_action_pressed(physics.button_jump) and can_jump:
-		jumping = true
-	
-	#Allow the player to actively slow down if they try to move in the opposite direction
-	if not is_equal_approx(facing_direction, signf(ground_velocity)):
-		ground_velocity += physics.rolling_active_stop * facing_direction
-		facing_direction = -facing_direction
-		sprites_flip()
-		play_animation(anim_skid)
-
 ##A function that is called when the player enters the air from
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
-	ground_angle = 0
 	collision_rotation = 0
 
 ##A function that is called when the player lands on the ground
@@ -767,60 +761,68 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 	if not Input.is_action_pressed(physics.button_roll):
 		rolling = false
 	#Transfer space_velocity to ground_velocity
-	ground_velocity = sin(rotation) * (space_velocity.y + 0.5) + cos(rotation) * space_velocity.x
-	#TODO: Set can_jump to false and add a jump cooldown 
-	#timer that starts here
+	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) * (space_velocity + Vector2(0, 0.5))
+	ground_velocity = applied_ground_speed.x + applied_ground_speed.y
+	
 	if jumping:
 		jumping = false
-		can_jump = false
-		jump_timer.connect(&"timeout", func(): can_jump = true if not crouching else false)
-		jump_timer.start(physics.jump_spam_timer)
+		#TODO: Set can_jump to false and add a jump cooldown 
+		#timer that starts here
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
+	#cache all these as variables for performance and readability
 	var left_wall_collided:bool = ray_wall_left.is_colliding()
 	var right_wall_collided:bool = ray_wall_right.is_colliding()
 	var on_center_ground:bool = ray_ground_central.is_colliding()
 	var on_left_ground:bool = ray_ground_left.is_colliding()
 	var on_right_ground:bool = ray_ground_right.is_colliding()
 	
+	#figure out if we've hit a wall
+	#TODO: implemnt "pushing" state variable, mess with it here
 	var stop_on_wall:bool = (left_wall_collided and space_velocity.x < 0) or (right_wall_collided and space_velocity.x > 0)
 	if stop_on_wall:
 		contact_wall.emit()
 	
-	grounded = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
+	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
+	#properly applies ground angle
+	var will_be_grounded:bool = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
 	
+	#calculate ground angles. This happens even in the air, because we need to 
+	#know before landing, what the ground angle is, to apply landing speed
 	var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 	var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 	
-	if grounded:
+	if will_be_grounded:
 		#null horizontal velocity if the player is on a wall
 		if stop_on_wall:
 			ground_velocity = 0.0
 		
-		#set ground angles
+		#set ground angle
 		if on_left_ground and on_right_ground:
 			if absf(left_angle - right_angle) < PI:
-				ground_angle = limitAngle((left_angle + right_angle) / 2.0)
+				collision_rotation = limitAngle((left_angle + right_angle) / 2.0)
 			else:
-				ground_angle = limitAngle((left_angle + right_angle + PI * 2.0) / 2.0)
+				collision_rotation = limitAngle((left_angle + right_angle + PI * 2.0) / 2.0)
 		elif on_left_ground:
-			ground_angle = left_angle
+			collision_rotation = left_angle
 		elif on_right_ground:
-			ground_angle = right_angle
+			collision_rotation = right_angle
 		
-		collision_rotation = ground_angle
+		#Ceiling landing check
+		#The player can land on "steep ceilings", but not flat ones
+		if space_velocity.y < 0 and not grounded:
+			will_be_grounded = collision_rotation >= floor_max_angle
 		
 		#set sprite rotations
-		if moving:
+		if moving and will_be_grounded:
 			if rotation_classic_snap:
 				#TODO: Work on this more
 				const rad_30_deg:float = deg_to_rad(30.0)
-				sprite_rotation = snappedf(ground_angle, rad_30_deg)
+				sprite_rotation = snappedf(collision_rotation, rad_30_deg)
 			else:
-				#sprite_rotation = move_toward(last_sprite_rotation, ground_angle, rotation_adjustment_speed)
-				sprite_rotation = move_toward(sprite_rotation, ground_angle, rotation_adjustment_speed)
-		else:
+				sprite_rotation = move_toward(sprite_rotation, collision_rotation, rotation_adjustment_speed)
+		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
 		#null velocity if the player is on a wall
@@ -828,16 +830,26 @@ func update_collision_rotation() -> void:
 			space_velocity.x = 0.0
 		
 		#set the ground angle
-		ground_angle = (left_angle + right_angle) / 2.0
+		collision_rotation = (left_angle + right_angle) / 2.0
 		
-		collision_rotation = 0
+		#ground sensors point whichever direction the player is traveling vertically
+		#this is so that landing on the ceiling is made possible
+		if space_velocity.y > 0:
+			collision_rotation = 0
+		else:
+			collision_rotation = PI #180 degrees
 		
 		#set sprite rotation
 		if rotation_classic_snap:
 			sprite_rotation = 0
 		else:
 			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
-		#sprite_rotation = 0
+	
+	#This will apply landing velocity if the player was not already on the ground
+	grounded = will_be_grounded
+	#this will "un-land" the player if they're on a steep slope
+	grounded = will_be_grounded and not lose_floor_grip()
+	
 	sprites_set_rotation(sprite_rotation)
 
 ##Update the rotation of the character when they are in the air
@@ -870,10 +882,10 @@ func update_animations() -> void:
 			if is_balancing:
 				if not ray_ground_left.is_colliding():
 					#face the ledge
-					facing_direction = -1
+					facing_direction = -1.0
 				elif not ray_ground_right.is_colliding():
 					#face the ledge
-					facing_direction = 1
+					facing_direction = 1.0
 				sprites_flip()
 				play_animation(anim_balance)
 			else:
@@ -947,8 +959,6 @@ func _physics_process(delta: float) -> void:
 	#the same as pre_physics
 	post_physics.emit(self)
 	
-	last_ground_velocity = ground_velocity
-	last_sprite_rotation = sprite_rotation
 	var physics_tick_adjust:float = 60.0 * (delta * 60.0)
 	
 	velocity = space_velocity * physics_tick_adjust

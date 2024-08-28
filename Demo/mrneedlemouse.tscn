@@ -242,6 +242,7 @@ floor_block_on_wall = false
 floor_snap_length = 15.0
 script = ExtResource("1_mpnpc")
 physics = SubResource("Resource_eyxug")
+rotation_static_collision = true
 anim_stand = &"standing"
 anim_balance = &"balance"
 anim_crouch = &"crouch"

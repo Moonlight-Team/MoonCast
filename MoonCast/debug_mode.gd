@@ -21,7 +21,6 @@ func _setup_2D(player:MoonCastPlayer2D) -> void:
 
 func _process(_delta: float) -> void:
 	if pause_next_frame:
-		prints("Ground angle:", rad_to_deg(glob_player.ground_angle))
 		get_tree().paused = true
 		pause_next_frame = false
 	elif Input.is_action_just_pressed(button_scene_pause):

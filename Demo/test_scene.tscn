@@ -1,10 +1,11 @@
-[gd_scene load_steps=16 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=18 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_txt8d"]
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
 [ext_resource type="Texture2D" uid="uid://3d6bhb2q4jta" path="res://MoonCast/assets/Physicstable.svg" id="5_4wg4x"]
+[ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_c3mx1"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(1031, 20)
@@ -20,6 +21,9 @@ size = Vector2(400, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dbk"]
 size = Vector2(100, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bsfud"]
+size = Vector2(150, 20)
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_dtehr"]
 normal = Vector2(0, 1)
@@ -91,6 +95,19 @@ rotation = -0.802851
 [node name="CollisionShape2D" type="CollisionShape2D" parent="46DegreeSlope"]
 shape = SubResource("RectangleShape2D_r0dbk")
 
+[node name="46DegreeSlope2" type="StaticBody2D" parent="."]
+position = Vector2(397, 445)
+rotation = -0.802851
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="46DegreeSlope2"]
+shape = SubResource("RectangleShape2D_r0dbk")
+
+[node name="Ceiling" type="StaticBody2D" parent="."]
+position = Vector2(295, 478)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ceiling"]
+shape = SubResource("RectangleShape2D_bsfud")
+
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(661.262, -1193.76)
 
@@ -126,7 +143,6 @@ disabled = true
 
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("2_qkeds")
-spindash_max_charge = 20.0
 
 [node name="DebugMode" type="Node" parent="mrneedlemouse"]
 script = ExtResource("3_txt8d")
@@ -136,6 +152,9 @@ button_scene_frame_advance = &"debug_frame_advance"
 
 [node name="DropDash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("4_0bcpf")
+
+[node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
+script = ExtResource("5_c3mx1")
 
 [node name="WaterShading" type="Area2D" parent="."]
 modulate = Color(0, 0.612316, 0.612316, 1)
