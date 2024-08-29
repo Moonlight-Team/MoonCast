@@ -254,7 +254,6 @@ anim_run_3 = &"run_1"
 anim_run_max = &"run_mach"
 anim_skid = &"skid"
 anim_jump = &"jump_ball"
-anim_free_fall = &"falling"
 
 [node name="RectangleShape" type="CollisionShape2D" parent="."]
 position = Vector2(0, 5)

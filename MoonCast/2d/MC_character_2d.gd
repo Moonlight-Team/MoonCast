@@ -20,7 +20,9 @@ enum StateFlags {
 	##Flag for the player crouching
 	CROUCHING = 32,
 	##Flag for rotation lock. This prevents the player from changing directions.
-	CHANGE_DIRECTION = 64
+	CHANGE_DIRECTION = 64,
+	##Flag for pushing an object
+	PUSHING = 128
 }
 
 enum WallMode {
@@ -52,6 +54,9 @@ const perf_state:StringName = &"Player State"
 ##If true, classic rotation snapping will be used, for a more "Genesis" feel.
 ##Otherwise, rotation operates smoothly, like in Sonic Mania. This is purely aesthetic.
 @export var rotation_classic_snap:bool = false
+##The value, in radians, that the sprite rotation will snap to when classic snap is active.
+##The default value is equal to 30 degrees.
+@export var rotation_classic_snap_interval:float = deg_to_rad(30.0)
 ##The amount per frame, in radians, at which the player's rotation will adjust to 
 ##new angles, such as how fast it will move back to 0 when airborne or how fast it 
 ##will adjust to slopes.
@@ -59,6 +64,16 @@ const perf_state:StringName = &"Player State"
 ##If this is true, collision boxes of the character will not rotate based on 
 ##ground angle, mimicking the behavior of RSDK titles.
 @export var rotation_static_collision:bool = false
+
+@export_group("Camera", "camera_")
+
+@export var camera_look_up_offset:int
+
+@export var camera_look_down_offset:int
+
+@export var camera_neutral_offset:Vector2i
+
+@export var camera_move_speed:Vector2i
 
 
 @export_group("Animations", "anim_")
@@ -211,6 +226,14 @@ var can_change_direction:bool = true:
 			state_can_be &= ~StateFlags.CHANGE_DIRECTION
 	get:
 		return state_can_be & StateFlags.CHANGE_DIRECTION
+var can_push:bool = true:
+	set(on):
+		if on:
+			state_can_be |= StateFlags.PUSHING
+		else:
+			state_can_be &= ~StateFlags.PUSHING
+	get:
+		return state_can_be & StateFlags.PUSHING
 
 ##If true, the player is on what the physics consider 
 ##to be the ground.
@@ -288,6 +311,15 @@ var is_balancing:bool = false:
 			can_crouch = true
 	get:
 		return state_is & StateFlags.BALANCING
+var is_pushing:bool = false:
+	set(on):
+		if on:
+			state_is |= StateFlags.PUSHING
+		else:
+			state_is &= ~StateFlags.PUSHING
+	get:
+		return state_is & StateFlags.PUSHING
+
 
 ## the ground velocity. This is how fast the player is 
 ##travelling on the ground, regardless of angles.
@@ -690,11 +722,13 @@ func process_ground() -> void:
 		#We're going opposite to the facing direction, so apply skid mechanic
 		else:
 			ground_velocity += physics.ground_skid_speed * facing_direction
-			#TODO: Add specific checks here to play varying skid 
-			#animations (or none if slow enough)
-			facing_direction = -facing_direction
-			sprites_flip()
-			play_animation(anim_skid)
+			#TODO: Decide a base "skid anim" min speed besides this
+			if absf(ground_velocity) > physics.ground_skid_speed:
+				facing_direction = -facing_direction
+				sprites_flip()
+				
+				#TODO: Add a faster skid anim as well, and checks to play either skid animation
+				play_animation(anim_skid)
 	
 	
 	#fall off if the player is on a steep slope or wall and is not
@@ -782,7 +816,11 @@ func update_collision_rotation() -> void:
 	#TODO: implemnt "pushing" state variable, mess with it here
 	var stop_on_wall:bool = (left_wall_collided and space_velocity.x < 0) or (right_wall_collided and space_velocity.x > 0)
 	if stop_on_wall:
+		if not is_pushing and can_push:
+			is_pushing = true
 		contact_wall.emit()
+	else:
+		is_pushing = false
 	
 	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
@@ -816,12 +854,11 @@ func update_collision_rotation() -> void:
 		
 		#set sprite rotations
 		if moving and will_be_grounded:
+			var rotation_snap:float = snappedf(collision_rotation, rotation_classic_snap_interval)
 			if rotation_classic_snap:
-				#TODO: Work on this more
-				const rad_30_deg:float = deg_to_rad(30.0)
-				sprite_rotation = snappedf(collision_rotation, rad_30_deg)
+				sprite_rotation = rotation_snap
 			else:
-				sprite_rotation = move_toward(sprite_rotation, collision_rotation, rotation_adjustment_speed)
+				sprite_rotation = move_toward(sprite_rotation, rotation_snap, rotation_adjustment_speed)
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
