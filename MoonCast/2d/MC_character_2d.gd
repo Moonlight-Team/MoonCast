@@ -56,7 +56,7 @@ const perf_state:StringName = &"Player State"
 @export var rotation_classic_snap:bool = false
 ##The value, in radians, that the sprite rotation will snap to when classic snap is active.
 ##The default value is equal to 30 degrees.
-@export var rotation_classic_snap_interval:float = deg_to_rad(30.0)
+@export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees", PROPERTY_USAGE_EDITOR) var rotation_snap_interval:float = deg_to_rad(30.0)
 ##The amount per frame, in radians, at which the player's rotation will adjust to 
 ##new angles, such as how fast it will move back to 0 when airborne or how fast it 
 ##will adjust to slopes.
@@ -114,6 +114,24 @@ const perf_state:StringName = &"Player State"
 ##The animation to play when the player dies.
 @export var anim_death:StringName
 
+@export_group("Sound Effects", "sfx_")
+##The audio bus to play sound effects on.
+@export var sfx_bus:StringName
+##THe sound effect for jumping.
+@export var sfx_jump:AudioStream
+##The sound effect for rolling.
+@export var sfx_roll:AudioStream
+##The sound effect for skidding.
+@export var sfx_skid:AudioStream
+##The sound effect for getting hurt.3
+@export var sfx_hurt:AudioStream
+##A list of names for accessing custom sound effects. Must be the same order
+##as sfx_custom_list_streams.
+##[br] Ex: sfx_custom_list_names[1] will play sfx_custom_list_streams[1]
+@export var sfx_custom_list_names:Array[StringName]
+##A list of custom sound effects.
+@export var sfx_custom_list_streams:Array[AudioStream]
+
 #Node references
 #generally speaking, these should *not* be directly accessed unless absolutely needed, 
 #but they still have documentation because documentation is good
@@ -149,8 +167,12 @@ var ray_wall_left:RayCast2D = RayCast2D.new()
 ##The right wall raycast. Used for detecting running into a "wall" relative to the 
 ##player's rotation
 var ray_wall_right:RayCast2D = RayCast2D.new()
+##The sfx player node
+var sfx_player:AudioStreamPlayer = AudioStreamPlayer.new()
+##The sfx player node's AudioStreamPolyphonic
+var sfx_player_res:AudioStreamPolyphonic = AudioStreamPolyphonic.new()
 
-
+var sfx_playback_ref:AudioStreamPlaybackPolyphonic
 
 ##The timer for the player's ability to jump after landing.
 var jump_timer:Timer = Timer.new()
@@ -392,6 +414,12 @@ signal state_ground(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
 
+func check_current_state(check:int) -> bool:
+	return check & state_is
+
+func check_possible_state(check:int) -> bool:
+	return check & state_can_be
+
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func setup_children() -> void:
@@ -412,6 +440,11 @@ func setup_children() -> void:
 	add_child(jump_timer)
 	control_lock_timer.name = "ControlLockTimer"
 	add_child(control_lock_timer)
+	
+	sfx_player.name = "SoundEffectPlayer"
+	add_child(sfx_player)
+	sfx_player.stream = sfx_player_res
+	sfx_playback_ref = sfx_player.get_stream_playback()
 	
 	#Add the raycasts to the scene
 	raycast_wheel.name = "Raycast Rotator"
@@ -600,6 +633,28 @@ func remove_ability(ability_name:StringName) -> void:
 		removing.queue_free()
 	else:
 		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\" that was called to be removed")
+
+##Add or update a sound effect on this player.
+##If a name is already registered, providing a different stream will assign a new 
+##stream to that name.
+func add_edit_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> void:
+	#Give the named sfx name key a new stream value
+	if sfx_custom_list_names.has(sfx_name):
+		var arr_pos:int = sfx_custom_list_names.find(sfx_name)
+		sfx_custom_list_streams[arr_pos] = sfx_stream
+	#rename an existing stream
+	elif sfx_custom_list_streams.has(sfx_stream):
+		var arr_pos:int = sfx_custom_list_names.find(sfx_stream)
+		sfx_custom_list_names[arr_pos] = sfx_name
+	#*actually* adding a new entry
+	else:
+		sfx_custom_list_names.append(sfx_name)
+		sfx_custom_list_streams.append(sfx_stream)
+
+func play_sound_effect(sfx_name:StringName) -> void:
+	if sfx_custom_list_names.has(sfx_name):
+		var sound_arr_pos:int = sfx_custom_list_names.find(sfx_name)
+		sfx_playback_ref.play_stream(sfx_custom_list_streams[sound_arr_pos], 0, 0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
 
 ##Returns the given angle as an angle (in radians) between -PI and PI
 func limitAngle(input_angle:float) -> float:
@@ -854,7 +909,7 @@ func update_collision_rotation() -> void:
 		
 		#set sprite rotations
 		if moving and will_be_grounded:
-			var rotation_snap:float = snappedf(collision_rotation, rotation_classic_snap_interval)
+			var rotation_snap:float = snappedf(collision_rotation, rotation_snap_interval)
 			if rotation_classic_snap:
 				sprite_rotation = rotation_snap
 			else:
