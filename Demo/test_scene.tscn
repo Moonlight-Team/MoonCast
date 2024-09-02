@@ -1,17 +1,26 @@
-[gd_scene load_steps=18 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=24 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_txt8d"]
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
-[ext_resource type="Texture2D" uid="uid://3d6bhb2q4jta" path="res://MoonCast/assets/Physicstable.svg" id="5_4wg4x"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_c3mx1"]
+[ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="6_g1u4y"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(1031, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6cpsv"]
 size = Vector2(800, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bdxha"]
+size = Vector2(100, 100)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4tqnp"]
+size = Vector2(400, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2i3up"]
+size = Vector2(20, 200)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_drx2y"]
 size = Vector2(200, 500)
@@ -33,6 +42,15 @@ normal = Vector2(-1, 0)
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uqlnw"]
 normal = Vector2(1, 0)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_b41kx"]
+radius = 100.0
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_dbmww"]
+friction = 0.5
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_258ta"]
+size = Vector2(30, 30)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_3edfo"]
 
@@ -60,12 +78,55 @@ position = Vector2(1734, 486)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformToJumpUpTo"]
 shape = SubResource("RectangleShape2D_6cpsv")
 
+[node name="JumpOnBlock1" type="StaticBody2D" parent="."]
+position = Vector2(2084, 189)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock1"]
+shape = SubResource("RectangleShape2D_bdxha")
+
+[node name="JumpOnBlock2" type="StaticBody2D" parent="."]
+position = Vector2(1868, 87)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock2"]
+shape = SubResource("RectangleShape2D_bdxha")
+
+[node name="JumpOnBlock3" type="StaticBody2D" parent="."]
+position = Vector2(1507, 5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock3"]
+shape = SubResource("RectangleShape2D_4tqnp")
+
+[node name="JumpOnBlock4" type="StaticBody2D" parent="."]
+position = Vector2(1487, -196)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock4"]
+shape = SubResource("RectangleShape2D_4tqnp")
+
+[node name="JumpOnBlockWall" type="StaticBody2D" parent="."]
+position = Vector2(1297, -85)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlockWall"]
+shape = SubResource("RectangleShape2D_2i3up")
+
 [node name="BigVerticalWall" type="StaticBody2D" parent="."]
 position = Vector2(-617, 493)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BigVerticalWall"]
 position = Vector2(231, 100)
 shape = SubResource("RectangleShape2D_drx2y")
+
+[node name="SlopeTest2" type="StaticBody2D" parent="."]
+position = Vector2(1344, -5)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SlopeTest2"]
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
+
+[node name="SlopeTest3" type="StaticBody2D" parent="."]
+position = Vector2(1308, -148)
+rotation = 1.5708
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SlopeTest3"]
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
 
 [node name="SlopeTest" type="StaticBody2D" parent="."]
 position = Vector2(-248, 558)
@@ -108,23 +169,37 @@ position = Vector2(295, 478)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ceiling"]
 shape = SubResource("RectangleShape2D_bsfud")
 
-[node name="StaticBody2D" type="StaticBody2D" parent="."]
+[node name="TopBoundary" type="StaticBody2D" parent="."]
 position = Vector2(661.262, -1193.76)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TopBoundary"]
 shape = SubResource("WorldBoundaryShape2D_dtehr")
 
-[node name="StaticBody2D2" type="StaticBody2D" parent="."]
+[node name="RightBoundary" type="StaticBody2D" parent="."]
 position = Vector2(2105, -296)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RightBoundary"]
 shape = SubResource("WorldBoundaryShape2D_ir8kw")
 
-[node name="StaticBody2D3" type="StaticBody2D" parent="."]
+[node name="LeftBoundary" type="StaticBody2D" parent="."]
 position = Vector2(-463, -195)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D3"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftBoundary"]
 shape = SubResource("WorldBoundaryShape2D_uqlnw")
+
+[node name="LeftBoundary2" type="StaticBody2D" parent="."]
+position = Vector2(-63, 345)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftBoundary2"]
+shape = SubResource("CircleShape2D_b41kx")
+
+[node name="RigidBody2D" type="RigidBody2D" parent="."]
+position = Vector2(1598, -98)
+mass = 10.0
+physics_material_override = SubResource("PhysicsMaterial_dbmww")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
+shape = SubResource("RectangleShape2D_258ta")
 
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
@@ -164,9 +239,12 @@ position = Vector2(673, 99)
 shape = SubResource("RectangleShape2D_nkpfw")
 debug_color = Color(1, 1, 1, 0.42)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(0.294641, 0.294641, 0.294641, 1)
+[node name="Parallax2D" type="Parallax2D" parent="."]
+modulate = Color(0.534361, 0.534361, 0.534361, 1)
 show_behind_parent = true
-position = Vector2(876, 106)
-scale = Vector2(6, 6)
-texture = ExtResource("5_4wg4x")
+repeat_size = Vector2(1536, 512)
+autoscroll = Vector2(10, 0)
+
+[node name="Run" type="Sprite2D" parent="Parallax2D"]
+show_behind_parent = true
+texture = ExtResource("6_g1u4y")

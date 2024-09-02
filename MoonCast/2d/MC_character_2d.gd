@@ -444,6 +444,7 @@ func setup_children() -> void:
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)
 	sfx_player.stream = sfx_player_res
+	sfx_player.play()
 	sfx_playback_ref = sfx_player.get_stream_playback()
 	
 	#Add the raycasts to the scene
@@ -516,18 +517,20 @@ func setup_collision() -> void:
 	
 	#place the raycasts based on the above derived values
 	
+	const ground_safe_margin:int = 5
+	
 	ray_ground_left.position.x = ground_left_corner.x
-	ray_ground_left.target_position.y = ground_left_corner.y + 1
+	ray_ground_left.target_position.y = ground_left_corner.y + ground_safe_margin
 	ray_ground_left.collision_mask = collision_mask
 	ray_ground_left.add_exception(self)
 	
 	ray_ground_right.position.x = ground_right_corner.x
-	ray_ground_right.target_position.y = ground_right_corner.y + 1
+	ray_ground_right.target_position.y = ground_right_corner.y + ground_safe_margin
 	ray_ground_right.collision_mask = collision_mask
 	ray_ground_right.add_exception(self)
 	
 	ray_ground_central.position.x = (ground_left_corner.x + ground_right_corner.x) / 2.0
-	ray_ground_central.target_position.y = ((ground_left_corner.y + ground_right_corner.y) / 2.0) + 1
+	ray_ground_central.target_position.y = ((ground_left_corner.y + ground_right_corner.y) / 2.0) + ground_safe_margin
 	ray_ground_central.collision_mask = collision_mask
 	ray_ground_central.add_exception(self)
 	
@@ -567,6 +570,11 @@ func _ready() -> void:
 	#After all, why [i]not[/i] use our own API?
 	connect(&"contact_air", enter_air)
 	connect(&"contact_ground", land_on_ground)
+	
+	for num:int in range(-1000, 1000, 10):
+		var corrected:float = rad_to_deg(limitAngle(deg_to_rad(num)))
+		var corrected_2:float = rad_to_deg(limitAngle2(deg_to_rad(num)))
+		assert(is_equal_approx(corrected, corrected_2))
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()
@@ -656,37 +664,36 @@ func play_sound_effect(sfx_name:StringName) -> void:
 		var sound_arr_pos:int = sfx_custom_list_names.find(sfx_name)
 		sfx_playback_ref.play_stream(sfx_custom_list_streams[sound_arr_pos], 0, 0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
 
+const full_circle:float = 2 * PI
 ##Returns the given angle as an angle (in radians) between -PI and PI
 func limitAngle(input_angle:float) -> float:
-	const full_circle:float = 2 * PI
-	
-	var sign_of_angle:float = 1
-	if not is_zero_approx(input_angle):
-		sign_of_angle = signf(input_angle)
+	var sign_of_angle:float = 1 if is_zero_approx(input_angle) else signf(input_angle)
 	
 	input_angle = fmod(input_angle, full_circle)
 	if absf(input_angle) > PI:
-		input_angle = (full_circle - absf(input_angle)) * sign_of_angle * -1
+		input_angle = (full_circle - absf(input_angle)) * -sign_of_angle
 	return input_angle
 
-##returns the angle distance between rot1 and rot2, even over the 360deg
-##mark (i.e. 350 and 10 will be 20 degrees apart)
-func angleDist(rot1:float, rot2:float) -> float:
-	rot1 = limitAngle(rot1)
-	rot2 = limitAngle(rot2)
-	if absf(rot1 - rot2) > PI and rot1 > rot2:
-		return absf(limitAngle(rot1) - (limitAngle(rot2) + PI * 2))
-	elif abs(rot1 - rot2) > PI and rot1 < rot2:
-		return absf((limitAngle(rot1) + PI * 2) - (limitAngle(rot2)))
-	else:
-		return absf(rot1 - rot2)
+func limitAngle2(input_angle:float) -> float:
+	var sign_of_angle:float = 1 if is_zero_approx(input_angle) else signf(input_angle)
+	input_angle = fmod(input_angle, full_circle)
+	input_angle = angle_difference(absf(input_angle), 0)
+	if absf(input_angle) > PI:
+		input_angle *= -sign_of_angle
+	
+	return input_angle
 
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 
 ##Returns if the player could be slipping on a slope
 func lose_floor_grip() -> bool:
-	return absf(global_collision_rotation >= floor_max_angle) and absf(ground_velocity) < physics.ground_stick_speed
+	#var angle_condition:bool = absf(limitAngle(global_collision_rotation) >= floor_max_angle)
+	var angle_condition:bool = absf(global_collision_rotation >= floor_max_angle)
+	
+	var speed_condition:bool = absf(ground_velocity) < physics.ground_stick_speed
+	
+	return angle_condition and speed_condition
 
 ##Process the player's air physics
 func process_air() -> void:
@@ -873,18 +880,25 @@ func update_collision_rotation() -> void:
 	if stop_on_wall:
 		if not is_pushing and can_push:
 			is_pushing = true
-		contact_wall.emit()
+			contact_wall.emit()
 	else:
 		is_pushing = false
 	
 	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
-	var will_be_grounded:bool = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
+	#var will_be_grounded:bool = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
+	var will_be_grounded:bool = (on_center_ground or on_left_ground or on_right_ground)
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing, what the ground angle is, to apply landing speed
-	var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+	var ray_l_normal:Vector2 = ray_ground_left.get_collision_normal()
+	
+	var l_angle_to_limit:float = -atan2(ray_l_normal.x, ray_l_normal.y) - PI
+	var left_angle:float = limitAngle(l_angle_to_limit)
+	var l_angle_1:float = snappedf(fmod(l_angle_to_limit, PI), PI)
+	
 	var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+	
 	
 	if will_be_grounded:
 		#null horizontal velocity if the player is on a wall
@@ -941,6 +955,9 @@ func update_collision_rotation() -> void:
 	grounded = will_be_grounded
 	#this will "un-land" the player if they're on a steep slope
 	grounded = will_be_grounded and not lose_floor_grip()
+	
+	if grounded:
+		up_direction = Vector2.from_angle(collision_rotation + deg_to_rad(90.0))
 	
 	sprites_set_rotation(sprite_rotation)
 
