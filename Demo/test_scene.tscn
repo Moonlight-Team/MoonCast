@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=26 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
@@ -8,31 +8,46 @@
 [ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="6_g1u4y"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
-size = Vector2(1031, 20)
+size = Vector2(790, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_51agt"]
+size = Vector2(474.549, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6cpsv"]
 size = Vector2(800, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_drx2y"]
+size = Vector2(200, 237)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ttkpr"]
+size = Vector2(334.253, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bdxha"]
 size = Vector2(100, 100)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_4tqnp"]
-size = Vector2(400, 20)
+size = Vector2(534, 20)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_c2r0n"]
+radius = 65.0
+height = 250.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_2i3up"]
-size = Vector2(20, 200)
+size = Vector2(85, 265)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_drx2y"]
-size = Vector2(200, 500)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ttkpr"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_biyhv"]
 size = Vector2(400, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dbk"]
-size = Vector2(100, 20)
+size = Vector2(89.0943, 20)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_bsfud"]
-size = Vector2(150, 20)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_h5hul"]
+radius = 11.9346
+height = 113.153
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_w552m"]
+radius = 14.0
+height = 158.0
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_dtehr"]
 normal = Vector2(0, 1)
@@ -46,37 +61,52 @@ normal = Vector2(1, 0)
 [sub_resource type="CircleShape2D" id="CircleShape2D_b41kx"]
 radius = 100.0
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_dbmww"]
-friction = 0.5
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_258ta"]
-size = Vector2(30, 30)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tiyrh"]
+radius = 50.0
+height = 169.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_3edfo"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_nkpfw"]
-size = Vector2(200, 200)
-
 [node name="TestScene" type="Node2D"]
 
-[node name="FlatGround" type="StaticBody2D" parent="."]
-position = Vector2(214, 570)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="FlatGround"]
-shape = SubResource("RectangleShape2D_fahr2")
-
-[node name="SlightSlope" type="StaticBody2D" parent="."]
+[node name="Floor" type="StaticBody2D" parent="."]
 position = Vector2(850, 513)
 rotation = -0.16057
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SlightSlope"]
+[node name="LowerFloor" type="CollisionShape2D" parent="Floor"]
+position = Vector2(-740.581, -62.205)
+rotation = 0.16057
 shape = SubResource("RectangleShape2D_fahr2")
+debug_color = Color(0, 0.6, 0.701961, 1)
 
-[node name="PlatformToJumpUpTo" type="StaticBody2D" parent="."]
-position = Vector2(1734, 486)
+[node name="SlightSlope" type="CollisionShape2D" parent="Floor"]
+position = Vector2(-115.362, 0.521973)
+shape = SubResource("RectangleShape2D_51agt")
+debug_color = Color(0, 0.6, 0.701961, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformToJumpUpTo"]
+[node name="RightUpperFloor" type="CollisionShape2D" parent="Floor"]
+position = Vector2(876.945, 114.682)
+rotation = 0.16057
 shape = SubResource("RectangleShape2D_6cpsv")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="LeftUpperFloor" type="CollisionShape2D" parent="Floor"]
+position = Vector2(-1211.87, -248.45)
+rotation = 0.16057
+shape = SubResource("RectangleShape2D_drx2y")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
+position = Vector2(286.409, -26.6683)
+rotation = -0.162316
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_ttkpr")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="SlopePolygon" type="CollisionPolygon2D" parent="Floor"]
+position = Vector2(-1092.38, -129.314)
+rotation = 0.16057
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
 
 [node name="JumpOnBlock1" type="StaticBody2D" parent="."]
 position = Vector2(2084, 189)
@@ -85,121 +115,108 @@ position = Vector2(2084, 189)
 shape = SubResource("RectangleShape2D_bdxha")
 
 [node name="JumpOnBlock2" type="StaticBody2D" parent="."]
-position = Vector2(1868, 87)
+position = Vector2(1862, 112)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock2"]
 shape = SubResource("RectangleShape2D_bdxha")
 
-[node name="JumpOnBlock3" type="StaticBody2D" parent="."]
-position = Vector2(1507, 5)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock3"]
-shape = SubResource("RectangleShape2D_4tqnp")
-
-[node name="JumpOnBlock4" type="StaticBody2D" parent="."]
-position = Vector2(1487, -196)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock4"]
-shape = SubResource("RectangleShape2D_4tqnp")
-
-[node name="JumpOnBlockWall" type="StaticBody2D" parent="."]
+[node name="RoundTopPlatform" type="StaticBody2D" parent="."]
 position = Vector2(1297, -85)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlockWall"]
-shape = SubResource("RectangleShape2D_2i3up")
+[node name="Floor" type="CollisionShape2D" parent="RoundTopPlatform"]
+position = Vector2(277, 90)
+shape = SubResource("RectangleShape2D_4tqnp")
+debug_color = Color(0, 0.6, 0.701961, 1)
 
-[node name="BigVerticalWall" type="StaticBody2D" parent="."]
-position = Vector2(-617, 493)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="BigVerticalWall"]
-position = Vector2(231, 100)
-shape = SubResource("RectangleShape2D_drx2y")
-
-[node name="SlopeTest2" type="StaticBody2D" parent="."]
-position = Vector2(1344, -5)
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SlopeTest2"]
-polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
-
-[node name="SlopeTest3" type="StaticBody2D" parent="."]
-position = Vector2(1308, -148)
+[node name="Top" type="CollisionShape2D" parent="RoundTopPlatform"]
+position = Vector2(50, -165)
 rotation = 1.5708
+shape = SubResource("CapsuleShape2D_c2r0n")
+debug_color = Color(0, 0.6, 0.701961, 1)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SlopeTest3"]
+[node name="Wall" type="CollisionShape2D" parent="RoundTopPlatform"]
+position = Vector2(-32.5, -32.5)
+shape = SubResource("RectangleShape2D_2i3up")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="UpperCornerSlop" type="CollisionPolygon2D" parent="RoundTopPlatform"]
+position = Vector2(10, -63)
+rotation = 1.5708
 polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
 
-[node name="SlopeTest" type="StaticBody2D" parent="."]
-position = Vector2(-248, 558)
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="SlopeTest"]
-position = Vector2(-1, 2)
+[node name="LowerCornerSlope" type="CollisionPolygon2D" parent="RoundTopPlatform"]
+position = Vector2(47, 80)
 polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
 
-[node name="SteeperSlopeLeft" type="StaticBody2D" parent="."]
+[node name="UglySlide" type="CollisionPolygon2D" parent="RoundTopPlatform"]
+position = Vector2(412, 22)
+polygon = PackedVector2Array(30, -134, 29, -83, 52, -83, 52, -17, 84, -17, 84, 58, -153, 58, -128, 53, -101, 42, -75, 23, -59, -16, -51, -79, -48, -104, -38, -121, -18, -134)
+
+[node name="YeetInator" type="CollisionPolygon2D" parent="RoundTopPlatform"]
+position = Vector2(-82, 77)
+polygon = PackedVector2Array(-13, -47, 7, -109, 7, 23, -94, 58, -206, -3, -235, -110, -194, -50, -152, -20, -116, -2, -68, -1, -35, -20)
+
+[node name="FloatingSteeperSlopeLeft" type="StaticBody2D" parent="."]
 position = Vector2(992, 221)
 rotation = 0.322886
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SteeperSlopeLeft"]
-shape = SubResource("RectangleShape2D_ttkpr")
-
-[node name="SteeperSlopeRight" type="StaticBody2D" parent="."]
-position = Vector2(1158, 431)
-rotation = -0.322886
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SteeperSlopeRight"]
-shape = SubResource("RectangleShape2D_ttkpr")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FloatingSteeperSlopeLeft"]
+shape = SubResource("RectangleShape2D_biyhv")
+debug_color = Color(0, 0.6, 0.701961, 1)
 
 [node name="46DegreeSlope" type="StaticBody2D" parent="."]
 position = Vector2(1319, 356)
 rotation = -0.802851
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="46DegreeSlope"]
+[node name="Slope46Deg" type="CollisionShape2D" parent="46DegreeSlope"]
+position = Vector2(-5.6189, -2.10864)
 shape = SubResource("RectangleShape2D_r0dbk")
+debug_color = Color(0, 0.6, 0.701961, 1)
 
-[node name="46DegreeSlope2" type="StaticBody2D" parent="."]
-position = Vector2(397, 445)
-rotation = -0.802851
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="46DegreeSlope2"]
-shape = SubResource("RectangleShape2D_r0dbk")
-
-[node name="Ceiling" type="StaticBody2D" parent="."]
+[node name="ConveyerBelt" type="StaticBody2D" parent="."]
 position = Vector2(295, 478)
+constant_linear_velocity = Vector2(20, 0)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Ceiling"]
-shape = SubResource("RectangleShape2D_bsfud")
+[node name="45Deg" type="CollisionShape2D" parent="ConveyerBelt"]
+position = Vector2(98, -30)
+rotation = 0.785398
+shape = SubResource("CapsuleShape2D_h5hul")
+debug_color = Color(0.404511, 0.404511, 0.404511, 1)
 
-[node name="TopBoundary" type="StaticBody2D" parent="."]
-position = Vector2(661.262, -1193.76)
+[node name="Flat" type="CollisionShape2D" parent="ConveyerBelt"]
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_w552m")
+debug_color = Color(0.404511, 0.404511, 0.404511, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="TopBoundary"]
-shape = SubResource("WorldBoundaryShape2D_dtehr")
-
-[node name="RightBoundary" type="StaticBody2D" parent="."]
+[node name="StageBounds" type="StaticBody2D" parent="."]
 position = Vector2(2105, -296)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="RightBoundary"]
+[node name="Top" type="CollisionShape2D" parent="StageBounds"]
+position = Vector2(-1443.74, -897.76)
+shape = SubResource("WorldBoundaryShape2D_dtehr")
+
+[node name="Right" type="CollisionShape2D" parent="StageBounds"]
 shape = SubResource("WorldBoundaryShape2D_ir8kw")
 
-[node name="LeftBoundary" type="StaticBody2D" parent="."]
-position = Vector2(-463, -195)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftBoundary"]
+[node name="Left" type="CollisionShape2D" parent="StageBounds"]
+position = Vector2(-2568, 101)
 shape = SubResource("WorldBoundaryShape2D_uqlnw")
 
-[node name="LeftBoundary2" type="StaticBody2D" parent="."]
+[node name="SpinnyCircle" type="StaticBody2D" parent="."]
 position = Vector2(-63, 345)
+constant_angular_velocity = 0.261799
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftBoundary2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SpinnyCircle"]
 shape = SubResource("CircleShape2D_b41kx")
+debug_color = Color(0.964706, 0, 0, 1)
 
-[node name="RigidBody2D" type="RigidBody2D" parent="."]
-position = Vector2(1598, -98)
-mass = 10.0
-physics_material_override = SubResource("PhysicsMaterial_dbmww")
+[node name="SpinnyCapsule" type="StaticBody2D" parent="."]
+position = Vector2(283, 210)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
-shape = SubResource("RectangleShape2D_258ta")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SpinnyCapsule"]
+rotation = 0.785398
+shape = SubResource("CapsuleShape2D_tiyrh")
+debug_color = Color(1, 0, 0, 1)
 
 [node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
 position = Vector2(83, 6)
@@ -227,17 +244,10 @@ button_scene_frame_advance = &"debug_frame_advance"
 
 [node name="DropDash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("4_0bcpf")
+anim_charge = &"drop_dash_charge"
 
 [node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
 script = ExtResource("5_c3mx1")
-
-[node name="WaterShading" type="Area2D" parent="."]
-modulate = Color(0, 0.612316, 0.612316, 1)
-position = Vector2(673, 99)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WaterShading"]
-shape = SubResource("RectangleShape2D_nkpfw")
-debug_color = Color(1, 1, 1, 0.42)
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
 modulate = Color(0.369107, 0.369107, 0.369107, 1)

@@ -106,6 +106,8 @@ const perf_state:StringName = &"Player State"
 @export_subgroup("")
 ##Animation to play when skidding to a halt.
 @export var anim_skid:StringName
+##Animation to play when pushing a wall or object.
+@export var anim_push:StringName
 ##The animation to play when jumping.
 @export var anim_jump:StringName
 ##The animation to play when falling without being hurt or in a ball.
@@ -250,8 +252,8 @@ var can_change_direction:bool = true:
 	get:
 		return state_can_be & StateFlags.CHANGE_DIRECTION
 var can_push:bool = true:
-	set(on):
-		if on:
+	set(can_now_push):
+		if can_now_push:
 			state_can_be |= StateFlags.PUSHING
 		else:
 			state_can_be &= ~StateFlags.PUSHING
@@ -263,8 +265,8 @@ var can_push:bool = true:
 ##A signal is emitted whenever this value is changed;
 ##contact_air when false, and contact_ground when true
 var grounded:bool:
-	set(on):
-		if on:
+	set(now_grounded):
+		if now_grounded:
 			#check before the value is actually set
 			if not grounded:
 				contact_ground.emit(self)
@@ -335,8 +337,11 @@ var is_balancing:bool = false:
 	get:
 		return state_is & StateFlags.BALANCING
 var is_pushing:bool = false:
-	set(on):
-		if on:
+	set(now_pushing):
+		if now_pushing and can_push:
+			if not is_pushing:
+				print("Pushing a wall")
+				contact_wall.emit()
 			state_is |= StateFlags.PUSHING
 		else:
 			state_is &= ~StateFlags.PUSHING
@@ -708,7 +713,7 @@ func is_going_right() -> bool:
 ##Returns if the player could be slipping on a slope
 func lose_floor_grip() -> bool:
 	#var angle_condition:bool = absf(limitAngle(global_collision_rotation) >= floor_max_angle)
-	var angle_condition:bool = absf(global_collision_rotation >= floor_max_angle)
+	var angle_condition:bool = fmod(absf(global_collision_rotation), PI) >= fmod(floor_max_angle, PI)
 	
 	var speed_condition:bool = absf(ground_velocity) < physics.ground_stick_speed
 	
@@ -745,17 +750,23 @@ func process_ground() -> void:
 	#Calculate movement based on the mode
 	if rolling:
 		#Calculate rolling
+		
+		#apply gravity
+		ground_velocity += physics.air_gravity_strength * sine_ground_angle
+		
 		#apply slope factors
 		if is_zero_approx(collision_rotation): #If we're on level ground
 			#If we're also moving at all
 			if not is_zero_approx(ground_velocity):
 				ground_velocity -= physics.rolling_flat_factor * facing_direction
 		else: #We're on a hill of some sort
-			#The player is rolling uphill if the sign of ground velocity matches the sign of the sine of the slope
-			var rolling_factor:float = physics.rolling_uphill_factor if signf(ground_velocity) == signf(sine_ground_angle) else physics.rolling_downhill_factor
-			
-			ground_velocity += rolling_factor * sine_ground_angle
-			
+			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
+				#rolling downhill
+				ground_velocity += physics.rolling_downhill_factor * sine_ground_angle
+			else:
+				#rolling uphill
+				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
+		
 		#Check if the player wants to (and can) jump
 		if Input.is_action_pressed(physics.button_jump) and can_jump:
 			jumping = true
@@ -769,11 +780,12 @@ func process_ground() -> void:
 		#slope factors for being on foot
 		if moving:
 			#apply gravity if we're on a slope and not standing still
-			ground_velocity += sine_ground_angle * physics.air_gravity_strength
+			ground_velocity += physics.air_gravity_strength * sine_ground_angle
+			
 			#Apply the standing/running slope factor if we're not in ceiling mode
 			#These two magic numbers are 45 degrees and 135 degrees as radians, respectively
-			if not (rotation > 0.7853982 and rotation < 2.356194):
-				ground_velocity += sine_ground_angle * physics.ground_slope_factor
+			if not (collision_rotation > 0.7853982 and collision_rotation < 2.356194):
+				ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		
 		#Check if the player wants to (and can) jump
 		if Input.is_action_pressed(physics.button_jump) and can_jump:
@@ -868,7 +880,9 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 	if not Input.is_action_pressed(physics.button_roll):
 		rolling = false
 	#Transfer space_velocity to ground_velocity
-	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) * (space_velocity + Vector2(0, 0.5))
+	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) 
+	#applied_ground_speed *= (space_velocity + Vector2(0, 0.5))
+	applied_ground_speed *= (space_velocity)
 	ground_velocity = applied_ground_speed.x + applied_ground_speed.y
 	
 	if jumping:
@@ -878,15 +892,14 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
-	
 	#figure out if we've hit a wall
 	#TODO: implemnt "pushing" state variable, mess with it here
 	#var stop_on_wall:bool = (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0)
-	var stop_on_wall:bool = is_on_wall() and signf(space_velocity.x) == facing_direction
-	if stop_on_wall:
-		if not is_pushing and can_push:
+	if is_on_wall():
+		if is_equal_approx(signf(ground_velocity), facing_direction):
 			is_pushing = true
-			contact_wall.emit()
+		else:
+			is_pushing = false
 	else:
 		is_pushing = false
 	
@@ -897,7 +910,8 @@ func update_collision_rotation() -> void:
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
 	if not grounded:
-		will_be_grounded = will_be_grounded and get_slide_collision_count() > 0 and not stop_on_wall
+		#player collides with the ground
+		will_be_grounded = will_be_grounded and get_slide_collision_count() > 0 and not is_on_wall_only()
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing, what the ground angle is, to apply landing speed
@@ -906,7 +920,8 @@ func update_collision_rotation() -> void:
 		#We use this check to double as a "should we stick to the floor?" check
 		
 		#null horizontal velocity if the player is on a wall
-		if stop_on_wall:
+		if is_on_wall():
+			print("w a l l ")
 			ground_velocity = 0.0
 		
 		var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
@@ -957,7 +972,7 @@ func update_collision_rotation() -> void:
 			sprite_rotation = 0
 	else:
 		#null velocity if the player is on a wall
-		if stop_on_wall:
+		if is_on_wall():
 			space_velocity.x = 0.0
 		
 		#set the ground angle
@@ -974,9 +989,11 @@ func update_collision_rotation() -> void:
 		else:
 			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
 	
-	if not grounded and will_be_grounded:
-		var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) * (space_velocity + Vector2(0, 0.5))
-		ground_velocity = applied_ground_speed.x + applied_ground_speed.y
+	#if not grounded and will_be_grounded:
+		#var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) * (space_velocity + Vector2(0, 0.5))
+		#ground_velocity = applied_ground_speed.x + applied_ground_speed.y
+	
+	grounded = will_be_grounded
 	
 	#this will "un-land" the player if they're on a steep slope
 	grounded = will_be_grounded and not lose_floor_grip()
@@ -996,9 +1013,11 @@ func update_animations() -> void:
 		else:
 			play_animation(anim_free_fall, true)
 	elif grounded:
+		if is_pushing:
+			play_animation(anim_push)
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		if absf(ground_velocity) > physics.ground_top_speed: # > 100% speed
+		elif absf(ground_velocity) > physics.ground_top_speed: # > 100% speed
 			play_animation(anim_run_max)
 		elif absf(ground_velocity) > (physics.ground_top_speed * percent_run_3):
 			play_animation(anim_run_3)
