@@ -239,7 +239,7 @@ height = 40.0
 floor_stop_on_slope = false
 floor_constant_speed = true
 floor_block_on_wall = false
-floor_snap_length = 15.0
+floor_snap_length = 7.0
 script = ExtResource("1_mpnpc")
 physics = SubResource("Resource_eyxug")
 rotation_static_collision = true
@@ -258,7 +258,6 @@ anim_jump = &"jump_ball"
 [node name="RectangleShape" type="CollisionShape2D" parent="."]
 position = Vector2(0, 5)
 shape = SubResource("RectangleShape2D_x7kbe")
-disabled = true
 
 [node name="Sprites" type="Sprite2D" parent="."]
 texture_filter = 1
@@ -280,3 +279,4 @@ autoplay = "walk"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 4)
 shape = SubResource("CapsuleShape2D_ym0ab")
+disabled = true

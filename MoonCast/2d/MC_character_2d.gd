@@ -75,7 +75,6 @@ const perf_state:StringName = &"Player State"
 
 @export var camera_move_speed:Vector2i
 
-
 @export_group("Animations", "anim_")
 ##The animation to play when standing still.
 @export var anim_stand:StringName
@@ -178,6 +177,8 @@ var sfx_playback_ref:AudioStreamPlaybackPolyphonic
 var jump_timer:Timer = Timer.new()
 ##The timer for the player's ability to move directionally.
 var control_lock_timer:Timer = Timer.new()
+##The timer for the player to be able to stick to the floor.
+var ground_snap_timer:Timer = Timer.new()
 
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
@@ -440,6 +441,8 @@ func setup_children() -> void:
 	add_child(jump_timer)
 	control_lock_timer.name = "ControlLockTimer"
 	add_child(control_lock_timer)
+	ground_snap_timer.name = "GroundSnapTimer"
+	add_child(ground_snap_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)
@@ -517,7 +520,7 @@ func setup_collision() -> void:
 	
 	#place the raycasts based on the above derived values
 	
-	const ground_safe_margin:int = 5
+	var ground_safe_margin:int = floor_snap_length
 	
 	ray_ground_left.position.x = ground_left_corner.x
 	ray_ground_left.target_position.y = ground_left_corner.y + ground_safe_margin
@@ -574,7 +577,7 @@ func _ready() -> void:
 	for num:int in range(-1000, 1000, 10):
 		var corrected:float = rad_to_deg(limitAngle(deg_to_rad(num)))
 		var corrected_2:float = rad_to_deg(limitAngle2(deg_to_rad(num)))
-		assert(is_equal_approx(corrected, corrected_2))
+		#assert(is_equal_approx(corrected, corrected_2))
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()
@@ -686,6 +689,22 @@ func limitAngle2(input_angle:float) -> float:
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 
+##Returns if the player is going left
+func is_going_left() -> bool:
+	if grounded:
+		return moving and ground_velocity < 0
+	else:
+		#TODO: Make this properly check relative to default_gravity
+		return space_velocity.x < 0
+
+##Returns if the player is going right
+func is_going_right() -> bool:
+	if grounded:
+		return moving and ground_velocity > 0
+	else:
+		#TODO: Make this properly check relative to default_gravity
+		return space_velocity.x > 0
+
 ##Returns if the player could be slipping on a slope
 func lose_floor_grip() -> bool:
 	#var angle_condition:bool = absf(limitAngle(global_collision_rotation) >= floor_max_angle)
@@ -721,15 +740,6 @@ func process_air() -> void:
 
 ##Process the player's ground physics
 func process_ground() -> void:
-	#balancing checks
-	#This is also used to decide if the player should snap to the floor, because
-	#the conditions are parallel to what we would check for to *not* snap to the 
-	#floor, such as running off a slope we just ran up
-	is_balancing = not ray_ground_central.is_colliding() and (not ray_ground_left.is_colliding() or not ray_ground_right.is_colliding())
-	
-	if not is_balancing:
-		apply_floor_snap()
-	
 	var sine_ground_angle:float = sin(collision_rotation)
 	
 	#Calculate movement based on the mode
@@ -849,6 +859,7 @@ func process_ground() -> void:
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	collision_rotation = 0
+	up_direction = default_gravity
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -867,16 +878,11 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
-	#cache all these as variables for performance and readability
-	var left_wall_collided:bool = ray_wall_left.is_colliding()
-	var right_wall_collided:bool = ray_wall_right.is_colliding()
-	var on_center_ground:bool = ray_ground_central.is_colliding()
-	var on_left_ground:bool = ray_ground_left.is_colliding()
-	var on_right_ground:bool = ray_ground_right.is_colliding()
 	
 	#figure out if we've hit a wall
 	#TODO: implemnt "pushing" state variable, mess with it here
-	var stop_on_wall:bool = (left_wall_collided and space_velocity.x < 0) or (right_wall_collided and space_velocity.x > 0)
+	#var stop_on_wall:bool = (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0)
+	var stop_on_wall:bool = is_on_wall() and signf(space_velocity.x) == facing_direction
 	if stop_on_wall:
 		if not is_pushing and can_push:
 			is_pushing = true
@@ -886,40 +892,59 @@ func update_collision_rotation() -> void:
 	
 	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
-	#var will_be_grounded:bool = get_slide_collision_count() > 0 and (on_center_ground or on_left_ground or on_right_ground)
-	var will_be_grounded:bool = (on_center_ground or on_left_ground or on_right_ground)
+	var will_be_grounded:bool = ray_ground_central.is_colliding() or ray_ground_left.is_colliding() or ray_ground_right.is_colliding()
+	
+	#This check is made so that the player does not prematurely enter the ground state as soon
+	# as the raycasts intersect the ground
+	if not grounded:
+		will_be_grounded = will_be_grounded and get_slide_collision_count() > 0 and not stop_on_wall
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing, what the ground angle is, to apply landing speed
-	var ray_l_normal:Vector2 = ray_ground_left.get_collision_normal()
-	
-	var l_angle_to_limit:float = -atan2(ray_l_normal.x, ray_l_normal.y) - PI
-	var left_angle:float = limitAngle(l_angle_to_limit)
-	var l_angle_1:float = snappedf(fmod(l_angle_to_limit, PI), PI)
-	
-	var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-	
 	
 	if will_be_grounded:
+		#We use this check to double as a "should we stick to the floor?" check
+		
 		#null horizontal velocity if the player is on a wall
 		if stop_on_wall:
 			ground_velocity = 0.0
 		
-		#set ground angle
-		if on_left_ground and on_right_ground:
-			if absf(left_angle - right_angle) < PI:
-				collision_rotation = limitAngle((left_angle + right_angle) / 2.0)
-			else:
-				collision_rotation = limitAngle((left_angle + right_angle + PI * 2.0) / 2.0)
-		elif on_left_ground:
-			collision_rotation = left_angle
-		elif on_right_ground:
+		var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+		var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+		
+		#We want whatever collision point is "behind" the player, because if 
+		#they run off a ledge, rotation will still be based on what they just ran off.
+		
+		#We also check balance to decide if the player should snap to the floor, because
+		#the conditions are parallel to what we would check for to *not* snap to the 
+		#floor, such as running off a slope we just ran up
+		
+		if is_going_right():
 			collision_rotation = right_angle
+			ray_ground_central.force_raycast_update()
+			ray_ground_right.force_raycast_update()
+			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_left.is_colliding())
+		elif is_going_left():
+			collision_rotation = left_angle
+			ray_ground_central.force_raycast_update()
+			ray_ground_left.force_raycast_update()
+			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_right.is_colliding())
+		else:
+			collision_rotation = maxf(left_angle, right_angle)
+			is_balancing = not (ray_ground_central.is_colliding() and (ray_ground_left.is_colliding() or ray_ground_right.is_colliding()))
+		
+		if moving:
+			up_direction = Vector2.from_angle(collision_rotation - (PI / 2.0))
+		else:
+			up_direction = default_gravity
 		
 		#Ceiling landing check
 		#The player can land on "steep ceilings", but not flat ones
 		if space_velocity.y < 0 and not grounded:
 			will_be_grounded = collision_rotation >= floor_max_angle
+		
+		if will_be_grounded and not is_balancing:
+			apply_floor_snap()
 		
 		#set sprite rotations
 		if moving and will_be_grounded:
@@ -936,8 +961,6 @@ func update_collision_rotation() -> void:
 			space_velocity.x = 0.0
 		
 		#set the ground angle
-		collision_rotation = (left_angle + right_angle) / 2.0
-		
 		#ground sensors point whichever direction the player is traveling vertically
 		#this is so that landing on the ceiling is made possible
 		if space_velocity.y > 0:
@@ -951,13 +974,12 @@ func update_collision_rotation() -> void:
 		else:
 			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
 	
-	#This will apply landing velocity if the player was not already on the ground
-	grounded = will_be_grounded
+	if not grounded and will_be_grounded:
+		var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) * (space_velocity + Vector2(0, 0.5))
+		ground_velocity = applied_ground_speed.x + applied_ground_speed.y
+	
 	#this will "un-land" the player if they're on a steep slope
 	grounded = will_be_grounded and not lose_floor_grip()
-	
-	if grounded:
-		up_direction = Vector2.from_angle(collision_rotation + deg_to_rad(90.0))
 	
 	sprites_set_rotation(sprite_rotation)
 

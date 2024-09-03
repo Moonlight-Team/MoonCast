@@ -240,7 +240,7 @@ shape = SubResource("RectangleShape2D_nkpfw")
 debug_color = Color(1, 1, 1, 0.42)
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
-modulate = Color(0.534361, 0.534361, 0.534361, 1)
+modulate = Color(0.369107, 0.369107, 0.369107, 1)
 show_behind_parent = true
 repeat_size = Vector2(1536, 512)
 autoscroll = Vector2(10, 0)

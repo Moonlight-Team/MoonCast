@@ -1,5 +1,7 @@
 extends MoonCastAbility
 
+class_name MoonCastDebugMode
+
 @export_group("Debug controls", "button_")
 ##The action for enabling debug. When debug is enabled, the 
 ##player will [i]not[/i] be affected by pausing the game (with debug mode)

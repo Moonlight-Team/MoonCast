@@ -5,7 +5,7 @@ class_name DropDash
 @export var chargeup_time:float = 1.0 / 3.0 #20 frames when at 60fps, so that's about 1/3 of a second
 ##The speed the drop dash will launch at when actively 
 ##moving forward at time of launch.
-@export var forward_speed:float
+@export var forward_speed:float 
 ##The speed the drop dash will launch at when 
 @export var neutral_speed:float
 ##The button to be held in order to charge the drop dash.
