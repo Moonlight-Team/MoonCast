@@ -1,10 +1,11 @@
-[gd_scene load_steps=26 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=27 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_txt8d"]
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_c3mx1"]
+[ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_d0mba"]
 [ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="6_g1u4y"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
@@ -194,13 +195,16 @@ position = Vector2(2105, -296)
 [node name="Top" type="CollisionShape2D" parent="StageBounds"]
 position = Vector2(-1443.74, -897.76)
 shape = SubResource("WorldBoundaryShape2D_dtehr")
+debug_color = Color(1, 1, 1, 1)
 
 [node name="Right" type="CollisionShape2D" parent="StageBounds"]
 shape = SubResource("WorldBoundaryShape2D_ir8kw")
+debug_color = Color(1, 1, 1, 1)
 
 [node name="Left" type="CollisionShape2D" parent="StageBounds"]
 position = Vector2(-2568, 101)
 shape = SubResource("WorldBoundaryShape2D_uqlnw")
+debug_color = Color(1, 1, 1, 1)
 
 [node name="SpinnyCircle" type="StaticBody2D" parent="."]
 position = Vector2(-63, 345)
@@ -248,6 +252,9 @@ anim_charge = &"drop_dash_charge"
 
 [node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
 script = ExtResource("5_c3mx1")
+
+[node name="DynamicCam" type="Node" parent="mrneedlemouse"]
+script = ExtResource("6_d0mba")
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
 modulate = Color(0.369107, 0.369107, 0.369107, 1)

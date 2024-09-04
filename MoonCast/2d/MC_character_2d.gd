@@ -43,7 +43,7 @@ const perf_state:StringName = &"Player State"
 ##The physics table for this player
 @export var physics:MoonCastPhysicsTable = MoonCastPhysicsTable.new()
 ##The default direction of gravity.
-@export var default_gravity:Vector2 = Vector2.UP
+@export var defualt_up_direction:Vector2 = Vector2.UP
 ##If this is set to false, the character cannot roll. 
 @export var rolling_enabled:bool = true
 ##If this is set to true, the character can roll in midair after initially falling.
@@ -699,7 +699,7 @@ func is_going_left() -> bool:
 	if grounded:
 		return moving and ground_velocity < 0
 	else:
-		#TODO: Make this properly check relative to default_gravity
+		#TODO: Make this properly check relative to defualt_up_direction
 		return space_velocity.x < 0
 
 ##Returns if the player is going right
@@ -707,7 +707,7 @@ func is_going_right() -> bool:
 	if grounded:
 		return moving and ground_velocity > 0
 	else:
-		#TODO: Make this properly check relative to default_gravity
+		#TODO: Make this properly check relative to defualt_up_direction
 		return space_velocity.x > 0
 
 ##Returns if the player could be slipping on a slope
@@ -794,7 +794,7 @@ func process_ground() -> void:
 		#input processing
 		if is_zero_approx(input_direction): #handle input-less deceleration
 			if not is_zero_approx(ground_velocity):
-				ground_velocity -= physics.ground_deceleration * facing_direction
+				ground_velocity = move_toward(ground_velocity, 0.0, physics.ground_deceleration)
 			#snap ground velocity to the minimum ground speed
 			if not moving:
 				ground_velocity = 0
@@ -813,7 +813,6 @@ func process_ground() -> void:
 				
 				#TODO: Add a faster skid anim as well, and checks to play either skid animation
 				play_animation(anim_skid)
-	
 	
 	#fall off if the player is on a steep slope or wall and is not
 	#going fast enough to stick to walls
@@ -871,7 +870,7 @@ func process_ground() -> void:
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	collision_rotation = 0
-	up_direction = default_gravity
+	up_direction = defualt_up_direction
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -913,6 +912,9 @@ func update_collision_rotation() -> void:
 		#player collides with the ground
 		will_be_grounded = will_be_grounded and get_slide_collision_count() > 0 and not is_on_wall_only()
 	
+	#I'll explain this later
+	var landing:bool = will_be_grounded and not grounded
+	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing, what the ground angle is, to apply landing speed
 	
@@ -920,12 +922,29 @@ func update_collision_rotation() -> void:
 		#We use this check to double as a "should we stick to the floor?" check
 		
 		#null horizontal velocity if the player is on a wall
-		if is_on_wall():
-			print("w a l l ")
+		if is_pushing:
 			ground_velocity = 0.0
 		
-		var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-		var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+		var left_angle:float
+		var right_angle:float
+		
+		#the CharacterBody2D system has no idea what the ground normal is when its
+		#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
+		#we use the raycasts. 
+		if landing:
+			left_angle = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+			#var l_faster:float = limitAngle(ray_ground_left.get_collision_normal().rotated(deg_to_rad(-270.0)).angle())
+			right_angle = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+		else: #use the characterbody system, which should theoretically be faster because less math
+			var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(90.0) - PI).angle())
+			
+			#This specifically gets around a glitch where it won't detect slopes we are running down
+			if is_zero_approx(gnd_angle):
+				apply_floor_snap()
+				gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(90.0) - PI).angle())
+			
+			left_angle = gnd_angle
+			right_angle = gnd_angle
 		
 		#We want whatever collision point is "behind" the player, because if 
 		#they run off a ledge, rotation will still be based on what they just ran off.
@@ -951,7 +970,7 @@ func update_collision_rotation() -> void:
 		if moving:
 			up_direction = Vector2.from_angle(collision_rotation - (PI / 2.0))
 		else:
-			up_direction = default_gravity
+			up_direction = defualt_up_direction
 		
 		#Ceiling landing check
 		#The player can land on "steep ceilings", but not flat ones
@@ -980,8 +999,12 @@ func update_collision_rotation() -> void:
 		#this is so that landing on the ceiling is made possible
 		if space_velocity.y > 0:
 			collision_rotation = 0
+			up_direction = Vector2.UP
 		else:
 			collision_rotation = PI #180 degrees
+			up_direction = Vector2.DOWN
+		
+		
 		
 		#set sprite rotation
 		if rotation_classic_snap:
@@ -1065,9 +1088,9 @@ func sprites_flip() -> void:
 ##physics behavior while still implementing certain visual rotation features.
 func sprites_set_rotation(new_rotation:float) -> void:
 	if is_instance_valid(sprite1):
-		sprite1.rotation = new_rotation
+		sprite1.global_rotation = new_rotation
 	if is_instance_valid(animated_sprite1):
-		animated_sprite1.rotation = new_rotation
+		animated_sprite1.global_rotation = new_rotation
 
 func _physics_process(delta: float) -> void:
 	#reset this flag specifically
