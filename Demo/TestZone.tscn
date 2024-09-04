@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=12 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_8c4a3"]
 [ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="1_40r55"]
@@ -7,7 +7,6 @@
 [ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="4_ruljh"]
 [ext_resource type="Texture2D" uid="uid://bot8e7aljq2o1" path="res://Demo/assets/spritesheet-export.png" id="5_ctefi"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="6_2iqo0"]
-[ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="7_85xo0"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_28rcd"]
 
@@ -509,12 +508,6 @@ spindash_max_charge = 20.0
 
 [node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
 script = ExtResource("6_2iqo0")
-
-[node name="DebugMode" type="Node" parent="mrneedlemouse"]
-script = ExtResource("7_85xo0")
-button_enable_debug = &"debug_toggle"
-button_scene_pause = &"debug_pause"
-button_scene_frame_advance = &"debug_frame_advance"
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("4_4fkrd")

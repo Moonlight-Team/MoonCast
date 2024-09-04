@@ -24,12 +24,12 @@ rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
 jump_short_limit = 4.0
 jump_spam_timer = 0.4
-button_up = &"ui_up"
-button_down = &"ui_down"
-button_left = &"ui_left"
-button_right = &"ui_right"
-button_jump = &"ui_accept"
-button_roll = &"ui_down"
+button_up = &"up"
+button_down = &"down"
+button_left = &"left"
+button_right = &"right"
+button_jump = &"a"
+button_roll = &"down"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)

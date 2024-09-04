@@ -195,6 +195,7 @@ position = Vector2(2105, -296)
 [node name="Top" type="CollisionShape2D" parent="StageBounds"]
 position = Vector2(-1443.74, -897.76)
 shape = SubResource("WorldBoundaryShape2D_dtehr")
+disabled = true
 debug_color = Color(1, 1, 1, 1)
 
 [node name="Right" type="CollisionShape2D" parent="StageBounds"]
@@ -242,9 +243,9 @@ script = ExtResource("2_qkeds")
 
 [node name="DebugMode" type="Node" parent="mrneedlemouse"]
 script = ExtResource("3_txt8d")
-button_enable_debug = &"debug_toggle"
-button_scene_pause = &"debug_pause"
-button_scene_frame_advance = &"debug_frame_advance"
+button_enable_debug = &"x"
+button_scene_pause = &"start"
+button_scene_frame_advance = &"z"
 
 [node name="DropDash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("4_0bcpf")
@@ -255,6 +256,7 @@ script = ExtResource("5_c3mx1")
 
 [node name="DynamicCam" type="Node" parent="mrneedlemouse"]
 script = ExtResource("6_d0mba")
+zoom_speed = 0.01
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
 modulate = Color(0.369107, 0.369107, 0.369107, 1)

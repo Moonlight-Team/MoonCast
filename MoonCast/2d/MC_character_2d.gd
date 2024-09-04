@@ -218,7 +218,7 @@ var animation_set:bool = false
 ##If true, the player can jump.
 var can_jump:bool = true:
 	set(on):
-		if on:
+		if on and jump_timer.is_stopped():
 			state_can_be |= StateFlags.JUMPING
 		else:
 			state_can_be &= ~StateFlags.JUMPING
@@ -870,7 +870,7 @@ func process_ground() -> void:
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	collision_rotation = 0
-	up_direction = defualt_up_direction
+
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -887,7 +887,8 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 	if jumping:
 		jumping = false
 		#TODO: Set can_jump to false and add a jump cooldown 
-		#timer that starts here
+		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
+		jump_timer.start(0.5)
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
@@ -904,20 +905,20 @@ func update_collision_rotation() -> void:
 	
 	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
-	var will_be_grounded:bool = ray_ground_central.is_colliding() or ray_ground_left.is_colliding() or ray_ground_right.is_colliding()
-	
-	#This check is made so that the player does not prematurely enter the ground state as soon
-	# as the raycasts intersect the ground
-	if not grounded:
-		#player collides with the ground
-		will_be_grounded = will_be_grounded and get_slide_collision_count() > 0 and not is_on_wall_only()
-	
+	var raycasts_grounded:bool = ray_ground_central.is_colliding() or ray_ground_left.is_colliding() or ray_ground_right.is_colliding()
 	#I'll explain this later
-	var landing:bool = will_be_grounded and not grounded
+	var landing:bool = raycasts_grounded and not grounded
+	var will_be_grounded:bool 
+	
+	if not grounded:
+		#This check is made so that the player does not prematurely enter the ground state as soon
+		# as the raycasts intersect the ground
+		will_be_grounded = raycasts_grounded and get_slide_collision_count() > 0 and not is_on_wall_only()
+	else:
+		will_be_grounded = raycasts_grounded
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing, what the ground angle is, to apply landing speed
-	
 	if will_be_grounded:
 		#We use this check to double as a "should we stick to the floor?" check
 		
@@ -957,12 +958,12 @@ func update_collision_rotation() -> void:
 			collision_rotation = right_angle
 			ray_ground_central.force_raycast_update()
 			ray_ground_right.force_raycast_update()
-			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_left.is_colliding())
+			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_right.is_colliding())
 		elif is_going_left():
 			collision_rotation = left_angle
 			ray_ground_central.force_raycast_update()
 			ray_ground_left.force_raycast_update()
-			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_right.is_colliding())
+			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_left.is_colliding())
 		else:
 			collision_rotation = maxf(left_angle, right_angle)
 			is_balancing = not (ray_ground_central.is_colliding() and (ray_ground_left.is_colliding() or ray_ground_right.is_colliding()))
@@ -999,22 +1000,16 @@ func update_collision_rotation() -> void:
 		#this is so that landing on the ceiling is made possible
 		if space_velocity.y > 0:
 			collision_rotation = 0
-			up_direction = Vector2.UP
 		else:
 			collision_rotation = PI #180 degrees
-			up_direction = Vector2.DOWN
 		
-		
+		up_direction = defualt_up_direction
 		
 		#set sprite rotation
 		if rotation_classic_snap:
 			sprite_rotation = 0
 		else:
 			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
-	
-	#if not grounded and will_be_grounded:
-		#var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) * (space_velocity + Vector2(0, 0.5))
-		#ground_velocity = applied_ground_speed.x + applied_ground_speed.y
 	
 	grounded = will_be_grounded
 	

@@ -1,47 +1,63 @@
 [gd_scene load_steps=6 format=3 uid="uid://81vx8lyybmm7"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_j4mqd"]
-size = Vector2(40, 20)
+[ext_resource type="Texture2D" uid="uid://ddgdl5td13ano" path="res://Demo/assets/VirtualDPad.png" id="1_lonqo"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_hx7jx"]
-size = Vector2(40, 20)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_4n06j"]
-size = Vector2(20, 40)
+[sub_resource type="AtlasTexture" id="AtlasTexture_w43bf"]
+atlas = ExtResource("1_lonqo")
+region = Rect2(1, 1, 254, 253)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_f7rgl"]
-size = Vector2(20, 40)
+size = Vector2(140, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kp8jh"]
+atlas = ExtResource("1_lonqo")
+region = Rect2(22, 334, 155, 155)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_iv81a"]
-size = Vector2(40, 40)
+size = Vector2(250, 250)
 
 [node name="TouchControls" type="Node2D"]
 
-[node name="Left" type="TouchScreenButton" parent="."]
-position = Vector2(41, 147)
-shape = SubResource("RectangleShape2D_j4mqd")
-passby_press = true
-visibility_mode = 1
+[node name="D-pad" type="Sprite2D" parent="."]
+position = Vector2(67, 168)
+scale = Vector2(0.35, 0.35)
+texture = SubResource("AtlasTexture_w43bf")
 
-[node name="Right" type="TouchScreenButton" parent="."]
-position = Vector2(101, 147)
-shape = SubResource("RectangleShape2D_hx7jx")
-passby_press = true
-visibility_mode = 1
-
-[node name="Up" type="TouchScreenButton" parent="."]
-position = Vector2(71, 117)
-shape = SubResource("RectangleShape2D_4n06j")
-passby_press = true
-visibility_mode = 1
-
-[node name="Down" type="TouchScreenButton" parent="."]
-position = Vector2(71, 177)
+[node name="Right" type="TouchScreenButton" parent="D-pad"]
+position = Vector2(105.714, 5.48363e-05)
+rotation = 1.5708
 shape = SubResource("RectangleShape2D_f7rgl")
 passby_press = true
+action = "right"
+visibility_mode = 1
+
+[node name="Up" type="TouchScreenButton" parent="D-pad"]
+position = Vector2(2.74181e-05, -105.714)
+shape = SubResource("RectangleShape2D_f7rgl")
+passby_press = true
+action = "up"
+visibility_mode = 1
+
+[node name="Down" type="TouchScreenButton" parent="D-pad"]
+position = Vector2(2.74181e-05, 105.714)
+shape = SubResource("RectangleShape2D_f7rgl")
+passby_press = true
+action = "down"
+visibility_mode = 1
+
+[node name="Left" type="TouchScreenButton" parent="D-pad"]
+position = Vector2(-105.714, 6.10352e-05)
+rotation = 1.5708
+shape = SubResource("RectangleShape2D_f7rgl")
+passby_press = true
+action = "left"
 visibility_mode = 1
 
 [node name="Jump" type="TouchScreenButton" parent="."]
-position = Vector2(340, 161)
+position = Vector2(323, 142)
+scale = Vector2(0.36, 0.36)
+texture_normal = SubResource("AtlasTexture_kp8jh")
+texture_pressed = SubResource("AtlasTexture_kp8jh")
 shape = SubResource("RectangleShape2D_iv81a")
+action = "jump"
 visibility_mode = 1

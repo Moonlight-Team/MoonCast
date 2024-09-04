@@ -14,13 +14,13 @@ func _ready() -> void:
 #These checks are not very secure, but /shrug
 
 func _input(event: InputEvent) -> void:
-	if event.is_action(&"ui_accept"):
+	if event.is_action(&"start"):
 		if vid_player.is_playing():
 			vid_player.stop()
 			_on_intro_video_finished()
 
 func _on_2d_pressed() -> void:
-	if Input.is_key_pressed(KEY_SHIFT) and not test_2D.is_empty():
+	if Input.is_action_pressed(&"y") and not test_2D.is_empty():
 		get_tree().change_scene_to_file(test_2D)
 	elif not main_2D.is_empty():
 		get_tree().change_scene_to_file(main_2D)
