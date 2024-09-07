@@ -525,7 +525,7 @@ func setup_collision() -> void:
 	
 	#place the raycasts based on the above derived values
 	
-	var ground_safe_margin:int = floor_snap_length
+	var ground_safe_margin:int = int(floor_snap_length)
 	
 	ray_ground_left.position.x = ground_left_corner.x
 	ray_ground_left.target_position.y = ground_left_corner.y + ground_safe_margin
@@ -578,11 +578,6 @@ func _ready() -> void:
 	#After all, why [i]not[/i] use our own API?
 	connect(&"contact_air", enter_air)
 	connect(&"contact_ground", land_on_ground)
-	
-	for num:int in range(-1000, 1000, 10):
-		var corrected:float = rad_to_deg(limitAngle(deg_to_rad(num)))
-		var corrected_2:float = rad_to_deg(limitAngle2(deg_to_rad(num)))
-		#assert(is_equal_approx(corrected, corrected_2))
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()
@@ -672,24 +667,14 @@ func play_sound_effect(sfx_name:StringName) -> void:
 		var sound_arr_pos:int = sfx_custom_list_names.find(sfx_name)
 		sfx_playback_ref.play_stream(sfx_custom_list_streams[sound_arr_pos], 0, 0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
 
-const full_circle:float = 2 * PI
 ##Returns the given angle as an angle (in radians) between -PI and PI
+##Unlike the built in angle_difference function, return value for 0 and 180 degrees
+#is flipped.
 func limitAngle(input_angle:float) -> float:
-	var sign_of_angle:float = 1 if is_zero_approx(input_angle) else signf(input_angle)
-	
-	input_angle = fmod(input_angle, full_circle)
-	if absf(input_angle) > PI:
-		input_angle = (full_circle - absf(input_angle)) * -sign_of_angle
-	return input_angle
-
-func limitAngle2(input_angle:float) -> float:
-	var sign_of_angle:float = 1 if is_zero_approx(input_angle) else signf(input_angle)
-	input_angle = fmod(input_angle, full_circle)
-	input_angle = angle_difference(absf(input_angle), 0)
-	if absf(input_angle) > PI:
-		input_angle *= -sign_of_angle
-	
-	return input_angle
+	var return_angle:float = angle_difference(0, input_angle)
+	if is_equal_approx(absf(return_angle), PI) or is_zero_approx(return_angle):
+		return_angle = -return_angle
+	return return_angle
 
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
@@ -888,7 +873,7 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		jumping = false
 		#TODO: Set can_jump to false and add a jump cooldown 
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
-		jump_timer.start(0.5)
+		jump_timer.start(0.2)
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
@@ -903,11 +888,11 @@ func update_collision_rotation() -> void:
 	else:
 		is_pushing = false
 	
-	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
-	#properly applies ground angle
 	var raycasts_grounded:bool = ray_ground_central.is_colliding() or ray_ground_left.is_colliding() or ray_ground_right.is_colliding()
 	#I'll explain this later
 	var landing:bool = raycasts_grounded and not grounded
+	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
+	#properly applies ground angle
 	var will_be_grounded:bool 
 	
 	if not grounded:
@@ -934,10 +919,9 @@ func update_collision_rotation() -> void:
 		#we use the raycasts. 
 		if landing:
 			left_angle = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-			#var l_faster:float = limitAngle(ray_ground_left.get_collision_normal().rotated(deg_to_rad(-270.0)).angle())
 			right_angle = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 		else: #use the characterbody system, which should theoretically be faster because less math
-			var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(90.0) - PI).angle())
+			var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
 			
 			#This specifically gets around a glitch where it won't detect slopes we are running down
 			if is_zero_approx(gnd_angle):
@@ -976,7 +960,11 @@ func update_collision_rotation() -> void:
 		#Ceiling landing check
 		#The player can land on "steep ceilings", but not flat ones
 		if space_velocity.y < 0 and not grounded:
-			will_be_grounded = collision_rotation >= floor_max_angle
+			if collision_rotation >= floor_max_angle:
+				will_be_grounded = true
+			else:
+				space_velocity.y = 0
+				will_be_grounded = false
 		
 		if will_be_grounded and not is_balancing:
 			apply_floor_snap()

@@ -5,9 +5,9 @@ class_name DropDash
 @export var chargeup_time:float = 1.0 / 3.0 #20 frames when at 60fps, so that's about 1/3 of a second
 ##The speed the drop dash will launch at when actively 
 ##moving forward at time of launch.
-@export var forward_speed:float 
+@export var forward_speed:float = 12.0
 ##The speed the drop dash will launch at when 
-@export var neutral_speed:float
+@export var neutral_speed:float = 8.0
 ##The button to be held in order to charge the drop dash.
 @export var charge_button:StringName = &"ui_select"
 ##The animation name for charging the drop dash in midair.
@@ -35,8 +35,10 @@ func set_charged() -> void:
 	charging = false
 
 func _air_contact_2D(player:MoonCastPlayer2D) -> void:
-	if player.jumping:
-		can_charge = true
+	#if player.jumping:
+		#can_charge = true
+	can_charge = true
+	print("Drop dash can be charged")
 
 func _air_state_2D(player:MoonCastPlayer2D) -> void:
 	if can_charge:
@@ -45,8 +47,9 @@ func _air_state_2D(player:MoonCastPlayer2D) -> void:
 		if charging and not charge_held:
 			can_charge = false
 			charging = false
-			player.play_animation(player.anim_jump)
+			player.play_animation(player.anim_roll)
 		elif charge_held and not charging:
+			print("Charging drop dash")
 			charging = true
 			player.play_animation(anim_charge, true)
 			#start the charge timer
@@ -62,6 +65,6 @@ func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
 		else:
 			player.ground_velocity = player.facing_direction * neutral_speed
 		player.rolling = true
-		#player.play_animation(player.anim_roll)
-		player.play_animation(anim_launch)
+		player.play_animation(player.anim_roll)
+		#player.play_animation(anim_launch)
 		charged = false

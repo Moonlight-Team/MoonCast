@@ -6,7 +6,11 @@
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_c3mx1"]
 [ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_d0mba"]
+<<<<<<< Updated upstream
 [ext_resource type="Texture2D" uid="uid://842am0wh7y84" path="res://Demo/assets/background.png" id="6_g1u4y"]
+=======
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="7_3sg6n"]
+>>>>>>> Stashed changes
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)
@@ -108,16 +112,14 @@ position = Vector2(-1092.38, -129.314)
 rotation = 0.16057
 polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
 
-[node name="JumpOnBlock1" type="StaticBody2D" parent="."]
+[node name="PlatformingBlocks" type="StaticBody2D" parent="."]
 position = Vector2(2084, 189)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock1"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformingBlocks"]
 shape = SubResource("RectangleShape2D_bdxha")
 
-[node name="JumpOnBlock2" type="StaticBody2D" parent="."]
-position = Vector2(1862, 112)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="JumpOnBlock2"]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="PlatformingBlocks"]
+position = Vector2(-222, -77)
 shape = SubResource("RectangleShape2D_bdxha")
 
 [node name="RoundTopPlatform" type="StaticBody2D" parent="."]
@@ -260,9 +262,9 @@ zoom_speed = 0.01
 [node name="Parallax2D" type="Parallax2D" parent="."]
 modulate = Color(0.369107, 0.369107, 0.369107, 1)
 show_behind_parent = true
-repeat_size = Vector2(1536, 512)
-autoscroll = Vector2(10, 0)
+repeat_size = Vector2(636, 356)
+repeat_times = 4
 
 [node name="Run" type="Sprite2D" parent="Parallax2D"]
 show_behind_parent = true
-texture = ExtResource("6_g1u4y")
+texture = ExtResource("7_3sg6n")

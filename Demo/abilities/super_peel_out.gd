@@ -41,9 +41,9 @@ func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
 				charging = true
 				player.can_move = false
 				
-		else:
+		elif charging:
 			#cancel if we were charging but the charge did not complete
-			if charging and not charge_complete:
+			if not charge_complete:
 				player.ground_velocity = 0.0
 			
 			#re-enable moving

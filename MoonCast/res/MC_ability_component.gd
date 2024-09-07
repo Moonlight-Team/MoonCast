@@ -23,6 +23,11 @@ var _active_ground_state:bool = true
 var _active_wall_contact:bool = true
 var _active_custom_state:bool = true
 
+#feature checklist for C++:
+#expose the player's variables as native variables of the class. Will fail if the 
+#node is not a child of a MoonCastPlayer.
+#Also expose the API functions (eg. play_animation, play_sfx) natively to MoonCastPlayer
+
 #Sidestep for the fact that GDScript classes can't be identified by get_class()
 func _init() -> void:
 	set_meta(&"Ability_flag", true)
