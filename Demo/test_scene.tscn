@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_c3mx1"]
 [ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_d0mba"]
-[ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="6_g1u4y"]
+[ext_resource type="Texture2D" uid="uid://842am0wh7y84" path="res://Demo/assets/background.png" id="6_g1u4y"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)
@@ -100,7 +100,6 @@ debug_color = Color(0, 0.6, 0.701961, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
 position = Vector2(286.409, -26.6683)
 rotation = -0.162316
-scale = Vector2(1, 1)
 shape = SubResource("RectangleShape2D_ttkpr")
 debug_color = Color(0, 0.6, 0.701961, 1)
 

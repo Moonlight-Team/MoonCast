@@ -1,11 +1,11 @@
 [gd_scene load_steps=12 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_8c4a3"]
-[ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="1_40r55"]
+[ext_resource type="Texture2D" uid="uid://842am0wh7y84" path="res://Demo/assets/background.png" id="1_40r55"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_icfuv"]
-[ext_resource type="AudioStream" uid="uid://dootfswbvbafw" path="res://Demo/assets/Audio/Music/April City.ogg" id="4_4fkrd"]
+[ext_resource type="AudioStream" uid="uid://dmhsm1jwb3lps" path="res://Demo/assets/Audio/Music/April City.ogg" id="4_4fkrd"]
 [ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="4_ruljh"]
-[ext_resource type="Texture2D" uid="uid://bot8e7aljq2o1" path="res://Demo/assets/spritesheet-export.png" id="5_ctefi"]
+[ext_resource type="Texture2D" uid="uid://bto212a2jbmjq" path="res://Demo/assets/spritesheet-export.png" id="5_ctefi"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="6_2iqo0"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_28rcd"]

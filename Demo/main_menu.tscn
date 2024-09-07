@@ -1,8 +1,8 @@
 [gd_scene load_steps=8 format=3 uid="uid://b63ecpfrllawj"]
 
 [ext_resource type="Script" path="res://Demo/main_menu.gd" id="1_6uy4f"]
-[ext_resource type="Texture2D" uid="uid://7xu3jkqjgesn" path="res://MoonCast/assets/wingedver.svg" id="1_t4b0w"]
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="2_bqp32"]
+[ext_resource type="Texture2D" uid="uid://dakng88728fsv" path="res://MoonCast/assets/wingedver.svg" id="1_t4b0w"]
+[ext_resource type="Texture2D" uid="uid://b2inqji7ccpc" path="res://Demo/assets/dream.png" id="2_bqp32"]
 [ext_resource type="VideoStream" path="res://video/Splash.ogv" id="2_vkh7x"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7ee8e"]
