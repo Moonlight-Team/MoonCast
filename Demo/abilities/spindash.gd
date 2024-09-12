@@ -20,8 +20,6 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 				spindashing = true
 			else:
 				spindash_total = minf(spindash_total + spindash_accumulate, spindash_max_charge)
-				if is_equal_approx(spindash_total, spindash_max_charge):
-					print("Spindash fully charged")
 	else:
 		player.can_jump = true
 		if spindashing:

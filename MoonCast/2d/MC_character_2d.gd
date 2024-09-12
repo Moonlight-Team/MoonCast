@@ -86,6 +86,20 @@ const perf_state:StringName = &"Player State"
 @export var anim_crouch:StringName
 ##The animation for rolling.
 @export var anim_roll:StringName
+
+#When Godot 4.4 comes out, it will have typed Dictionaries.
+#With those, the implementation of running animations will change.
+
+#The animations for when the player is walking on the ground.
+#The key float is the minimum percentage of their ground speed in relation
+#to their top speed that they are going, and the StringName value for that
+#key is the animation that will play.
+#@export var anim_run:Dictionary[float, StringName] = {
+	#0.1: &"",
+	#0.25: &"",
+	#0.50: &"",
+#}
+
 ##The animation to play when walking.
 @export var anim_walk:StringName
 ##The first run animation.
@@ -104,6 +118,7 @@ const perf_state:StringName = &"Player State"
 ##What percentage of the max speed run anim 3 activates at.
 @export_range(0.0, 1.0, 0.01) var percent_run_3:float = 0.50
 @export_subgroup("")
+#@export var anim_skid:Dictionary[float, StringName]
 ##Animation to play when skidding to a halt.
 @export var anim_skid:StringName
 ##Animation to play when pushing a wall or object.
@@ -126,6 +141,10 @@ const perf_state:StringName = &"Player State"
 @export var sfx_skid:AudioStream
 ##The sound effect for getting hurt.3
 @export var sfx_hurt:AudioStream
+
+#custom sounds will also change with Godot 4.4's addition of typed Dictionaries
+#@export var sfx_custom_list:Dictionary[StringName, AudioStream]
+
 ##A list of names for accessing custom sound effects. Must be the same order
 ##as sfx_custom_list_streams.
 ##[br] Ex: sfx_custom_list_names[1] will play sfx_custom_list_streams[1]
@@ -702,6 +721,8 @@ func lose_floor_grip() -> bool:
 	
 	var speed_condition:bool = absf(ground_velocity) < physics.ground_stick_speed
 	
+	
+	
 	return angle_condition and speed_condition
 
 ##Process the player's air physics
@@ -881,6 +902,9 @@ func update_collision_rotation() -> void:
 	#TODO: implemnt "pushing" state variable, mess with it here
 	#var stop_on_wall:bool = (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0)
 	if is_on_wall():
+		#null horizontal velocity if the player is on a wall
+		space_velocity.x = 0
+		ground_velocity = 0
 		if is_equal_approx(signf(ground_velocity), facing_direction):
 			is_pushing = true
 		else:
@@ -890,7 +914,7 @@ func update_collision_rotation() -> void:
 	
 	var raycasts_grounded:bool = ray_ground_central.is_colliding() or ray_ground_left.is_colliding() or ray_ground_right.is_colliding()
 	#I'll explain this later
-	var landing:bool = raycasts_grounded and not grounded
+	var raycast_mode:bool = raycasts_grounded and not grounded
 	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
 	var will_be_grounded:bool 
@@ -907,29 +931,36 @@ func update_collision_rotation() -> void:
 	if will_be_grounded:
 		#We use this check to double as a "should we stick to the floor?" check
 		
-		#null horizontal velocity if the player is on a wall
-		if is_pushing:
-			ground_velocity = 0.0
-		
 		var left_angle:float
 		var right_angle:float
 		
 		#the CharacterBody2D system has no idea what the ground normal is when its
 		#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
 		#we use the raycasts. 
-		if landing:
+		if raycast_mode:
 			left_angle = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 			right_angle = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 		else: #use the characterbody system, which should theoretically be faster because less math
 			var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
 			
-			#This specifically gets around a glitch where it won't detect slopes we are running down
+			#TODO: Check the distance between where each ray is colliding in order to detect when the 
+			#player runs off a slope (so they don't stick to it)
+			var left_ray_dist:float = ray_ground_left.get_collision_point().distance_squared_to(global_position)
+			var right_ray_dist:float = ray_ground_right.get_collision_point().distance_squared_to(global_position)
+			
+			var farther_ray_point:float = maxf(left_ray_dist, right_ray_dist)
+			var closer_ray_point:float = minf(left_ray_dist, right_ray_dist)
+			
+			print(farther_ray_point - closer_ray_point)
+			
+			##This specifically gets around a glitch where it won't detect slopes we are running down
 			if is_zero_approx(gnd_angle):
 				apply_floor_snap()
-				gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(90.0) - PI).angle())
+				gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
 			
 			left_angle = gnd_angle
 			right_angle = gnd_angle
+			
 		
 		#We want whatever collision point is "behind" the player, because if 
 		#they run off a ledge, rotation will still be based on what they just ran off.
@@ -938,24 +969,30 @@ func update_collision_rotation() -> void:
 		#the conditions are parallel to what we would check for to *not* snap to the 
 		#floor, such as running off a slope we just ran up
 		
-		if is_going_right():
+		if is_going_left():
 			collision_rotation = right_angle
 			ray_ground_central.force_raycast_update()
 			ray_ground_right.force_raycast_update()
 			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_right.is_colliding())
-		elif is_going_left():
+		elif is_going_right():
 			collision_rotation = left_angle
 			ray_ground_central.force_raycast_update()
 			ray_ground_left.force_raycast_update()
 			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_left.is_colliding())
 		else:
 			collision_rotation = maxf(left_angle, right_angle)
+			ray_ground_central.force_raycast_update()
+			ray_ground_left.force_raycast_update()
+			ray_ground_right.force_raycast_update()
 			is_balancing = not (ray_ground_central.is_colliding() and (ray_ground_left.is_colliding() or ray_ground_right.is_colliding()))
 		
 		if moving:
-			up_direction = Vector2.from_angle(collision_rotation - (PI / 2.0))
+			up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 		else:
 			up_direction = defualt_up_direction
+		
+		if not is_balancing:
+			apply_floor_snap()
 		
 		#Ceiling landing check
 		#The player can land on "steep ceilings", but not flat ones
@@ -966,23 +1003,20 @@ func update_collision_rotation() -> void:
 				space_velocity.y = 0
 				will_be_grounded = false
 		
-		if will_be_grounded and not is_balancing:
-			apply_floor_snap()
-		
 		#set sprite rotations
 		if moving and will_be_grounded:
 			var rotation_snap:float = snappedf(collision_rotation, rotation_snap_interval)
 			if rotation_classic_snap:
-				sprite_rotation = rotation_snap
+				sprite_rotation = snappedf(collision_rotation, rotation_snap_interval)
 			else:
-				sprite_rotation = move_toward(sprite_rotation, rotation_snap, rotation_adjustment_speed)
+				if limitAngle(sprite_rotation) > (rotation_snap + rotation_snap):
+					sprite_rotation = collision_rotation
+				else:
+					sprite_rotation = move_toward(sprite_rotation, rotation_snap, rotation_adjustment_speed)
+				
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
-		#null velocity if the player is on a wall
-		if is_on_wall():
-			space_velocity.x = 0.0
-		
 		#set the ground angle
 		#ground sensors point whichever direction the player is traveling vertically
 		#this is so that landing on the ceiling is made possible

@@ -14,7 +14,7 @@ func _post_physics_2D(player:MoonCastPlayer2D) -> void:
 		if not is_instance_valid(cam):
 			return
 	
-	if absf(player.ground_velocity) > player.physics.ground_top_speed:
+	if absf(player.space_velocity.length()) > player.physics.ground_top_speed * 1.3:
 		cam.zoom -= zoom_rate
 	else:
 		cam.zoom += zoom_rate

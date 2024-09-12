@@ -1,17 +1,17 @@
-[gd_scene load_steps=12 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=11 format=4 uid="uid://bytxq44ex4la0"]
 
-[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_8c4a3"]
-[ext_resource type="Texture2D" uid="uid://842am0wh7y84" path="res://Demo/assets/background.png" id="1_40r55"]
-[ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_icfuv"]
-[ext_resource type="AudioStream" uid="uid://dmhsm1jwb3lps" path="res://Demo/assets/Audio/Music/April City.ogg" id="4_4fkrd"]
-[ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="4_ruljh"]
-[ext_resource type="Texture2D" uid="uid://bto212a2jbmjq" path="res://Demo/assets/spritesheet-export.png" id="5_ctefi"]
-[ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="6_2iqo0"]
+[ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="1_vrw6c"]
+[ext_resource type="Texture2D" uid="uid://bot8e7aljq2o1" path="res://Demo/assets/spritesheet-export.png" id="2_20pip"]
+[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="3_8drrp"]
+[ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="5_7f6lf"]
+[ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="6_0c1un"]
+[ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="6_w6uua"]
+[ext_resource type="AudioStream" uid="uid://dootfswbvbafw" path="res://Demo/assets/Audio/Music/April City.ogg" id="7_4uoqi"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_28rcd"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_eo2df"]
-texture = ExtResource("5_ctefi")
+texture = ExtResource("2_20pip")
 separation = Vector2i(1, 1)
 texture_region_size = Vector2i(128, 128)
 18:0/0 = 0
@@ -454,62 +454,42 @@ physics_layer_0/collision_layer = 1
 physics_layer_0/physics_material = SubResource("PhysicsMaterial_28rcd")
 sources/0 = SubResource("TileSetAtlasSource_eo2df")
 
-[sub_resource type="Resource" id="Resource_wa3sn"]
-script = ExtResource("4_ruljh")
-ground_min_speed = 0.2
-ground_stick_speed = 0.2
-ground_top_speed = 6.0
-ground_acceleration = 0.046875
-ground_deceleration = 0.046875
-ground_skid_speed = 0.5
-ground_slope_factor = 0.125
-air_top_speed = 6.0
-air_acceleration = 0.09375
-air_gravity_strength = 0.21875
-rolling_min_speed = 0.2
-rolling_active_stop = 0.125
-rolling_flat_factor = 0.0234375
-rolling_uphill_factor = 0.078125
-rolling_downhill_factor = 0.3125
-jump_velocity = 6.5
-jump_short_limit = 4.0
-jump_spam_timer = 0.4
-button_up = &"ui_up"
-button_down = &"ui_down"
-button_left = &"ui_left"
-button_right = &"ui_right"
-button_jump = &"ui_accept"
-button_roll = &"ui_select"
-
 [node name="TestScene" type="Node2D"]
 
-[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+[node name="Parallax2D" type="Parallax2D" parent="."]
+scroll_scale = Vector2(0.3, 0)
+repeat_size = Vector2(1536, 0)
+autoscroll = Vector2(-5, 0)
 
-[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground"]
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D"]
 texture_filter = 1
-position = Vector2(640, 38)
-texture = ExtResource("1_40r55")
+texture = ExtResource("1_vrw6c")
 
 [node name="Layer0" type="TileMapLayer" parent="."]
 texture_filter = 1
 use_parent_material = true
 position = Vector2(5, 0)
-tile_map_data = PackedByteArray("AAD7/wMAAAAAAAQAAAAfAAUAAAABAA0AAAAXAAUAAAABAA0AAAAPAAUAAAABAA0AAAAHAAUAAAABAA0AAAD//wUAAAABAA0AAAD3/wUAAAABAA0AAAAnAAUAAAABAA0AAAAvAAUAAAABAA0AAAAvAA0AAAAHABEAAAAnAA0AAAAGABEAAAAfAA0AAAAHABEAAAAXAA0AAAAGABEAAAAPAA0AAAAHABEAAAAIAA0AAAAGABEAAAAAAA0AAAAHABEAAAD4/w0AAAAGABEAAADw/w0AAAAGABEAAADv/wUAAAABAA0AAAD//wAAAAABAA0AAAAAAAAAAAABAA0AAAABAAAAAAABAA0AAAACAAAAAAABAA0AAAADAAAAAAABAA0AAAAEAAAAAAABAA0AAAAFAAAAAAABAA0AAAAGAAAAAAABAA0AAAAHAAAAAAABAA0AAAAIAAAAAAABAA0AAAAJAAAAAAABAA0AAAAKAAAAAAABAA0AAAAKAAEAAAAAAA8AAAAJAAEAAAAAAA8AAAAIAAEAAAAAAA8AAAAHAAEAAAAAAA8AAAAGAAEAAAAAAA8AAAAFAAEAAAAAAA8AAAAEAAEAAAAAAA8AAAADAAEAAAAAAA8AAAACAAEAAAAAAA8AAAABAAEAAAAAAA8AAAAAAAEAAAAAAA8AAAD//wEAAAAAAA8AAAD//wIAAAAAAA8AAAAAAAIAAAAAAA8AAAABAAIAAAAAAA8AAAACAAIAAAAAAA8AAAADAAIAAAAAAA8AAAAEAAIAAAAAAA8AAAAFAAIAAAAAAA8AAAAGAAIAAAAAAA8AAAAHAAIAAAAAAA8AAAAIAAIAAAAAAA8AAAAJAAIAAAAAAA8AAAAKAAIAAAAAAA8AAAALAAAAAAACAAsAAAALAAEAAAAAAA8AAAALAAIAAAAAAA8AAAAMAAAAAAADAAsAAAALAP//AAACAAoAAAAMAP//AAADAAoAAAANAP//AAABAA0AAAANAAAAAAAAAA8AAAAOAP//AAABAA0AAAAOAAAAAAAAAA8AAAAPAP//AAABAA0AAAAPAAAAAAAAAA8AAAAQAP//AAABAA0AAAAQAAAAAAAAAA8AAAAQAAEAAAAAAA8AAAAMAAIAAAAAAA8AAAANAAIAAAAAAA8AAAAOAAIAAAAAAA8AAAANAAEAAAAAAA8AAAAOAAEAAAAAAA8AAAAMAAEAAAAAAA8AAAAPAAEAAAAAAA8AAAARAAEAAAAAAA8AAAAPAAIAAAAAAA8AAAAQAAIAAAAAAA8AAAARAAIAAAAAAA8AAAA=")
+tile_map_data = PackedByteArray("AAD//wAAAAABAA0AAAAAAAAAAAABAA0AAAABAAAAAAABAA0AAAACAAAAAAABAA0AAAADAAAAAAABAA0AAAAEAAAAAAABAA0AAAAFAAAAAAABAA0AAAAGAAAAAAABAA0AAAAHAAAAAAABAA0AAAAIAAAAAAABAA0AAAAJAAAAAAABAA0AAAAKAAAAAAABAA0AAAAKAAEAAAAAAA8AAAAJAAEAAAAAAA8AAAAIAAEAAAAAAA8AAAAHAAEAAAAAAA8AAAAGAAEAAAAAAA8AAAAFAAEAAAAAAA8AAAAEAAEAAAAAAA8AAAADAAEAAAAAAA8AAAACAAEAAAAAAA8AAAABAAEAAAAAAA8AAAAAAAEAAAAAAA8AAAD//wEAAAAAAA8AAAD//wIAAAAAAA8AAAAAAAIAAAAAAA8AAAABAAIAAAAAAA8AAAACAAIAAAAAAA8AAAADAAIAAAAAAA8AAAAEAAIAAAAAAA8AAAAFAAIAAAAAAA8AAAAGAAIAAAAAAA8AAAAHAAIAAAAAAA8AAAAIAAIAAAAAAA8AAAAJAAIAAAAAAA8AAAAKAAIAAAAAAA8AAAALAAAAAAACAAsAAAALAAEAAAAAAA8AAAALAAIAAAAAAA8AAAAMAAAAAAADAAsAAAALAP//AAACAAoAAAAMAP//AAADAAoAAAAOAP//AAABAA0AAAAOAAAAAAAAAA8AAAAPAP//AAABAA0AAAAPAAAAAAAAAA8AAAAQAP//AAABAA0AAAAQAAAAAAAAAA8AAAAQAAEAAAAAAA8AAAAMAAIAAAAAAA8AAAANAAIAAAAAAA8AAAAOAAIAAAAAAA8AAAANAAEAAAAAAA8AAAAOAAEAAAAAAA8AAAAMAAEAAAAAAA8AAAAPAAEAAAAAAA8AAAARAAEAAAAAAA8AAAAPAAIAAAAAAA8AAAAQAAIAAAAAAA8AAAARAAIAAAAAAA8AAAANAP//AAABAA0AAAANAAAAAAAAAA8AAAARAP//AAABAA0AAAASAP//AAABAA0AAAARAAAAAAAAAA8AAAASAAAAAAAAAA8AAAASAAEAAAAAAA8AAAASAAIAAAAAAA8AAAA=")
 tile_set = SubResource("TileSet_h13a1")
 rendering_quadrant_size = 4
 
-[node name="mrneedlemouse" parent="." instance=ExtResource("1_8c4a3")]
+[node name="mrneedlemouse" parent="." instance=ExtResource("3_8drrp")]
 position = Vector2(91, 24)
-physics = SubResource("Resource_wa3sn")
 
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("2_icfuv")
+script = ExtResource("5_7f6lf")
 spindash_max_charge = 20.0
 
 [node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
-script = ExtResource("6_2iqo0")
+script = ExtResource("6_0c1un")
+
+[node name="MoonCastDebugMode" type="Node" parent="mrneedlemouse"]
+script = ExtResource("6_w6uua")
+button_enable_debug = &"x"
+button_scene_pause = &"y"
+button_scene_frame_advance = &"z"
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("4_4fkrd")
+stream = ExtResource("7_4uoqi")
 volume_db = -12.813
 autoplay = true

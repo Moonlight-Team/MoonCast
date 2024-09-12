@@ -1,16 +1,12 @@
-[gd_scene load_steps=27 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=26 format=3 uid="uid://l6j7c0hm73c"]
 
-[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_jhtiq"]
-[ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_qkeds"]
-[ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_txt8d"]
-[ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_0bcpf"]
-[ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_c3mx1"]
-[ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_d0mba"]
-<<<<<<< Updated upstream
-[ext_resource type="Texture2D" uid="uid://842am0wh7y84" path="res://Demo/assets/background.png" id="6_g1u4y"]
-=======
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="7_3sg6n"]
->>>>>>> Stashed changes
+[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_r864y"]
+[ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_lr3xy"]
+[ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]
+[ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_4hv4l"]
+[ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_6uijy"]
+[ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_qevq0"]
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)
@@ -69,8 +65,6 @@ radius = 100.0
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tiyrh"]
 radius = 50.0
 height = 169.0
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_3edfo"]
 
 [node name="TestScene" type="Node2D"]
 
@@ -224,39 +218,29 @@ rotation = 0.785398
 shape = SubResource("CapsuleShape2D_tiyrh")
 debug_color = Color(1, 0, 0, 1)
 
-[node name="mrneedlemouse" parent="." instance=ExtResource("1_jhtiq")]
+[node name="mrneedlemouse" parent="." instance=ExtResource("1_r864y")]
 position = Vector2(83, 6)
 floor_stop_on_slope = true
 floor_constant_speed = false
 
-[node name="GemShape" type="CollisionPolygon2D" parent="mrneedlemouse"]
-position = Vector2(-26, 9)
-polygon = PackedVector2Array(5, 0, 10, 3, 0, 11, -10, 3, -5, 0)
-disabled = true
-
-[node name="CircleShape" type="CollisionShape2D" parent="mrneedlemouse"]
-position = Vector2(10, 8)
-shape = SubResource("CircleShape2D_3edfo")
-disabled = true
-
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("2_qkeds")
+script = ExtResource("2_lr3xy")
 
 [node name="DebugMode" type="Node" parent="mrneedlemouse"]
-script = ExtResource("3_txt8d")
+script = ExtResource("3_pfiy8")
 button_enable_debug = &"x"
 button_scene_pause = &"start"
 button_scene_frame_advance = &"z"
 
 [node name="DropDash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("4_0bcpf")
+script = ExtResource("4_4hv4l")
 anim_charge = &"drop_dash_charge"
 
 [node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
-script = ExtResource("5_c3mx1")
+script = ExtResource("5_6uijy")
 
 [node name="DynamicCam" type="Node" parent="mrneedlemouse"]
-script = ExtResource("6_d0mba")
+script = ExtResource("6_qevq0")
 zoom_speed = 0.01
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
@@ -267,4 +251,4 @@ repeat_times = 4
 
 [node name="Run" type="Sprite2D" parent="Parallax2D"]
 show_behind_parent = true
-texture = ExtResource("7_3sg6n")
+texture = ExtResource("7_2q626")
