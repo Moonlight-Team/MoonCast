@@ -478,7 +478,7 @@ position = Vector2(91, 24)
 
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("5_7f6lf")
-spindash_max_charge = 20.0
+spindash_max_charge = 12.0
 
 [node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
 script = ExtResource("6_0c1un")

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MoonCastPhysicsTable" load_steps=2 format=3 uid="uid://d2yobkva31ruc"]
+
+[ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="1_yx77b"]
+
+[resource]
+script = ExtResource("1_yx77b")
+ground_min_speed = 0.2
+ground_stick_speed = 0.2
+ground_top_speed = 6.0
+ground_acceleration = 0.046875
+ground_deceleration = 0.046875
+ground_skid_speed = 0.25
+ground_slope_factor = 0.125
+air_top_speed = 6.0
+air_acceleration = 0.09375
+air_gravity_strength = 0.21875
+rolling_min_speed = 0.2
+rolling_active_stop = 0.125
+rolling_flat_factor = 0.0234375
+rolling_uphill_factor = 0.078125
+rolling_downhill_factor = 0.3125
+jump_velocity = 6.5
+jump_short_limit = 4.0
+jump_spam_timer = 0.4
+button_up = &"up"
+button_down = &"down"
+button_left = &"left"
+button_right = &"right"
+button_jump = &"jump"
+button_roll = &"down"

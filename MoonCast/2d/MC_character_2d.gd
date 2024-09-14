@@ -43,7 +43,7 @@ const perf_state:StringName = &"Player State"
 ##The physics table for this player
 @export var physics:MoonCastPhysicsTable = MoonCastPhysicsTable.new()
 ##The default direction of gravity.
-@export var defualt_up_direction:Vector2 = Vector2.UP
+@export var default_up_direction:Vector2 = Vector2.UP
 ##If this is set to false, the character cannot roll. 
 @export var rolling_enabled:bool = true
 ##If this is set to true, the character can roll in midair after initially falling.
@@ -56,11 +56,11 @@ const perf_state:StringName = &"Player State"
 @export var rotation_classic_snap:bool = false
 ##The value, in radians, that the sprite rotation will snap to when classic snap is active.
 ##The default value is equal to 30 degrees.
-@export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees", PROPERTY_USAGE_EDITOR) var rotation_snap_interval:float = deg_to_rad(30.0)
+@export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var rotation_snap_interval:float = deg_to_rad(30.0)
 ##The amount per frame, in radians, at which the player's rotation will adjust to 
 ##new angles, such as how fast it will move back to 0 when airborne or how fast it 
 ##will adjust to slopes.
-@export var rotation_adjustment_speed:float = 0.1
+@export_range(0.0, 1.0) var rotation_adjustment_speed:float = 0.2
 ##If this is true, collision boxes of the character will not rotate based on 
 ##ground angle, mimicking the behavior of RSDK titles.
 @export var rotation_static_collision:bool = false
@@ -129,6 +129,8 @@ const perf_state:StringName = &"Player State"
 @export var anim_free_fall:StringName
 ##The animation to play when the player dies.
 @export var anim_death:StringName
+##A list of animations that will not be rotated.
+@export var anim_rotation_blacklist:Array[StringName]
 
 @export_group("Sound Effects", "sfx_")
 ##The audio bus to play sound effects on.
@@ -210,6 +212,9 @@ var ability_data:Dictionary = {}
 ##Custom states for the character. This is a list of Abilities that have registered 
 ##themselves as a state ability, which can implement an entirely new state for the player.
 var state_abilities:Array[StringName]
+
+##The current animation
+var current_anim:StringName
 
 #physics values
 ##The player's current state.
@@ -614,6 +619,7 @@ func play_animation(anim_name:StringName, force:bool = false) -> void:
 		elif is_instance_valid(animated_sprite1) and animated_sprite1.sprite_frames.has_animation(anim_name):
 			animated_sprite1.play(anim_name)
 			animation_set = true
+		current_anim = anim_name
 
 ##A special function for sequencing several animations in a chain. The array this takes in as a 
 ##parameter is assumed to be in the order that you want the animations to play.
@@ -703,7 +709,7 @@ func is_going_left() -> bool:
 	if grounded:
 		return moving and ground_velocity < 0
 	else:
-		#TODO: Make this properly check relative to defualt_up_direction
+		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x < 0
 
 ##Returns if the player is going right
@@ -711,7 +717,7 @@ func is_going_right() -> bool:
 	if grounded:
 		return moving and ground_velocity > 0
 	else:
-		#TODO: Make this properly check relative to defualt_up_direction
+		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x > 0
 
 ##Returns if the player could be slipping on a slope
@@ -818,7 +824,7 @@ func process_ground() -> void:
 				sprites_flip()
 				
 				#TODO: Add a faster skid anim as well, and checks to play either skid animation
-				play_animation(anim_skid)
+				play_animation(anim_skid, true)
 	
 	#fall off if the player is on a steep slope or wall and is not
 	#going fast enough to stick to walls
@@ -875,13 +881,12 @@ func process_ground() -> void:
 ##A function that is called when the player enters the air from
 ##previously being on the ground
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
-	collision_rotation = 0
+	pass
 
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
 func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
-	
 	if not Input.is_action_pressed(physics.button_roll):
 		rolling = false
 	#Transfer space_velocity to ground_velocity
@@ -895,6 +900,7 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		#TODO: Set can_jump to false and add a jump cooldown 
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
 		jump_timer.start(0.2)
+
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
@@ -912,131 +918,122 @@ func update_collision_rotation() -> void:
 	else:
 		is_pushing = false
 	
-	var raycasts_grounded:bool = ray_ground_central.is_colliding() or ray_ground_left.is_colliding() or ray_ground_right.is_colliding()
-	#I'll explain this later
-	var raycast_mode:bool = raycasts_grounded and not grounded
+	var point_count:int = int(ray_ground_left.is_colliding()) + int(ray_ground_central.is_colliding()) + int(ray_ground_right.is_colliding())
 	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
-	var will_be_grounded:bool 
+	var in_ground_range:bool = bool(point_count)
+	#This check is made so that the player does not prematurely enter the ground state as soon
+	# as the raycasts intersect the ground
+	var will_actually_land:bool = get_slide_collision_count() > 0 and not is_on_wall_only()
 	
-	if not grounded:
-		#This check is made so that the player does not prematurely enter the ground state as soon
-		# as the raycasts intersect the ground
-		will_be_grounded = raycasts_grounded and get_slide_collision_count() > 0 and not is_on_wall_only()
-	else:
-		will_be_grounded = raycasts_grounded
 	
 	#calculate ground angles. This happens even in the air, because we need to 
-	#know before landing, what the ground angle is, to apply landing speed
-	if will_be_grounded:
-		#We use this check to double as a "should we stick to the floor?" check
-		
-		var left_angle:float
-		var right_angle:float
-		
+	#know before landing what the ground angle is/will be, to apply landing speed
+	if in_ground_range:
 		#the CharacterBody2D system has no idea what the ground normal is when its
 		#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
 		#we use the raycasts. 
-		if raycast_mode:
-			left_angle = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-			right_angle = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-		else: #use the characterbody system, which should theoretically be faster because less math
-			var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
-			
-			#TODO: Check the distance between where each ray is colliding in order to detect when the 
-			#player runs off a slope (so they don't stick to it)
-			var left_ray_dist:float = ray_ground_left.get_collision_point().distance_squared_to(global_position)
-			var right_ray_dist:float = ray_ground_right.get_collision_point().distance_squared_to(global_position)
-			
-			var farther_ray_point:float = maxf(left_ray_dist, right_ray_dist)
-			var closer_ray_point:float = minf(left_ray_dist, right_ray_dist)
-			
-			print(farther_ray_point - closer_ray_point)
-			
-			##This specifically gets around a glitch where it won't detect slopes we are running down
-			if is_zero_approx(gnd_angle):
-				apply_floor_snap()
-				gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
-			
-			left_angle = gnd_angle
-			right_angle = gnd_angle
-			
 		
-		#We want whatever collision point is "behind" the player, because if 
-		#they run off a ledge, rotation will still be based on what they just ran off.
-		
-		#We also check balance to decide if the player should snap to the floor, because
-		#the conditions are parallel to what we would check for to *not* snap to the 
-		#floor, such as running off a slope we just ran up
-		
-		if is_going_left():
-			collision_rotation = right_angle
-			ray_ground_central.force_raycast_update()
-			ray_ground_right.force_raycast_update()
-			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_right.is_colliding())
-		elif is_going_right():
-			collision_rotation = left_angle
-			ray_ground_central.force_raycast_update()
-			ray_ground_left.force_raycast_update()
-			is_balancing = not (ray_ground_central.is_colliding() and ray_ground_left.is_colliding())
-		else:
-			collision_rotation = maxf(left_angle, right_angle)
-			ray_ground_central.force_raycast_update()
-			ray_ground_left.force_raycast_update()
-			ray_ground_right.force_raycast_update()
-			is_balancing = not (ray_ground_central.is_colliding() and (ray_ground_left.is_colliding() or ray_ground_right.is_colliding()))
+		match point_count:
+			1:
+				#player balances when two of the raycasts are over the edge
+				is_balancing = true
+				#Don't update rotation if we were already grounded. This allows for 
+				#slope launch physics while retaining slope landing physics.
+				if not grounded:
+					if ray_ground_left.is_colliding():
+						collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+					elif ray_ground_right.is_colliding():
+						collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+			2:
+				is_balancing = false
+				var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+				var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+				
+				if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
+					collision_rotation = (right_angle + left_angle) / 2.0
+				#in these next two cases, the other contact point is the center
+				elif ray_ground_left.is_colliding():
+					collision_rotation = left_angle
+				elif ray_ground_right.is_colliding():
+					collision_rotation = right_angle
+			3:
+				is_balancing = false
+				
+				if not grounded:
+					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+					
+					collision_rotation = (right_angle + left_angle) / 2.0
+				else:
+					var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+					if is_zero_approx(gnd_angle):
+						apply_floor_snap()
+						gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+					
+					collision_rotation = gnd_angle
 		
 		if moving:
 			up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 		else:
-			up_direction = defualt_up_direction
-		
-		if not is_balancing:
-			apply_floor_snap()
+			up_direction = default_up_direction
 		
 		#Ceiling landing check
 		#The player can land on "steep ceilings", but not flat ones
 		if space_velocity.y < 0 and not grounded:
-			if collision_rotation >= floor_max_angle:
-				will_be_grounded = true
+			if fmod(collision_rotation, PI) <= floor_max_angle:
+				in_ground_range = true
 			else:
+				#they bonked their head on the ceiling, funne
 				space_velocity.y = 0
-				will_be_grounded = false
+				in_ground_range = false
+		
+		if grounded:
+			grounded = in_ground_range
+			#this will "un-land" the player if they're on a steep slope
+			grounded = in_ground_range and not lose_floor_grip()
+		else:
+			grounded = in_ground_range and will_actually_land
 		
 		#set sprite rotations
-		if moving and will_be_grounded:
+		if moving and in_ground_range:
+			if anim_rotation_blacklist.has(current_anim):
+				sprite_rotation = 0
+			
 			var rotation_snap:float = snappedf(collision_rotation, rotation_snap_interval)
 			if rotation_classic_snap:
 				sprite_rotation = snappedf(collision_rotation, rotation_snap_interval)
 			else:
+				var actual_rotation_speed:float = rotation_adjustment_speed
 				if limitAngle(sprite_rotation) > (rotation_snap + rotation_snap):
-					sprite_rotation = collision_rotation
-				else:
-					sprite_rotation = move_toward(sprite_rotation, rotation_snap, rotation_adjustment_speed)
-				
+					actual_rotation_speed *= 2
+				sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, rotation_adjustment_speed)
+		
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
-		#set the ground angle
+		#it's important to set this so that slope launching is calculated before
+		#reseting collision rotation
+		grounded = false
+		
+		
 		#ground sensors point whichever direction the player is traveling vertically
 		#this is so that landing on the ceiling is made possible
 		if space_velocity.y > 0:
 			collision_rotation = 0
 		else:
-			collision_rotation = PI #180 degrees
+			collision_rotation = PI #180 degrees, pointing up
 		
-		up_direction = defualt_up_direction
+		up_direction = default_up_direction
 		
 		#set sprite rotation
-		if rotation_classic_snap:
-			sprite_rotation = 0
+		if not anim_rotation_blacklist.has(current_anim):
+			if rotation_classic_snap:
+				sprite_rotation = 0
+			else:
+				sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
 		else:
-			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
-	
-	grounded = will_be_grounded
-	
-	#this will "un-land" the player if they're on a steep slope
-	grounded = will_be_grounded and not lose_floor_grip()
+			sprite_rotation = 0
 	
 	sprites_set_rotation(sprite_rotation)
 

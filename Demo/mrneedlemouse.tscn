@@ -1,35 +1,8 @@
-[gd_scene load_steps=21 format=3 uid="uid://fqh0i1dgi84m"]
+[gd_scene load_steps=20 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_mpnpc"]
-[ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="2_wcqqf"]
+[ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Demo/abilities/classic_physics.tres" id="2_nweor"]
 [ext_resource type="Texture2D" uid="uid://q5thi20c5oyo" path="res://Demo/assets/Sonic.png" id="3_rpo5c"]
-
-[sub_resource type="Resource" id="Resource_eyxug"]
-script = ExtResource("2_wcqqf")
-ground_min_speed = 0.2
-ground_stick_speed = 0.2
-ground_top_speed = 6.0
-ground_acceleration = 0.046875
-ground_deceleration = 0.046875
-ground_skid_speed = 0.25
-ground_slope_factor = 0.125
-air_top_speed = 6.0
-air_acceleration = 0.09375
-air_gravity_strength = 0.21875
-rolling_min_speed = 0.2
-rolling_active_stop = 0.125
-rolling_flat_factor = 0.0234375
-rolling_uphill_factor = 0.078125
-rolling_downhill_factor = 0.3125
-jump_velocity = 6.5
-jump_short_limit = 4.0
-jump_spam_timer = 0.4
-button_up = &"up"
-button_down = &"down"
-button_left = &"left"
-button_right = &"right"
-button_jump = &"jump"
-button_roll = &"down"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -291,9 +264,9 @@ _data = {
 floor_stop_on_slope = false
 floor_constant_speed = true
 floor_block_on_wall = false
-floor_snap_length = 7.0
+floor_snap_length = 10.0
 script = ExtResource("1_mpnpc")
-physics = SubResource("Resource_eyxug")
+physics = ExtResource("2_nweor")
 rotation_static_collision = true
 anim_stand = &"standing"
 anim_balance = &"balance"
@@ -308,6 +281,7 @@ anim_skid = &"skid"
 anim_push = &"push"
 anim_jump = &"jump_ball"
 anim_free_fall = &"hurt"
+anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
 
 [node name="RectangleShape" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_x7kbe")

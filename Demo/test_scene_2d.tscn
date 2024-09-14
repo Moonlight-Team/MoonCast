@@ -214,7 +214,7 @@ debug_color = Color(0.964706, 0, 0, 1)
 position = Vector2(283, 210)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SpinnyCapsule"]
-rotation = 0.785398
+rotation = 0.820305
 shape = SubResource("CapsuleShape2D_tiyrh")
 debug_color = Color(1, 0, 0, 1)
 
