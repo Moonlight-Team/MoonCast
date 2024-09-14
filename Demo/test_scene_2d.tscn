@@ -67,6 +67,7 @@ radius = 50.0
 height = 169.0
 
 [node name="TestScene" type="Node2D"]
+metadata/movie_file = "res://test_scene_2d.avi"
 
 [node name="Floor" type="StaticBody2D" parent="."]
 position = Vector2(850, 513)

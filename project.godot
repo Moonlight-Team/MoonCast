@@ -28,6 +28,10 @@ window/size/viewport_height=224
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_width"
 
+[editor]
+
+movie_writer/movie_file="res://showcase.avi"
+
 [input]
 
 ui_accept={

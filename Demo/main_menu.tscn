@@ -131,7 +131,6 @@ scale = Vector2(0.73635, 0.73635)
 texture = ExtResource("2_bqp32")
 
 [node name="BlackScreen" type="Panel" parent="."]
-modulate = Color(1, 1, 1, 0)
 z_index = 1
 layout_mode = 1
 anchors_preset = 15
