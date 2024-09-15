@@ -33,6 +33,10 @@ display_server/driver.linuxbsd="x11"
 
 movie_writer/movie_file="res://showcase.avi"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/mooncast_docs/plugin.cfg")
+
 [input]
 
 ui_accept={

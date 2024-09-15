@@ -820,7 +820,6 @@ func process_ground() -> void:
 					
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
-					print(anim_skid.get(snappedf(speeds, 0.001), &"RESET"))
 					play_animation(anim_skid.get(snappedf(speeds, 0.001), &"RESET"), true)
 					
 					#only play skid anim once while skidding
