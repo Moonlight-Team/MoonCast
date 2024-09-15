@@ -1,8 +1,10 @@
-[gd_scene load_steps=26 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=28 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_r864y"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_lr3xy"]
+[ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/Audio/Sonic 2/spindash_charge.wav" id="3_dlbvb"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]
+[ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/Audio/Sonic 2/spindash_release.wav" id="4_1vid7"]
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_4hv4l"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="5_6uijy"]
 [ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_qevq0"]
@@ -147,7 +149,7 @@ polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21
 
 [node name="UglySlide" type="CollisionPolygon2D" parent="RoundTopPlatform"]
 position = Vector2(412, 22)
-polygon = PackedVector2Array(30, -134, 29, -83, 52, -83, 52, -17, 84, -17, 84, 58, -153, 58, -128, 53, -101, 42, -75, 23, -59, -16, -51, -79, -48, -104, -38, -121, -18, -134)
+polygon = PackedVector2Array(30, -134, 29, -83, 52, -83, 52, -17, 84, -17, 84, 58, -153, 58, -128, 53, -101, 42, -75, 23, -59, -16, -51, -79, -46, -106, -28, -127, -5, -134)
 
 [node name="YeetInator" type="CollisionPolygon2D" parent="RoundTopPlatform"]
 position = Vector2(-82, 77)
@@ -226,6 +228,8 @@ floor_constant_speed = false
 
 [node name="Spindash" type="Node" parent="mrneedlemouse"]
 script = ExtResource("2_lr3xy")
+sfx_charge = ExtResource("3_dlbvb")
+sfx_release = ExtResource("4_1vid7")
 
 [node name="DebugMode" type="Node" parent="mrneedlemouse"]
 script = ExtResource("3_pfiy8")

@@ -1,6 +1,7 @@
 extends MoonCastAbility
 
-class_name SuperPeelOut
+class_name SuperPeelOutAbility
+
 
 ##The speed that the player will be launched at when the super peel out is charge_complete.
 @export var launch_speed:float = 12.0
@@ -8,11 +9,7 @@ class_name SuperPeelOut
 @export var charge_time:float = 0.5
 
 var charging:bool = false
-var charge_complete:bool = false:
-	set(is_done):
-		charge_complete = is_done
-		if is_done:
-			print("Charge complete")
+var charge_complete:bool = false
 var launch_speed_direction:float
 var charge_per_tick:float
 
@@ -21,6 +18,9 @@ var charge_timer:Timer = Timer.new()
 
 func _ready() -> void:
 	add_child(charge_timer)
+
+func _setup_2D(player:MoonCastPlayer2D) -> void:
+	player
 
 func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
 	if player.grounded:
@@ -34,13 +34,14 @@ func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
 				#initiate a charge
 				charge_timer.timeout.connect(func(): charge_complete = true, CONNECT_ONE_SHOT)
 				charge_timer.start(charge_time)
+				player.play_sound_effect(SpindashAbility.charge_name)
 				
 				launch_speed_direction = launch_speed * player.facing_direction
 				charge_per_tick = launch_speed / (ProjectSettings.get(&"physics/common/physics_ticks_per_second") * charge_time)
 				
 				charging = true
 				player.can_move = false
-				
+		
 		elif charging:
 			#cancel if we were charging but the charge did not complete
 			if not charge_complete:

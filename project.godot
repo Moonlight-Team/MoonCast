@@ -14,7 +14,7 @@ config/name="MoonCast Engine"
 config/description="A 2D and 3D Sonic physics engine for Godot 4"
 config/version="0.1"
 run/main_scene="res://Demo/main_menu.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/features=PackedStringArray("4.4", "GL Compatibility")
 boot_splash/bg_color=Color(1, 0.457673, 0, 1)
 boot_splash/image="res://splash.png"
 boot_splash/fullsize=false
@@ -27,6 +27,7 @@ window/size/viewport_width=420
 window/size/viewport_height=224
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_width"
+display_server/driver.linuxbsd="x11"
 
 [editor]
 

@@ -1,7 +1,9 @@
-@icon("res://MoonCast/assets/image2vector.svg")
+@icon("res://MoonCast/assets/MoonCastAbility.png")
 extends Node
 ##The base class for creating modular character abilities in MoonCast
 class_name MoonCastAbility
+##If this MoonCastAbility will be active
+@export var active:bool = true
 
 #All this activation boolean stuff is for performance. If you think about it,
 #if you have a bunch of abilities on a character, and a whole bunch of functions
@@ -10,8 +12,9 @@ class_name MoonCastAbility
 #So the idea is, these are all set to false in the non-overriden virtual functions, but in
 #a given override virtual function, they won't be, thus they're active.
 
-#If MoonCast was written in C++, this could be achieved in a much more graceful manner, but alas,
-#it is not (yet)
+#This current implementation of MoonCastAbility is a ***hacky*** solution. This will be 
+#completely rewritten and setup in a much more graceful manner when MoonCast is ported to C++
+
 var _active_pre_physics:bool = true
 var _active_post_physics:bool = true
 var _active_hurt:bool = true
@@ -26,7 +29,7 @@ var _active_custom_state:bool = true
 #feature checklist for C++:
 #expose the player's variables as native variables of the class. Will fail if the 
 #node is not a child of a MoonCastPlayer.
-#Also expose the API functions (eg. play_animation, play_sfx) natively to MoonCastPlayer
+#Also expose the API functions (eg. play_animation, play_sfx) natively to MoonCastPlayer.
 
 #Sidestep for the fact that GDScript classes can't be identified by get_class()
 func _init() -> void:

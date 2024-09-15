@@ -2,7 +2,7 @@
 extends CharacterBody2D
 ##A 2D player in MoonCast
 class_name MoonCastPlayer2D
-
+#region Consts & Enums
 ##State flags for various things the player can do or is doing
 enum StateFlags {
 	##Flag for the player moving. This means they are traveling
@@ -40,6 +40,12 @@ const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
 
+const sfx_jump_name:StringName = &"jump"
+const sfx_roll_name:StringName = &"roll"
+const sfx_skid_name:StringName = &"skid"
+const sfx_hurt_name:StringName = &"hurt"
+#endregion
+#region Exported Vars
 ##The physics table for this player
 @export var physics:MoonCastPhysicsTable = MoonCastPhysicsTable.new()
 ##The default direction of gravity.
@@ -86,41 +92,18 @@ const perf_state:StringName = &"Player State"
 @export var anim_crouch:StringName
 ##The animation for rolling.
 @export var anim_roll:StringName
-
-#When Godot 4.4 comes out, it will have typed Dictionaries.
-#With those, the implementation of running animations will change.
-
-#The animations for when the player is walking on the ground.
-#The key float is the minimum percentage of their ground speed in relation
-#to their top speed that they are going, and the StringName value for that
-#key is the animation that will play.
-#@export var anim_run:Dictionary[float, StringName] = {
-	#0.1: &"",
-	#0.25: &"",
-	#0.50: &"",
-#}
-
-##The animation to play when walking.
-@export var anim_walk:StringName
-##The first run animation.
-@export var anim_run_1:StringName
-##The second run animation.
-@export var anim_run_2:StringName
-##The third run animation.
-@export var anim_run_3:StringName
-##Animation to play when the player is moving beyond their max speed.
-@export var anim_run_max:StringName
-@export_subgroup("Run Percentages", "percent_")
-##What percentage of the max speed run anim 1 activates at.
-@export_range(0.0, 1.0, 0.01) var percent_run_1:float = 0.1
-##What percentage of the max speed run anim 2 activates at.
-@export_range(0.0, 1.0, 0.01) var percent_run_2:float = 0.25
-##What percentage of the max speed run anim 3 activates at.
-@export_range(0.0, 1.0, 0.01) var percent_run_3:float = 0.50
-@export_subgroup("")
-#@export var anim_skid:Dictionary[float, StringName]
-##Animation to play when skidding to a halt.
-@export var anim_skid:StringName
+##The animations for when the player is walking or running on the ground.
+##The key is the minimum percentage of ground_velocity in relation
+##to physics.ground_top_speed that the player must be going for this animation
+##to play, and the value for that key is the animation that will play.
+##[br]Note: Keys should not use decimal values more precise than thousandths.
+@export var anim_run:Dictionary[float, StringName]
+##The animations for when the player is skidding to a halt.
+##The key is the minimum percentage of ground_velocity in relation
+##to physics.ground_top_speed that the player must be going for this animation
+##to play, and the value for that key is the animation that will play.
+##[br]Note: Keys should not use decimal values more precise than thousandths.
+@export var anim_skid:Dictionary[float, StringName]
 ##Animation to play when pushing a wall or object.
 @export var anim_push:StringName
 ##The animation to play when jumping.
@@ -129,12 +112,19 @@ const perf_state:StringName = &"Player State"
 @export var anim_free_fall:StringName
 ##The animation to play when the player dies.
 @export var anim_death:StringName
-##A list of animations that will not be rotated.
+##A set of custom animations to play when the player dies for various abnormal reasons.
+##The key is their reason of death, and the value is the animation that will play.
+@export var anim_death_custom:Dictionary[StringName, StringName]
+
+##A list of animations that will not be rotated to align to the ground.
+##In the air, the player's animation rotation will always be 0.
 @export var anim_rotation_blacklist:Array[StringName]
+##A list of animations that will vary in playback speed based on ground_velocity.
+@export var anim_vary_speed_playback:Array[StringName]
 
 @export_group("Sound Effects", "sfx_")
 ##The audio bus to play sound effects on.
-@export var sfx_bus:StringName
+@export var sfx_bus:StringName = &"Master"
 ##THe sound effect for jumping.
 @export var sfx_jump:AudioStream
 ##The sound effect for rolling.
@@ -143,18 +133,10 @@ const perf_state:StringName = &"Player State"
 @export var sfx_skid:AudioStream
 ##The sound effect for getting hurt.3
 @export var sfx_hurt:AudioStream
-
-#custom sounds will also change with Godot 4.4's addition of typed Dictionaries
-#@export var sfx_custom_list:Dictionary[StringName, AudioStream]
-
-##A list of names for accessing custom sound effects. Must be the same order
-##as sfx_custom_list_streams.
-##[br] Ex: sfx_custom_list_names[1] will play sfx_custom_list_streams[1]
-@export var sfx_custom_list_names:Array[StringName]
-##A list of custom sound effects.
-@export var sfx_custom_list_streams:Array[AudioStream]
-
-#Node references
+##A Dictionary of custom sound effects. 
+@export var sfx_custom:Dictionary[StringName, AudioStream]
+#endregion
+#region Node references
 #generally speaking, these should *not* be directly accessed unless absolutely needed, 
 #but they still have documentation because documentation is good
 ##The AnimationPlayer for all the animations triggered by the player.
@@ -202,7 +184,8 @@ var jump_timer:Timer = Timer.new()
 var control_lock_timer:Timer = Timer.new()
 ##The timer for the player to be able to stick to the floor.
 var ground_snap_timer:Timer = Timer.new()
-
+#endregion
+#region API storage vars
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
 ##A custom data pool for the ability ECS.
@@ -215,8 +198,12 @@ var state_abilities:Array[StringName]
 
 ##The current animation
 var current_anim:StringName
-
-#physics values
+##A sorted (largest to smallest) array of the keys in anim_run
+var anim_run_sorted_keys:PackedFloat32Array
+##A sorted (largest to smallest) array of the keys in anim_skid
+var anim_skid_sorted_keys:PackedFloat32Array
+#endregion
+#region physics vars
 ##The player's current state.
 ##A signal is emitted when certain values are changed, such as emitting the contact state signals.
 var state_is:int
@@ -239,6 +226,19 @@ var input_direction:float = 0:
 ##(before the pre-physics ability signal).
 var animation_set:bool = false
 
+## the ground velocity. This is how fast the player is 
+##travelling on the ground, regardless of angles.
+var ground_velocity:float = 0:
+	set(new_gvel):
+		ground_velocity = new_gvel
+		moving = absf(ground_velocity) > physics.ground_min_speed
+##The character's current velocity in space.
+var space_velocity:Vector2 = Vector2.ZERO
+##The character's direction of travel.
+##Equivalent to get_position_delta().normalized().sign()
+var velocity_direction:Vector2
+#endregion
+#region state_can_be bitfield
 ##If true, the player can jump.
 var can_jump:bool = true:
 	set(on):
@@ -283,7 +283,8 @@ var can_push:bool = true:
 			state_can_be &= ~StateFlags.PUSHING
 	get:
 		return state_can_be & StateFlags.PUSHING
-
+#endregion
+#region state_is bitfield
 ##If true, the player is on what the physics consider 
 ##to be the ground.
 ##A signal is emitted whenever this value is changed;
@@ -371,19 +372,7 @@ var is_pushing:bool = false:
 			state_is &= ~StateFlags.PUSHING
 	get:
 		return state_is & StateFlags.PUSHING
-
-
-## the ground velocity. This is how fast the player is 
-##travelling on the ground, regardless of angles.
-var ground_velocity:float = 0:
-	set(new_gvel):
-		ground_velocity = new_gvel
-		moving = absf(ground_velocity) > physics.ground_min_speed
-##The character's current velocity in space.
-var space_velocity:Vector2 = Vector2.ZERO
-##The character's direction of travel.
-##Equivalent to get_position_delta().normalized().sign()
-var velocity_direction:Vector2
+#endregion
 
 ##The rotation of the sprites. This is seperate than the physics
 ##rotation so that physics remain consistent despite certain rotation
@@ -422,7 +411,7 @@ var self_perf_ground_angle:StringName
 ##The name of the custom performance monitor for state
 var self_perf_state:StringName
 
-#processing signals, for the Ability ECS
+#processing signals, for the Ability system
 ##Emitted before processing physics 
 signal pre_physics(player:MoonCastPlayer2D)
 ##Emitted after processing physics
@@ -443,12 +432,6 @@ signal contact_air(player:MoonCastPlayer2D)
 signal state_ground(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
-
-func check_current_state(check:int) -> bool:
-	return check & state_is
-
-func check_possible_state(check:int) -> bool:
-	return check & state_can_be
 
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
@@ -507,6 +490,160 @@ func setup_children() -> void:
 			warn = true
 		if warn:
 			push_error("No AnimatedSprite2D found for ", name)
+
+#region Performance Monitor
+##Set up the custom performance monitors for the player
+func setup_performance_monitors() -> void:
+	self_perf_ground_angle = name + &"/" + perf_ground_angle
+	self_perf_ground_vel = name + &"/" + perf_ground_velocity
+	self_perf_state = name + &"/" + perf_state
+	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_rotation"])
+	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
+	Performance.add_custom_monitor(self_perf_state, get, [&"state_is"])
+
+##Clean up the custom performance monitors for the player
+func cleanup_performance_monitors() -> void:
+	Performance.remove_custom_monitor(self_perf_ground_angle)
+	Performance.remove_custom_monitor(self_perf_ground_vel)
+	Performance.remove_custom_monitor(self_perf_state)
+#endregion
+#region Animation API
+##A wrapper function to play animations, with built in validity checking.
+##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will
+##play the animation on both of them if it can find it on both of them.
+##[br][br] By defualt, this is set to stop playing animations after one has been played this frame. 
+##The optional force parameter can be used to force-play an animation, even if one has 
+##already been set this frame.
+func play_animation(anim_name:StringName, force:bool = false) -> void:
+	if (force or not animation_set):
+		if is_instance_valid(animations) and animations.has_animation(anim_name):
+			animations.play(anim_name)
+			animation_set = true
+		elif is_instance_valid(animated_sprite1) and animated_sprite1.sprite_frames.has_animation(anim_name):
+			animated_sprite1.play(anim_name)
+			animation_set = true
+		current_anim = anim_name
+
+##A special function for sequencing several animations in a chain. The array this takes in as a 
+##parameter is assumed to be in the order that you want the animations to play.
+func sequence_animations(animation_array:Array[StringName]) -> void:
+	for anims:StringName in animation_array:
+		pass
+
+##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
+##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will 
+##return true if the former has an animation even if the latter does not.
+func has_animation(anim_name:StringName) -> bool:
+	if is_instance_valid(animations):
+		return animations.has_animation(anim_name)
+	elif is_instance_valid(animated_sprite1):
+		return animated_sprite1.sprite_frames.has_animation(anim_name)
+	else:
+		return false
+#endregion
+#region Ability API
+##Find out if a character has a given ability.
+##Ability names are dictated by the name of the node.
+func has_ability(ability_name:StringName) -> bool:
+	return abilities.has(ability_name)
+
+##Add an ability to the character at runtime.
+##Ability names are dictated by the name of the node.
+func add_ability(ability_name:MoonCastAbility) -> void:
+	add_child(ability_name)
+	abilities.append(ability_name.name)
+	ability_name.call(&"setup_ability_2D", self)
+
+##Get the MoonCastAbility of the named ability, if the player has it.
+##This will return null and show a warning if the ability is not found.
+func get_ability(ability_name:StringName) -> MoonCastAbility:
+	if has_ability(ability_name):
+		return get_node(NodePath(ability_name))
+	else:
+		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\"")
+		return null
+
+##Remove an ability from the character at runtime.
+##Ability names are dictated by the name of the node.
+func remove_ability(ability_name:StringName) -> void:
+	if has_ability(ability_name):
+		abilities.remove_at(abilities.find(ability_name))
+		var removing:MoonCastAbility = get_node(NodePath(ability_name))
+		remove_child(removing)
+		removing.queue_free()
+	else:
+		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\" that was called to be removed")
+#endregion
+#region Sound Effect API
+##Add or update a sound effect on this player.
+##If a name is already registered, providing a different stream will assign a new 
+##stream to that name.
+func add_edit_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> void:
+	sfx_custom[sfx_name] = sfx_stream
+
+##Play a sound effect that belongs to the player. This can be either a custom sound
+##effect, or one of the hard coded/built in sound effects. 
+func play_sound_effect(sfx_name:StringName) -> void:
+	var wrapper:Callable = func(sfx:AudioStream): sfx_playback_ref.play_stream(sfx, 0.0, 0.0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
+	match sfx_name:
+		sfx_jump_name:
+			wrapper.call(sfx_jump)
+		sfx_roll_name:
+			wrapper.call(sfx_roll)
+		sfx_skid_name:
+			wrapper.call(sfx_skid)
+		&"hurt":
+			wrapper.call(sfx_hurt)
+		_:
+			if sfx_custom.has(sfx_name):
+				wrapper.call(sfx_custom.get(sfx_name))
+
+func check_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> int:
+	var bitfield:int = 0
+	const builtin_sfx:Array[StringName] = [sfx_roll_name]
+	if sfx_custom.has(sfx_name):
+		bitfield |= 0b0000_0001
+	
+	
+	return bitfield
+#endregion
+#region State API
+##Check the player's current state with a bitfield of values
+func check_current_state(check:int) -> bool:
+	return check & state_is
+
+##Check the player's possible state with a bitfield of values
+func check_possible_state(check:int) -> bool:
+	return check & state_can_be
+
+##Returns if the player is going left
+func is_going_left() -> bool:
+	if grounded:
+		return moving and ground_velocity < 0
+	else:
+		#TODO: Make this properly check relative to default_up_direction
+		return space_velocity.x < 0
+
+##Returns if the player is going right
+func is_going_right() -> bool:
+	if grounded:
+		return moving and ground_velocity > 0
+	else:
+		#TODO: Make this properly check relative to default_up_direction
+		return space_velocity.x > 0
+#endregion
+#region Physics calculations
+##Returns the given angle as an angle (in radians) between -PI and PI
+##Unlike the built in angle_difference function, return value for 0 and 180 degrees
+#is flipped.
+func limitAngle(input_angle:float) -> float:
+	var return_angle:float = angle_difference(0, input_angle)
+	if is_equal_approx(absf(return_angle), PI) or is_zero_approx(return_angle):
+		return_angle = -return_angle
+	return return_angle
+
+#Note: In C++, I would overwrite set_collision_layer in order to automatically 
+#update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 
 ##Assess the CollisionShape children (hitboxes of the character) and accordingly
 ##set some internal sensors to their proper positions, among other things.
@@ -575,151 +712,6 @@ func setup_collision() -> void:
 	ray_wall_right.target_position = Vector2(ground_right_corner.x + 1, 0)
 	ray_wall_right.add_exception(self)
 
-##Set up the custom performance monitors for the player
-func setup_performance_monitors() -> void:
-	self_perf_ground_angle = name + &"/" + perf_ground_angle
-	self_perf_ground_vel = name + &"/" + perf_ground_velocity
-	self_perf_state = name + &"/" + perf_state
-	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_rotation"])
-	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
-	Performance.add_custom_monitor(self_perf_state, get, [&"state_is"])
-
-##Clean up the custom performance monitors for the player
-func cleanup_performance_monitors() -> void:
-	Performance.remove_custom_monitor(self_perf_ground_angle)
-	Performance.remove_custom_monitor(self_perf_ground_vel)
-	Performance.remove_custom_monitor(self_perf_state)
-
-func _ready() -> void:
-	#Set up nodes
-	setup_children()
-	#Find collision points. Run this after so that the 
-	#raycasts can be placed properly.
-	setup_collision()
-	#setup performance montiors
-	setup_performance_monitors()
-	
-	#After all, why [i]not[/i] use our own API?
-	connect(&"contact_air", enter_air)
-	connect(&"contact_ground", land_on_ground)
-
-func _exit_tree() -> void:
-	cleanup_performance_monitors()
-
-##A wrapper function to play animations, with built in validity checking.
-##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will
-##play the animation on both of them if it can find it on both of them.
-##[br][br] The optional force parameter can be used to force-play an animation, even if one has 
-##already been set this frame.
-func play_animation(anim_name:StringName, force:bool = false) -> void:
-	if (force or not animation_set):
-		if is_instance_valid(animations) and animations.has_animation(anim_name):
-			animations.play(anim_name)
-			animation_set = true
-		elif is_instance_valid(animated_sprite1) and animated_sprite1.sprite_frames.has_animation(anim_name):
-			animated_sprite1.play(anim_name)
-			animation_set = true
-		current_anim = anim_name
-
-##A special function for sequencing several animations in a chain. The array this takes in as a 
-##parameter is assumed to be in the order that you want the animations to play.
-func sequence_animations(animation_array:Array[StringName]) -> void:
-	for anims:StringName in animation_array:
-		pass
-
-##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
-##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will 
-##return true if the former has an animation even if the latter does not.
-func has_animation(anim_name:StringName) -> bool:
-	if is_instance_valid(animations):
-		return animations.has_animation(anim_name)
-	elif is_instance_valid(animated_sprite1):
-		return animated_sprite1.sprite_frames.has_animation(anim_name)
-	else:
-		return false
-
-##Find out if a character has a given ability.
-##Ability names are dictated by the name of the node.
-func has_ability(ability_name:StringName) -> bool:
-	return abilities.has(ability_name)
-
-##Add an ability to the character at runtime.
-##Ability names are dictated by the name of the node.
-func add_ability(ability_name:MoonCastAbility) -> void:
-	add_child(ability_name)
-	abilities.append(ability_name.name)
-	ability_name.call(&"setup_ability_2D", self)
-
-##Get the MoonCastAbility of the named ability, if the player has it.
-##This will return null and show a warning if the ability is not found.
-func get_ability(ability_name:StringName) -> MoonCastAbility:
-	if has_ability(ability_name):
-		return get_node(NodePath(ability_name))
-	else:
-		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\"")
-		return null
-
-##Remove an ability from the character at runtime.
-##Ability names are dictated by the name of the node.
-func remove_ability(ability_name:StringName) -> void:
-	if has_ability(ability_name):
-		abilities.remove_at(abilities.find(ability_name))
-		var removing:MoonCastAbility = get_node(NodePath(ability_name))
-		remove_child(removing)
-		removing.queue_free()
-	else:
-		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\" that was called to be removed")
-
-##Add or update a sound effect on this player.
-##If a name is already registered, providing a different stream will assign a new 
-##stream to that name.
-func add_edit_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> void:
-	#Give the named sfx name key a new stream value
-	if sfx_custom_list_names.has(sfx_name):
-		var arr_pos:int = sfx_custom_list_names.find(sfx_name)
-		sfx_custom_list_streams[arr_pos] = sfx_stream
-	#rename an existing stream
-	elif sfx_custom_list_streams.has(sfx_stream):
-		var arr_pos:int = sfx_custom_list_names.find(sfx_stream)
-		sfx_custom_list_names[arr_pos] = sfx_name
-	#*actually* adding a new entry
-	else:
-		sfx_custom_list_names.append(sfx_name)
-		sfx_custom_list_streams.append(sfx_stream)
-
-func play_sound_effect(sfx_name:StringName) -> void:
-	if sfx_custom_list_names.has(sfx_name):
-		var sound_arr_pos:int = sfx_custom_list_names.find(sfx_name)
-		sfx_playback_ref.play_stream(sfx_custom_list_streams[sound_arr_pos], 0, 0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
-
-##Returns the given angle as an angle (in radians) between -PI and PI
-##Unlike the built in angle_difference function, return value for 0 and 180 degrees
-#is flipped.
-func limitAngle(input_angle:float) -> float:
-	var return_angle:float = angle_difference(0, input_angle)
-	if is_equal_approx(absf(return_angle), PI) or is_zero_approx(return_angle):
-		return_angle = -return_angle
-	return return_angle
-
-#Note: In C++, I would overwrite set_collision_layer in order to automatically 
-#update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
-
-##Returns if the player is going left
-func is_going_left() -> bool:
-	if grounded:
-		return moving and ground_velocity < 0
-	else:
-		#TODO: Make this properly check relative to default_up_direction
-		return space_velocity.x < 0
-
-##Returns if the player is going right
-func is_going_right() -> bool:
-	if grounded:
-		return moving and ground_velocity > 0
-	else:
-		#TODO: Make this properly check relative to default_up_direction
-		return space_velocity.x > 0
-
 ##Returns if the player could be slipping on a slope
 func lose_floor_grip() -> bool:
 	#var angle_condition:bool = absf(limitAngle(global_collision_rotation) >= floor_max_angle)
@@ -741,6 +733,7 @@ func process_air() -> void:
 	if can_midair_roll and not rolling and Input.is_action_pressed(physics.button_roll):
 		rolling = true
 		play_animation(anim_roll)
+		play_sound_effect(sfx_roll_name)
 	
 	# air-based movement
 	#Only let the player accelerate if they aren't already at max speed
@@ -815,16 +808,25 @@ func process_ground() -> void:
 			#If we *can* add speed (can't add above the top speed)
 			if absf(ground_velocity) < physics.ground_top_speed:
 				ground_velocity += physics.ground_acceleration * facing_direction
-		#We're going opposite to the facing direction, so apply skid mechanic
-		else:
+		else: #We're going opposite to the facing direction, so apply skid mechanic
 			ground_velocity += physics.ground_skid_speed * facing_direction
-			#TODO: Decide a base "skid anim" min speed besides this
-			if absf(ground_velocity) > physics.ground_skid_speed:
-				facing_direction = -facing_direction
-				sprites_flip()
-				
-				#TODO: Add a faster skid anim as well, and checks to play either skid animation
-				play_animation(anim_skid, true)
+			
+			for speeds:float in anim_skid_sorted_keys:
+				if absf(ground_velocity) > physics.ground_top_speed * speeds:
+					
+					#correct the direction of the sprite
+					facing_direction = -facing_direction
+					sprites_flip()
+					
+					#They were snapped earlier, but I find that it still won't work
+					#unless I snap them here
+					print(anim_skid.get(snappedf(speeds, 0.001), &"RESET"))
+					play_animation(anim_skid.get(snappedf(speeds, 0.001), &"RESET"), true)
+					
+					#only play skid anim once while skidding
+					if not anim_skid.values().has(current_anim):
+						play_sound_effect(sfx_skid_name)
+					break
 	
 	#fall off if the player is on a steep slope or wall and is not
 	#going fast enough to stick to walls
@@ -838,6 +840,7 @@ func process_ground() -> void:
 		#Roll if the player tries to, and is not already rolling
 		if rolling_enabled and Input.is_action_pressed(physics.button_roll) and not rolling:
 			rolling = true
+			play_sound_effect(sfx_roll_name)
 	else: #standing or crouching
 		#Disable rolling
 		rolling = false
@@ -868,8 +871,8 @@ func process_ground() -> void:
 		space_velocity.x += physics.jump_velocity * rotation_vector.y
 		space_velocity.y -= physics.jump_velocity * rotation_vector.x
 		
-		#Update states, animations
 		play_animation(anim_jump, true)
+		play_sound_effect(sfx_jump_name)
 		#rolling is used as a shorthand for if the player is 
 		#"attacking". Therefore, it should not be set if the player
 		#should be vulnerable in midair
@@ -883,11 +886,13 @@ func process_ground() -> void:
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	pass
 
-
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
 func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
-	if not Input.is_action_pressed(physics.button_roll):
+	if Input.is_action_pressed(physics.button_roll):
+		rolling = true
+		play_sound_effect(sfx_roll_name)
+	else:
 		rolling = false
 	#Transfer space_velocity to ground_velocity
 	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) 
@@ -900,7 +905,6 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		#TODO: Set can_jump to false and add a jump cooldown 
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
 		jump_timer.start(0.2)
-
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
@@ -1007,7 +1011,7 @@ func update_collision_rotation() -> void:
 				var actual_rotation_speed:float = rotation_adjustment_speed
 				if limitAngle(sprite_rotation) > (rotation_snap + rotation_snap):
 					actual_rotation_speed *= 2
-				sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, rotation_adjustment_speed)
+				sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
 		
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
@@ -1036,7 +1040,8 @@ func update_collision_rotation() -> void:
 			sprite_rotation = 0
 	
 	sprites_set_rotation(sprite_rotation)
-
+#endregion
+#region Sprite/Animation processing
 ##Update the rotation of the character when they are in the air
 func update_animations() -> void:
 	sprites_flip()
@@ -1054,16 +1059,13 @@ func update_animations() -> void:
 			play_animation(anim_push)
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		elif absf(ground_velocity) > physics.ground_top_speed: # > 100% speed
-			play_animation(anim_run_max)
-		elif absf(ground_velocity) > (physics.ground_top_speed * percent_run_3):
-			play_animation(anim_run_3)
-		elif absf(ground_velocity) > (physics.ground_top_speed * percent_run_2):
-			play_animation(anim_run_2)
-		elif absf(ground_velocity) > (physics.ground_top_speed * percent_run_1):
-			play_animation(anim_run_1)
-		elif moving: #moving at all
-			play_animation(anim_walk)
+		if moving:
+			for speeds:float in anim_run_sorted_keys:
+				if absf(ground_velocity) > physics.ground_top_speed * speeds:
+					#They were snapped earlier, but I find that it still won't work
+					#unless I snap them here
+					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
+					break
 		elif not crouching: #standing still
 			#not balancing on a ledge
 			if is_balancing:
@@ -1105,6 +1107,38 @@ func sprites_set_rotation(new_rotation:float) -> void:
 		sprite1.global_rotation = new_rotation
 	if is_instance_valid(animated_sprite1):
 		animated_sprite1.global_rotation = new_rotation
+#endregion
+
+func _ready() -> void:
+	#Set up nodes
+	setup_children()
+	#Find collision points. Run this after children
+	#setup so that the raycasts can be placed properly.
+	setup_collision()
+	#setup performance montiors
+	setup_performance_monitors()
+	
+	#After all, why [i]not[/i] use our own API?
+	connect(&"contact_air", enter_air)
+	connect(&"contact_ground", land_on_ground)
+	
+	var load_array:Callable = func(dict:Dictionary, arr:PackedFloat32Array) -> void:
+		#check the anim_run keys for valid values
+		for keys:float in dict.keys():
+			var snapped_key:float = snappedf(keys, 0.001)
+			if not is_equal_approx(keys, snapped_key):
+				push_warning("Key ", keys, " is more precise than the precision cutoff")
+			arr.append(snapped_key)
+		#sort the keys (from least to greatest)
+		arr.sort()
+		#reverse the array (it's now greatest to least)
+		arr.reverse()
+	
+	load_array.call(anim_run, anim_run_sorted_keys)
+	load_array.call(anim_skid, anim_skid_sorted_keys)
+
+func _exit_tree() -> void:
+	cleanup_performance_monitors()
 
 func _physics_process(delta: float) -> void:
 	#reset this flag specifically

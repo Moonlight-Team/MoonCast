@@ -1,8 +1,12 @@
-[gd_scene load_steps=20 format=3 uid="uid://fqh0i1dgi84m"]
+[gd_scene load_steps=24 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_mpnpc"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Demo/abilities/classic_physics.tres" id="2_nweor"]
+[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/Audio/Sonic 2/jump.wav" id="3_e0t60"]
 [ext_resource type="Texture2D" uid="uid://q5thi20c5oyo" path="res://Demo/assets/Sonic.png" id="3_rpo5c"]
+[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/Audio/Sonic 2/skid.wav" id="4_1g1dj"]
+[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/Audio/SFX/roll.wav" id="4_3g8xu"]
+[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/Audio/Sonic 2/ouch.wav" id="6_bqa18"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -244,20 +248,20 @@ tracks/0/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_djpht"]
 _data = {
-"RESET": SubResource("Animation_wlfi8"),
-"balance": SubResource("Animation_x2kjc"),
-"crouch": SubResource("Animation_iq3sf"),
-"drop_dash_charge": SubResource("Animation_7uit0"),
-"falling": SubResource("Animation_qvr7q"),
-"hurt": SubResource("Animation_lmbq0"),
-"jump_ball": SubResource("Animation_tqr3a"),
-"push": SubResource("Animation_e184m"),
-"run_1": SubResource("Animation_hw6c2"),
-"run_mach": SubResource("Animation_qois4"),
-"skid": SubResource("Animation_vg7os"),
-"spindash": SubResource("Animation_kgsx7"),
-"standing": SubResource("Animation_scyfb"),
-"walk": SubResource("Animation_wdns5")
+&"RESET": SubResource("Animation_wlfi8"),
+&"crouch": SubResource("Animation_iq3sf"),
+&"jump_ball": SubResource("Animation_tqr3a"),
+&"drop_dash_charge": SubResource("Animation_7uit0"),
+&"standing": SubResource("Animation_scyfb"),
+&"walk": SubResource("Animation_wdns5"),
+&"balance": SubResource("Animation_x2kjc"),
+&"push": SubResource("Animation_e184m"),
+&"run_1": SubResource("Animation_hw6c2"),
+&"run_mach": SubResource("Animation_qois4"),
+&"skid": SubResource("Animation_vg7os"),
+&"hurt": SubResource("Animation_lmbq0"),
+&"falling": SubResource("Animation_qvr7q"),
+&"spindash": SubResource("Animation_kgsx7")
 }
 
 [node name="mrneedlemouse" type="CharacterBody2D"]
@@ -267,21 +271,29 @@ floor_block_on_wall = false
 floor_snap_length = 10.0
 script = ExtResource("1_mpnpc")
 physics = ExtResource("2_nweor")
+can_midair_roll = true
 rotation_static_collision = true
 anim_stand = &"standing"
 anim_balance = &"balance"
 anim_crouch = &"crouch"
 anim_roll = &"jump_ball"
-anim_walk = &"walk"
-anim_run_1 = &"walk"
-anim_run_2 = &"walk"
-anim_run_3 = &"run_1"
-anim_run_max = &"run_mach"
-anim_skid = &"skid"
+anim_run = Dictionary[float, StringName]({
+0.0: &"walk",
+1.0: &"run_1",
+1.6: &"run_mach"
+})
+anim_skid = Dictionary[float, StringName]({
+0.4: &"skid"
+})
 anim_push = &"push"
 anim_jump = &"jump_ball"
 anim_free_fall = &"hurt"
 anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
+anim_vary_speed_playback = Array[StringName]([&"walk", &"run"])
+sfx_jump = ExtResource("3_e0t60")
+sfx_roll = ExtResource("4_3g8xu")
+sfx_skid = ExtResource("4_1g1dj")
+sfx_hurt = ExtResource("6_bqa18")
 
 [node name="RectangleShape" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_x7kbe")
@@ -295,7 +307,7 @@ vframes = 18
 
 [node name="Anims" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_djpht")
+&"": SubResource("AnimationLibrary_djpht")
 }
 
 [node name="Cam" type="Camera2D" parent="."]
