@@ -46,7 +46,8 @@ metadata/_tab_index = 1
 [node name="Physics & Rotation" type="TextEdit" parent="TabContainer"]
 visible = false
 layout_mode = 2
-text = "As mentioned earlier, MoonCastPlayer uses a MoonCastPhysicsTable to store all the physics values of the player, such as how fast they accelerate, how quickly they slow down on slopes, how high they can jump, and how rolling behaves on different kinds of slopes. This table also contains information on how buttons are mapped to the player, which are all StringName values corresponding to ActionNames in your project.
+text = "As mentioned earlier, MoonCastPlayer uses a MoonCastPhysicsTable to store all the physics values of the player, such as how fast they accelerate, how quickly they slow down on slopes, how high they can jump, and how rolling behaves on different kinds of slopes. A lot of ground values in MoonCast are percentages, that all revolve around ground_max_speed.
+This table also contains information on how buttons are mapped to the player, which are all StringName values corresponding to ActionNames in your project.
 
 Collision in MoonCast is handled with Godot's collision systems, meaning you can have any amount of CollisionShape children as children of a MoonCastPlayer, and they will all count as collision hitboxes for the player. Furthermore, in MoonCast, you have the option to align the player's collision with the ground, or keep its rotation at 0 at all times. This is up to programmer preference and whichever works well for your project. 
 
@@ -71,7 +72,6 @@ editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1
 scroll_smooth = true
-scroll_vertical = 5.0
 metadata/_tab_index = 3
 
 [node name="Animations" type="TextEdit" parent="TabContainer"]

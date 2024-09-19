@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_yx77b")
 ground_min_speed = 0.2
-ground_stick_speed = 0.2
+ground_stick_speed = 0.4
 ground_top_speed = 6.0
 ground_acceleration = 0.046875
 ground_deceleration = 0.046875

@@ -36,6 +36,57 @@ enum WallMode {
 	CEILING = 180
 }
 
+class SpeedVariedAnimLib:
+	extends Resource
+	##A sorted (largest to smallest) array of the keys in this anim
+	var sorted_keys:PackedFloat32Array
+	##The key of the current anim
+	var current:float
+	##The array pos of the current anim
+	var current_pos:int = 0
+	##The key of the previous (slower) anim
+	var previous:float = -1.0
+	##The key of the next (faster) anim
+	var next:float = -1.0
+	
+	func load_dictionary(dict:Dictionary) -> void:
+		#check the anim_run keys for valid values
+		for keys:float in dict.keys():
+			var snapped_key:float = snappedf(keys, 0.001)
+			if not is_equal_approx(keys, snapped_key):
+				push_warning("Key ", keys, " is more precise than the precision cutoff")
+			sorted_keys.append(snapped_key)
+		#sort the keys (from least to greatest)
+		sorted_keys.sort()
+		
+		sorted_keys.reverse()
+		
+		pos_update(0)
+	
+	func pos_update(pos:int) -> void:
+		current = sorted_keys[clampi(pos, 0, sorted_keys.size() - 1)]
+		if pos > 0:
+			previous = sorted_keys[pos - 1]
+		else:
+			previous = current - 1.0
+		
+		if pos < sorted_keys.size() - 1:
+			next = sorted_keys[pos + 1]
+		else:
+			next = current + 1.0
+	
+	func update_anim_key(speed:float) -> float:
+		if sorted_keys.size() == 1:
+			return sorted_keys[0]
+		
+		if speed > next:
+			prints("Incrimenting", current, "to", next)
+			pos_update(current_pos + 1)
+		if speed < previous:
+			prints("Decrementing ", current, "to", previous)
+			pos_update(current_pos -1)
+		return current
+
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
@@ -198,10 +249,11 @@ var state_abilities:Array[StringName]
 
 ##The current animation
 var current_anim:StringName
-##A sorted (largest to smallest) array of the keys in anim_run
-var anim_run_sorted_keys:PackedFloat32Array
+
+var anim_run_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
 ##A sorted (largest to smallest) array of the keys in anim_skid
-var anim_skid_sorted_keys:PackedFloat32Array
+
+var anim_skid_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
 #endregion
 #region physics vars
 ##The player's current state.
@@ -237,6 +289,9 @@ var space_velocity:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
 ##Equivalent to get_position_delta().normalized().sign()
 var velocity_direction:Vector2
+##The original value of floor_max_angle
+var default_max_angle:float
+
 #endregion
 #region state_can_be bitfield
 ##If true, the player can jump.
@@ -519,7 +574,7 @@ func play_animation(anim_name:StringName, force:bool = false) -> void:
 		if is_instance_valid(animations) and animations.has_animation(anim_name):
 			animations.play(anim_name)
 			animation_set = true
-		elif is_instance_valid(animated_sprite1) and animated_sprite1.sprite_frames.has_animation(anim_name):
+		if is_instance_valid(animated_sprite1) and animated_sprite1.sprite_frames.has_animation(anim_name):
 			animated_sprite1.play(anim_name)
 			animation_set = true
 		current_anim = anim_name
@@ -584,7 +639,7 @@ func add_edit_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> void:
 ##Play a sound effect that belongs to the player. This can be either a custom sound
 ##effect, or one of the hard coded/built in sound effects. 
 func play_sound_effect(sfx_name:StringName) -> void:
-	var wrapper:Callable = func(sfx:AudioStream): sfx_playback_ref.play_stream(sfx, 0.0, 0.0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
+	var wrapper:Callable = func(sfx:AudioStream) -> void: sfx_playback_ref.play_stream(sfx, 0.0, 0.0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
 	match sfx_name:
 		sfx_jump_name:
 			wrapper.call(sfx_jump)
@@ -714,14 +769,18 @@ func setup_collision() -> void:
 
 ##Returns if the player could be slipping on a slope
 func lose_floor_grip() -> bool:
-	#var angle_condition:bool = absf(limitAngle(global_collision_rotation) >= floor_max_angle)
-	var angle_condition:bool = fmod(absf(global_collision_rotation), PI) >= fmod(floor_max_angle, PI)
+	#var floor_is_steep:bool = fmod(absf(global_collision_rotation), PI) >= fmod(floor_max_angle, PI)
 	
-	var speed_condition:bool = absf(ground_velocity) < physics.ground_stick_speed
+	var not_fast_enough:bool = absf(ground_velocity) < physics.ground_stick_speed
 	
+	if not_fast_enough:
+		floor_max_angle = default_max_angle
+	else:
+		floor_max_angle = PI
 	
+	var floor_is_steep:bool = fmod(absf(global_collision_rotation), PI) >= fmod(floor_max_angle, PI)
 	
-	return angle_condition and speed_condition
+	return floor_is_steep and not_fast_enough
 
 ##Process the player's air physics
 func process_air() -> void:
@@ -811,7 +870,7 @@ func process_ground() -> void:
 		else: #We're going opposite to the facing direction, so apply skid mechanic
 			ground_velocity += physics.ground_skid_speed * facing_direction
 			
-			for speeds:float in anim_skid_sorted_keys:
+			for speeds:float in anim_skid_lib.sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					
 					#correct the direction of the sprite
@@ -829,8 +888,8 @@ func process_ground() -> void:
 	
 	#fall off if the player is on a steep slope or wall and is not
 	#going fast enough to stick to walls
-	if lose_floor_grip():
-		grounded = false
+	#if lose_floor_grip():
+		#grounded = false
 	
 	#Do rolling or crouching checks
 	if absf(ground_velocity) > physics.rolling_min_speed: #can roll
@@ -865,10 +924,11 @@ func process_ground() -> void:
 	var rotation_vector:Vector2 = Vector2.from_angle(collision_rotation)
 	if jumping:
 		jump.emit(self)
-		grounded = false
 		#Add velocity to the jump
 		space_velocity.x += physics.jump_velocity * rotation_vector.y
 		space_velocity.y -= physics.jump_velocity * rotation_vector.x
+		
+		grounded = false
 		
 		play_animation(anim_jump, true)
 		play_sound_effect(sfx_jump_name)
@@ -937,64 +997,72 @@ func update_collision_rotation() -> void:
 		#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
 		#we use the raycasts. 
 		
-		match point_count:
-			1:
-				#player balances when two of the raycasts are over the edge
-				is_balancing = true
-				#Don't update rotation if we were already grounded. This allows for 
-				#slope launch physics while retaining slope landing physics.
-				if not grounded:
-					if ray_ground_left.is_colliding():
-						collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-					elif ray_ground_right.is_colliding():
-						collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-			2:
-				is_balancing = false
-				var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-				var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-				
-				if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
-					collision_rotation = (right_angle + left_angle) / 2.0
-				#in these next two cases, the other contact point is the center
-				elif ray_ground_left.is_colliding():
-					collision_rotation = left_angle
-				elif ray_ground_right.is_colliding():
-					collision_rotation = right_angle
-			3:
-				is_balancing = false
-				
-				if not grounded:
+		if not is_on_wall():
+			match point_count:
+				1:
+					#player balances when two of the raycasts are over the edge
+					is_balancing = true
+					#Don't update rotation if we were already grounded. This allows for 
+					#slope launch physics while retaining slope landing physics.
+					if not grounded:
+						if ray_ground_left.is_colliding():
+							collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+							facing_direction = 1.0 #slope is to the left, face right
+						elif ray_ground_right.is_colliding():
+							collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+							facing_direction = -1.0 #slope is to the right, face left
+				2:
+					is_balancing = false
 					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 					
-					collision_rotation = (right_angle + left_angle) / 2.0
-				else:
-					var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
-					if is_zero_approx(gnd_angle):
-						apply_floor_snap()
-						gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+					if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
+						collision_rotation = (right_angle + left_angle) / 2.0
+					#in these next two cases, the other contact point is the center
+					elif ray_ground_left.is_colliding():
+						collision_rotation = left_angle
+					elif ray_ground_right.is_colliding():
+						collision_rotation = right_angle
+				3:
+					is_balancing = false
 					
-					collision_rotation = gnd_angle
+					if not grounded:
+						var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+						var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+						
+						collision_rotation = (right_angle + left_angle) / 2.0
+					else:
+						var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+						if is_zero_approx(gnd_angle):
+							apply_floor_snap()
+							gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+						
+						collision_rotation = gnd_angle
 		
 		if moving:
 			up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 		else:
 			up_direction = default_up_direction
 		
-		#Ceiling landing check
-		#The player can land on "steep ceilings", but not flat ones
-		if space_velocity.y < 0 and not grounded:
-			if fmod(collision_rotation, PI) <= floor_max_angle:
-				in_ground_range = true
-			else:
-				#they bonked their head on the ceiling, funne
-				space_velocity.y = 0
-				in_ground_range = false
+		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
+		
+		if fast_enough:
+			floor_max_angle = PI
+		else:
+			floor_max_angle = default_max_angle
+		
+		var floor_is_too_steep:bool = fmod(absf(global_collision_rotation), PI) >= fmod(floor_max_angle, PI)
 		
 		if grounded:
 			grounded = in_ground_range
 			#this will "un-land" the player if they're on a steep slope
-			grounded = in_ground_range and not lose_floor_grip()
+			
+			if fast_enough:
+				floor_max_angle = PI
+				grounded = in_ground_range
+			else: #not fast enough to simply stick to the ground
+				
+				grounded = in_ground_range and not floor_is_too_steep
 		else:
 			grounded = in_ground_range and will_actually_land
 		
@@ -1015,10 +1083,9 @@ func update_collision_rotation() -> void:
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
-		#it's important to set this so that slope launching is calculated before
-		#reseting collision rotation
+		#it's important to set this here so that slope launching is calculated 
+		#before reseting collision rotation
 		grounded = false
-		
 		
 		#ground sensors point whichever direction the player is traveling vertically
 		#this is so that landing on the ceiling is made possible
@@ -1026,6 +1093,16 @@ func update_collision_rotation() -> void:
 			collision_rotation = 0
 		else:
 			collision_rotation = PI #180 degrees, pointing up
+		
+		#Ceiling landing check
+		if space_velocity.y < 0 and in_ground_range:
+			#The player can land on "steep ceilings", but not flat ones
+			if fmod(collision_rotation, PI) <= floor_max_angle:
+				grounded = true
+			else:
+				#they bonked their head on the ceiling, funne
+				space_velocity.y = 0
+		
 		
 		up_direction = default_up_direction
 		
@@ -1059,7 +1136,7 @@ func update_animations() -> void:
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
 		if moving:
-			for speeds:float in anim_run_sorted_keys:
+			for speeds:float in anim_run_lib.sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
@@ -1121,20 +1198,10 @@ func _ready() -> void:
 	connect(&"contact_air", enter_air)
 	connect(&"contact_ground", land_on_ground)
 	
-	var load_array:Callable = func(dict:Dictionary, arr:PackedFloat32Array) -> void:
-		#check the anim_run keys for valid values
-		for keys:float in dict.keys():
-			var snapped_key:float = snappedf(keys, 0.001)
-			if not is_equal_approx(keys, snapped_key):
-				push_warning("Key ", keys, " is more precise than the precision cutoff")
-			arr.append(snapped_key)
-		#sort the keys (from least to greatest)
-		arr.sort()
-		#reverse the array (it's now greatest to least)
-		arr.reverse()
+	anim_run_lib.load_dictionary(anim_run)
+	anim_skid_lib.load_dictionary(anim_skid)
 	
-	load_array.call(anim_run, anim_run_sorted_keys)
-	load_array.call(anim_skid, anim_skid_sorted_keys)
+	default_max_angle = floor_max_angle
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()

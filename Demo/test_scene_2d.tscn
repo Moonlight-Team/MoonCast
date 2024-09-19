@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=32 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_r864y"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_lr3xy"]
@@ -67,6 +67,17 @@ radius = 100.0
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tiyrh"]
 radius = 50.0
 height = 169.0
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_vayao"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_d8jta"]
+size = Vector2(119.75, 20)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_aalw2"]
+bounce = 1.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_320si"]
+radius = 15.0
 
 [node name="TestScene" type="Node2D"]
 metadata/movie_file = "res://test_scene_2d.avi"
@@ -257,3 +268,19 @@ repeat_times = 4
 [node name="Run" type="Sprite2D" parent="Parallax2D"]
 show_behind_parent = true
 texture = ExtResource("7_2q626")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+position = Vector2(679, 379)
+physics_material_override = SubResource("PhysicsMaterial_vayao")
+constant_linear_velocity = Vector2(0, -100)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+shape = SubResource("RectangleShape2D_d8jta")
+debug_color = Color(0.823529, 0.721569, 0, 1)
+
+[node name="RigidBody2D" type="RigidBody2D" parent="."]
+position = Vector2(673, 282)
+physics_material_override = SubResource("PhysicsMaterial_aalw2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
+shape = SubResource("CircleShape2D_320si")
