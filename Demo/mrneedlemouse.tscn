@@ -417,7 +417,7 @@ anim_run = Dictionary[float, StringName]({
 anim_skid = Dictionary[float, StringName]({
 0.4: &"skid"
 })
-anim_push = &"push"
+anim_push = &"standing"
 anim_jump = &"jump_ball"
 anim_free_fall = &"hurt"
 anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
@@ -435,8 +435,8 @@ shape = SubResource("RectangleShape2D_x7kbe")
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_2ueqq")
-animation = &"spindash"
-frame_progress = 0.0812899
+animation = &"standing"
+autoplay = "standing"
 
 [node name="Anims" type="AnimationPlayer" parent="."]
 libraries = {

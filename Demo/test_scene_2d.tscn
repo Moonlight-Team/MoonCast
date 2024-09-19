@@ -272,7 +272,6 @@ texture = ExtResource("7_2q626")
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(679, 379)
 physics_material_override = SubResource("PhysicsMaterial_vayao")
-constant_linear_velocity = Vector2(0, -100)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
 shape = SubResource("RectangleShape2D_d8jta")

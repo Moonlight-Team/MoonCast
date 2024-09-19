@@ -970,7 +970,7 @@ func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
 	#TODO: implemnt "pushing" state variable, mess with it here
 	#var stop_on_wall:bool = (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0)
-	if is_on_wall():
+	if (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0):
 		#null horizontal velocity if the player is on a wall
 		space_velocity.x = 0
 		ground_velocity = 0
@@ -1037,7 +1037,10 @@ func update_collision_rotation() -> void:
 							apply_floor_snap()
 							gnd_angle = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
 						
-						collision_rotation = gnd_angle
+						#make sure the player can't merely run into anything in front of them and 
+						#then walk up it
+						if absf(angle_difference(collision_rotation, gnd_angle)) < default_max_angle:
+							collision_rotation = gnd_angle
 		
 		if moving:
 			up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
@@ -1047,7 +1050,7 @@ func update_collision_rotation() -> void:
 		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
 		
 		if fast_enough:
-			floor_max_angle = PI
+			floor_max_angle = PI 
 		else:
 			floor_max_angle = default_max_angle
 		
