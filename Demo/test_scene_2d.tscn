@@ -1,6 +1,6 @@
 [gd_scene load_steps=32 format=3 uid="uid://l6j7c0hm73c"]
 
-[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="1_r864y"]
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player/mrmooncastmouse.tscn" id="2_43wwi"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_lr3xy"]
 [ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/Audio/Sonic 2/spindash_charge.wav" id="3_dlbvb"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]
@@ -74,6 +74,8 @@ height = 169.0
 size = Vector2(119.75, 20)
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_aalw2"]
+friction = 0.0
+rough = true
 bounce = 1.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_320si"]
@@ -232,33 +234,6 @@ rotation = 0.820305
 shape = SubResource("CapsuleShape2D_tiyrh")
 debug_color = Color(1, 0, 0, 1)
 
-[node name="mrneedlemouse" parent="." instance=ExtResource("1_r864y")]
-position = Vector2(83, 6)
-floor_stop_on_slope = true
-floor_constant_speed = false
-
-[node name="Spindash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("2_lr3xy")
-sfx_charge = ExtResource("3_dlbvb")
-sfx_release = ExtResource("4_1vid7")
-
-[node name="DebugMode" type="Node" parent="mrneedlemouse"]
-script = ExtResource("3_pfiy8")
-button_enable_debug = &"x"
-button_scene_pause = &"start"
-button_scene_frame_advance = &"z"
-
-[node name="DropDash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("4_4hv4l")
-anim_charge = &"drop_dash_charge"
-
-[node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
-script = ExtResource("5_6uijy")
-
-[node name="DynamicCam" type="Node" parent="mrneedlemouse"]
-script = ExtResource("6_qevq0")
-zoom_speed = 0.01
-
 [node name="Parallax2D" type="Parallax2D" parent="."]
 modulate = Color(0.369107, 0.369107, 0.369107, 1)
 show_behind_parent = true
@@ -283,3 +258,27 @@ physics_material_override = SubResource("PhysicsMaterial_aalw2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
 shape = SubResource("CircleShape2D_320si")
+
+[node name="mrmooncastmouse" parent="." instance=ExtResource("2_43wwi")]
+
+[node name="Spindash" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("2_lr3xy")
+sfx_charge = ExtResource("3_dlbvb")
+sfx_release = ExtResource("4_1vid7")
+
+[node name="DebugMode" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("3_pfiy8")
+button_enable_debug = &"x"
+button_scene_pause = &"start"
+button_scene_frame_advance = &"z"
+
+[node name="DropDash" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("4_4hv4l")
+anim_charge = &"drop_dash_charge"
+
+[node name="SuperPeelOut" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("5_6uijy")
+
+[node name="DynamicCam" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("6_qevq0")
+zoom_speed = 0.01

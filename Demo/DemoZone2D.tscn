@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="1_vrw6c"]
 [ext_resource type="Texture2D" uid="uid://bot8e7aljq2o1" path="res://Demo/assets/spritesheet-export.png" id="2_20pip"]
-[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/mrneedlemouse.tscn" id="3_8drrp"]
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player/mrmooncastmouse.tscn" id="4_a77i0"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="5_7f6lf"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="6_0c1un"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="6_w6uua"]
@@ -473,23 +473,22 @@ tile_map_data = PackedByteArray("AAD//wAAAAABAA0AAAAAAAAAAAABAA0AAAABAAAAAAABAA0
 tile_set = SubResource("TileSet_h13a1")
 rendering_quadrant_size = 4
 
-[node name="mrneedlemouse" parent="." instance=ExtResource("3_8drrp")]
-position = Vector2(91, 24)
-
-[node name="Spindash" type="Node" parent="mrneedlemouse"]
-script = ExtResource("5_7f6lf")
-spindash_max_charge = 12.0
-
-[node name="SuperPeelOut" type="Node" parent="mrneedlemouse"]
-script = ExtResource("6_0c1un")
-
-[node name="MoonCastDebugMode" type="Node" parent="mrneedlemouse"]
-script = ExtResource("6_w6uua")
-button_enable_debug = &"x"
-button_scene_pause = &"y"
-button_scene_frame_advance = &"z"
-
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("7_4uoqi")
 volume_db = -12.813
 autoplay = true
+
+[node name="mrmooncastmouse" parent="." instance=ExtResource("4_a77i0")]
+
+[node name="Spindash" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("5_7f6lf")
+spindash_max_charge = 12.0
+
+[node name="SuperPeelOut" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("6_0c1un")
+
+[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("6_w6uua")
+button_enable_debug = &"x"
+button_scene_pause = &"y"
+button_scene_frame_advance = &"z"

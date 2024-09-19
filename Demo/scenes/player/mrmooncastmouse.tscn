@@ -1,0 +1,184 @@
+[gd_scene load_steps=35 format=3 uid="uid://x0bop1i17eyt"]
+
+[ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_x65an"]
+[ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Demo/abilities/classic_physics.tres" id="2_dv33o"]
+[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/Audio/Sonic 2/jump.wav" id="3_o6288"]
+[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/Audio/SFX/roll.wav" id="4_rcomx"]
+[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/Audio/Sonic 2/skid.wav" id="5_fe7cx"]
+[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/Audio/Sonic 2/ouch.wav" id="6_jrcbu"]
+[ext_resource type="Texture2D" uid="uid://d0ec1ks82vt8y" path="res://Demo/assets/player/spin_1.atlastex" id="7_tckg0"]
+[ext_resource type="Texture2D" uid="uid://kgrvw2wsjg6d" path="res://Demo/assets/player/spin_2.atlastex" id="8_ynn85"]
+[ext_resource type="Texture2D" uid="uid://baxstd7kgbta0" path="res://Demo/assets/player/spin_3.atlastex" id="9_1j2iq"]
+[ext_resource type="Texture2D" uid="uid://chu306tk5ewm1" path="res://Demo/assets/player/spin_4.atlastex" id="10_46b1w"]
+[ext_resource type="Texture2D" uid="uid://cm1o6kof5r6mf" path="res://Demo/assets/player/spin_5.atlastex" id="11_k1tl5"]
+[ext_resource type="Texture2D" uid="uid://dj14g6pcj1nw8" path="res://Demo/assets/player/spin_6.atlastex" id="12_adwh7"]
+[ext_resource type="Texture2D" uid="uid://fmsgjctdbxs0" path="res://Demo/assets/player/spin_7.atlastex" id="13_pnwf5"]
+[ext_resource type="Texture2D" uid="uid://dffpk8s04m5k0" path="res://Demo/assets/player/spin_8.atlastex" id="14_jq0rn"]
+[ext_resource type="Texture2D" uid="uid://chu5cga32upt0" path="res://Demo/assets/player/run_1.atlastex" id="15_fp0wv"]
+[ext_resource type="Texture2D" uid="uid://dsh6tpoj6jc38" path="res://Demo/assets/player/run_2.atlastex" id="16_mlbc6"]
+[ext_resource type="Texture2D" uid="uid://oy20gmqynumm" path="res://Demo/assets/player/run_3.atlastex" id="17_fdvjw"]
+[ext_resource type="Texture2D" uid="uid://xgdafm3nc3v3" path="res://Demo/assets/player/run_4.atlastex" id="18_ucolb"]
+[ext_resource type="Texture2D" uid="uid://2oes6adbty2l" path="res://Demo/assets/player/spindash_1.atlastex" id="19_ch3eq"]
+[ext_resource type="Texture2D" uid="uid://8dupd6qgo3ak" path="res://Demo/assets/player/spindash_5.atlastex" id="20_fg1qw"]
+[ext_resource type="Texture2D" uid="uid://d1tewagdkjydk" path="res://Demo/assets/player/spindash_2.atlastex" id="21_85n04"]
+[ext_resource type="Texture2D" uid="uid://dcdt1v1cykaov" path="res://Demo/assets/player/spindash_3.atlastex" id="22_4d5lq"]
+[ext_resource type="Texture2D" uid="uid://nvxtqtfdojt6" path="res://Demo/assets/player/spindash_4.atlastex" id="23_ehf6m"]
+[ext_resource type="Texture2D" uid="uid://bue7c7qt75a24" path="res://Demo/assets/player/standing.atlastex" id="24_wu2jg"]
+[ext_resource type="Texture2D" uid="uid://3hb01jk5rjbf" path="res://Demo/assets/player/walk_1.atlastex" id="25_ng1gm"]
+[ext_resource type="Texture2D" uid="uid://dtn5w7yeu1ons" path="res://Demo/assets/player/walk_2.atlastex" id="26_gufx4"]
+[ext_resource type="Texture2D" uid="uid://b72tf66bnfm6w" path="res://Demo/assets/player/walk_3.atlastex" id="27_tanxa"]
+[ext_resource type="Texture2D" uid="uid://dsosqceyegiqm" path="res://Demo/assets/player/walk_4.atlastex" id="28_avif2"]
+[ext_resource type="Texture2D" uid="uid://cgamygaj027c5" path="res://Demo/assets/player/walk_5.atlastex" id="29_fqyl4"]
+[ext_resource type="Texture2D" uid="uid://ccii7fvnp5gex" path="res://Demo/assets/player/walk_6.atlastex" id="30_11fcv"]
+[ext_resource type="Texture2D" uid="uid://cev0hsakbx1wx" path="res://Demo/assets/player/walk_7.atlastex" id="31_jpb5e"]
+[ext_resource type="Texture2D" uid="uid://cfgsodc5033p6" path="res://Demo/assets/player/walk_8_good.atlastex" id="32_yckt7"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
+size = Vector2(20, 38)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_2ueqq"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_tckg0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_ynn85")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_1j2iq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_46b1w")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_k1tl5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_adwh7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_pnwf5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_jq0rn")
+}],
+"loop": true,
+"name": &"jump_ball",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("15_fp0wv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_mlbc6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_fdvjw")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_ucolb")
+}],
+"loop": true,
+"name": &"run",
+"speed": 15.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("19_ch3eq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_fg1qw")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_85n04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_4d5lq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_ehf6m")
+}],
+"loop": true,
+"name": &"spindash",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("24_wu2jg")
+}],
+"loop": true,
+"name": &"standing",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("25_ng1gm")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_gufx4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_tanxa")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_avif2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_fqyl4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_11fcv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_jpb5e")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_yckt7")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 10.0
+}]
+
+[node name="mrmooncastmouse" type="CharacterBody2D"]
+floor_stop_on_slope = false
+floor_constant_speed = true
+floor_block_on_wall = false
+floor_snap_length = 15.0
+script = ExtResource("1_x65an")
+physics = ExtResource("2_dv33o")
+can_midair_roll = true
+rotation_static_collision = true
+camera_look_up_offset = -50
+camera_look_down_offset = 50
+camera_move_speed = 5.0
+anim_stand = &"standing"
+anim_roll = &"jump_ball"
+anim_run = Dictionary[float, StringName]({
+0.01: &"walk",
+1.0: &"run"
+})
+anim_skid = Dictionary[float, StringName]({
+0.4: &"skid"
+})
+anim_push = &"standing"
+anim_jump = &"jump_ball"
+anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
+anim_vary_speed_playback = Array[StringName]([&"walk", &"run"])
+sfx_jump = ExtResource("3_o6288")
+sfx_roll = ExtResource("4_rcomx")
+sfx_skid = ExtResource("5_fe7cx")
+sfx_hurt = ExtResource("6_jrcbu")
+
+[node name="RectangleShape" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_x7kbe")
+
+[node name="Cam" type="Camera2D" parent="."]
+
+[node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_2ueqq")
+animation = &"run"
+autoplay = "standing"

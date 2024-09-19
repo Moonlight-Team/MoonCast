@@ -97,6 +97,7 @@ const sfx_skid_name:StringName = &"skid"
 const sfx_hurt_name:StringName = &"hurt"
 #endregion
 #region Exported Vars
+@export_group("Physics & Controls")
 ##The physics table for this player
 @export var physics:MoonCastPhysicsTable = MoonCastPhysicsTable.new()
 ##The default direction of gravity.
@@ -128,9 +129,9 @@ const sfx_hurt_name:StringName = &"hurt"
 
 @export var camera_look_down_offset:int
 
-@export var camera_neutral_offset:Vector2i
+@export var camera_neutral_offset:Vector2
 
-@export var camera_move_speed:Vector2i
+@export var camera_move_speed:float
 
 @export_group("Animations", "anim_")
 ##The animation to play when standing still.
@@ -235,6 +236,9 @@ var jump_timer:Timer = Timer.new()
 var control_lock_timer:Timer = Timer.new()
 ##The timer for the player to be able to stick to the floor.
 var ground_snap_timer:Timer = Timer.new()
+
+var camera:Camera2D
+
 #endregion
 #region API storage vars
 ##The names of all the abilities of this character.
@@ -639,7 +643,10 @@ func add_edit_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> void:
 ##Play a sound effect that belongs to the player. This can be either a custom sound
 ##effect, or one of the hard coded/built in sound effects. 
 func play_sound_effect(sfx_name:StringName) -> void:
-	var wrapper:Callable = func(sfx:AudioStream) -> void: sfx_playback_ref.play_stream(sfx, 0.0, 0.0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
+	var wrapper:Callable = func(sfx:AudioStream) -> void: 
+		if not is_zero_approx(sfx.get_length()):
+			sfx_playback_ref.play_stream(sfx, 0.0, 0.0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
+	
 	match sfx_name:
 		sfx_jump_name:
 			wrapper.call(sfx_jump)
@@ -647,7 +654,7 @@ func play_sound_effect(sfx_name:StringName) -> void:
 			wrapper.call(sfx_roll)
 		sfx_skid_name:
 			wrapper.call(sfx_skid)
-		&"hurt":
+		sfx_hurt_name:
 			wrapper.call(sfx_hurt)
 		_:
 			if sfx_custom.has(sfx_name):
@@ -908,12 +915,10 @@ func process_ground() -> void:
 			if Input.is_action_pressed(physics.button_down):
 				if not crouching: #only crouch if we weren't before
 					crouching = true
-					play_animation(anim_crouch, true)
 			else: #down is not held, uncrouch
 				#Re-enable controlling and return the player to their standing state
 				if crouching:
 					crouching = false
-					play_animation(anim_stand)
 				can_move = true
 	
 	#jumping logic
@@ -1138,14 +1143,14 @@ func update_animations() -> void:
 			play_animation(anim_push)
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		if moving:
+		elif moving:
 			for speeds:float in anim_run_lib.sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
 					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
 					break
-		elif not crouching: #standing still
+		else: #standing still
 			#not balancing on a ledge
 			if is_balancing:
 				if not ray_ground_left.is_colliding():
@@ -1155,13 +1160,22 @@ func update_animations() -> void:
 					#face the ledge
 					facing_direction = 1.0
 				sprites_flip()
-				play_animation(anim_balance)
+				if has_animation(anim_balance):
+					play_animation(anim_balance)
+				else:
+					play_animation(anim_stand)
 			else:
 				if Input.is_action_pressed(physics.button_up):
 					#TODO: Add some API stuff to make this usable for stuff like camera repositioning
 					play_animation(anim_look_up)
+					
+					move_camera_vertical(camera_look_up_offset)
+				elif crouching:
+					play_animation(anim_crouch)
+					move_camera_vertical(camera_look_down_offset)
 				else:
 					play_animation(anim_stand, true)
+					move_camera_vertical(0)
 
 ##Flip the sprites for the player based on the direction the player is facing.
 func sprites_flip() -> void:
@@ -1186,6 +1200,14 @@ func sprites_set_rotation(new_rotation:float) -> void:
 		sprite1.global_rotation = new_rotation
 	if is_instance_valid(animated_sprite1):
 		animated_sprite1.global_rotation = new_rotation
+
+func move_camera_vertical(dest_offset:float) -> void:
+	#var camera_dest_pos:float = camera_neutral_offset.y + camera_look_up_offset
+	#
+	#if not is_equal_approx(camera.offset.y, camera_dest_pos):
+		#camera.offset.y = move_toward(camera.offset.y, camera_dest_pos, camera_move_speed)
+	
+	pass
 #endregion
 
 func _ready() -> void:
@@ -1205,6 +1227,8 @@ func _ready() -> void:
 	anim_skid_lib.load_dictionary(anim_skid)
 	
 	default_max_angle = floor_max_angle
+	
+	camera = get_window().get_camera_2d()
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()

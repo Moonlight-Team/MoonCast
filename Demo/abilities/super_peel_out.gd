@@ -20,6 +20,7 @@ func _ready() -> void:
 	add_child(charge_timer)
 
 func _setup_2D(player:MoonCastPlayer2D) -> void:
+	#TODO: Add sfx
 	player
 
 func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
