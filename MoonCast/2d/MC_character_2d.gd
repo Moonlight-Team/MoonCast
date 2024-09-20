@@ -644,7 +644,7 @@ func add_edit_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> void:
 ##effect, or one of the hard coded/built in sound effects. 
 func play_sound_effect(sfx_name:StringName) -> void:
 	var wrapper:Callable = func(sfx:AudioStream) -> void: 
-		if not is_zero_approx(sfx.get_length()):
+		if is_instance_valid(sfx) and not is_zero_approx(sfx.get_length()):
 			sfx_playback_ref.play_stream(sfx, 0.0, 0.0, 1.0, AudioServer.PLAYBACK_TYPE_DEFAULT, sfx_bus)
 	
 	match sfx_name:

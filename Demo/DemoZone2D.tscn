@@ -459,7 +459,7 @@ sources/0 = SubResource("TileSetAtlasSource_eo2df")
 [node name="Parallax2D" type="Parallax2D" parent="."]
 scroll_scale = Vector2(0.3, 0)
 repeat_size = Vector2(1536, 0)
-autoscroll = Vector2(-5, 0)
+autoscroll = Vector2(-30, 0)
 
 [node name="Sprite2D" type="Sprite2D" parent="Parallax2D"]
 texture_filter = 1
@@ -479,6 +479,8 @@ volume_db = -12.813
 autoplay = true
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("4_a77i0")]
+anim_stand = &"standing_wind"
+anim_free_fall = &""
 
 [node name="Spindash" type="Node" parent="mrmooncastmouse"]
 script = ExtResource("5_7f6lf")
