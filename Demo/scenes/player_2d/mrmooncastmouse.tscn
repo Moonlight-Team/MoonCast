@@ -6,7 +6,7 @@
 [ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/Audio/SFX/roll.wav" id="4_rcomx"]
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/Audio/Sonic 2/skid.wav" id="5_fe7cx"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/Audio/Sonic 2/ouch.wav" id="6_jrcbu"]
-[ext_resource type="SpriteFrames" uid="uid://do6mymr7mfmyu" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.res" id="7_mbdx4"]
+[ext_resource type="SpriteFrames" uid="uid://bpvjns0vskghr" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.tres" id="7_o1ngo"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -50,6 +50,5 @@ shape = SubResource("RectangleShape2D_x7kbe")
 
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
-sprite_frames = ExtResource("7_mbdx4")
-animation = &"look_up"
+sprite_frames = ExtResource("7_o1ngo")
 autoplay = "standing_wind"
