@@ -24,7 +24,7 @@ class_name MoonCastPlayer3D
 ##Input action for moving right
 @export var MOVE_RIGHT:StringName = &"right"
 
-@onready var pivot = $CamOrigin
+@onready var pivot:Camera3D
 
 var gravity:float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var groundVelocity:Vector2
@@ -32,13 +32,14 @@ var groundVelocity:Vector2
 
 #goofy ah cam
 func _ready() -> void: 
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+#	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	pivot = get_window().get_camera_3d()
 
 func _input(event:InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		rotate_y(deg_to_rad(-event.relative.x * sens))
-		pivot.rotate_x(deg_to_rad(event.relative.y * sens))
-		pivot.rotation.x = clampf(pivot.rotation.x, deg_to_rad(-90), deg_to_rad(45))
+		#pivot.rotate_x(deg_to_rad(event.relative.y * sens))
+		#pivot.rotation.x = clampf(pivot.rotation.x, deg_to_rad(-90), deg_to_rad(45))
 
 
 func _physics_process(delta:float) -> void:
@@ -51,7 +52,7 @@ func _physics_process(delta:float) -> void:
 		velocity.y = JUMP_VELOCITY
 	
 	#cam part too
-	if Input.is_action_just_pressed("quit"):
+	if Input.is_action_just_pressed(&"x"):
 		get_tree().quit()
 	
 	#The x axis will be which way Sonic should be traveling on the x axis in space, and 

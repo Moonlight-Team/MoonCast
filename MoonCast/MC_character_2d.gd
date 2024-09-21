@@ -36,57 +36,6 @@ enum WallMode {
 	CEILING = 180
 }
 
-class SpeedVariedAnimLib:
-	extends Resource
-	##A sorted (largest to smallest) array of the keys in this anim
-	var sorted_keys:PackedFloat32Array
-	##The key of the current anim
-	var current:float
-	##The array pos of the current anim
-	var current_pos:int = 0
-	##The key of the previous (slower) anim
-	var previous:float = -1.0
-	##The key of the next (faster) anim
-	var next:float = -1.0
-	
-	func load_dictionary(dict:Dictionary) -> void:
-		#check the anim_run keys for valid values
-		for keys:float in dict.keys():
-			var snapped_key:float = snappedf(keys, 0.001)
-			if not is_equal_approx(keys, snapped_key):
-				push_warning("Key ", keys, " is more precise than the precision cutoff")
-			sorted_keys.append(snapped_key)
-		#sort the keys (from least to greatest)
-		sorted_keys.sort()
-		
-		sorted_keys.reverse()
-		
-		pos_update(0)
-	
-	func pos_update(pos:int) -> void:
-		current = sorted_keys[clampi(pos, 0, sorted_keys.size() - 1)]
-		if pos > 0:
-			previous = sorted_keys[pos - 1]
-		else:
-			previous = current - 1.0
-		
-		if pos < sorted_keys.size() - 1:
-			next = sorted_keys[pos + 1]
-		else:
-			next = current + 1.0
-	
-	func update_anim_key(speed:float) -> float:
-		if sorted_keys.size() == 1:
-			return sorted_keys[0]
-		
-		if speed > next:
-			prints("Incrimenting", current, "to", next)
-			pos_update(current_pos + 1)
-		if speed < previous:
-			prints("Decrementing ", current, "to", previous)
-			pos_update(current_pos -1)
-		return current
-
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
@@ -665,17 +614,18 @@ func check_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> int:
 	const builtin_sfx:Array[StringName] = [sfx_roll_name]
 	if sfx_custom.has(sfx_name):
 		bitfield |= 0b0000_0001
-	
+	if sfx_custom.values().has(sfx_stream):
+		bitfield |= 0b0000_0010
 	
 	return bitfield
 #endregion
 #region State API
 ##Check the player's current state with a bitfield of values
-func check_current_state(check:int) -> bool:
+func check_current_state(check:int) -> int:
 	return check & state_is
 
 ##Check the player's possible state with a bitfield of values
-func check_possible_state(check:int) -> bool:
+func check_possible_state(check:int) -> int:
 	return check & state_can_be
 
 ##Returns if the player is going left
@@ -1167,7 +1117,8 @@ func update_animations() -> void:
 			else:
 				if Input.is_action_pressed(physics.button_up):
 					#TODO: Add some API stuff to make this usable for stuff like camera repositioning
-					play_animation(anim_look_up)
+					if current_anim != anim_look_up:
+						play_animation(anim_look_up)
 					
 					move_camera_vertical(camera_look_up_offset)
 				elif crouching:

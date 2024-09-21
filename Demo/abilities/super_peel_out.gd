@@ -15,7 +15,6 @@ var charge_per_tick:float
 
 var charge_timer:Timer = Timer.new()
 
-
 func _ready() -> void:
 	add_child(charge_timer)
 

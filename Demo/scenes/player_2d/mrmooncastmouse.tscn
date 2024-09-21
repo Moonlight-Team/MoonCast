@@ -1,12 +1,12 @@
 [gd_scene load_steps=9 format=3 uid="uid://x0bop1i17eyt"]
 
-[ext_resource type="Script" path="res://MoonCast/2d/MC_character_2d.gd" id="1_x65an"]
+[ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Demo/abilities/classic_physics.tres" id="2_dv33o"]
 [ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/Audio/Sonic 2/jump.wav" id="3_o6288"]
 [ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/Audio/SFX/roll.wav" id="4_rcomx"]
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/Audio/Sonic 2/skid.wav" id="5_fe7cx"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/Audio/Sonic 2/ouch.wav" id="6_jrcbu"]
-[ext_resource type="SpriteFrames" uid="uid://do6mymr7mfmyu" path="res://Demo/assets/player/mooncast_sonic/sprite_frame_mooncast.res" id="7_mbdx4"]
+[ext_resource type="SpriteFrames" uid="uid://do6mymr7mfmyu" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.res" id="7_mbdx4"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -24,6 +24,7 @@ camera_look_up_offset = -50
 camera_look_down_offset = 50
 camera_move_speed = 5.0
 anim_stand = &"default"
+anim_look_up = &"look_up"
 anim_roll = &"jump_ball"
 anim_run = Dictionary[float, StringName]({
 0.01: &"walk",
@@ -50,6 +51,5 @@ shape = SubResource("RectangleShape2D_x7kbe")
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
 sprite_frames = ExtResource("7_mbdx4")
-animation = &"standing_wind"
+animation = &"look_up"
 autoplay = "standing_wind"
-frame_progress = 0.230902

@@ -37,6 +37,10 @@ movie_writer/movie_file="res://showcase.avi"
 
 enabled=PackedStringArray("res://addons/mooncast_docs/plugin.cfg")
 
+[filesystem]
+
+import/blender/enabled=false
+
 [input]
 
 ui_accept={

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="MoonCastPhysicsTable" load_steps=2 format=3 uid="uid://ur6c2vs8ypml"]
 
-[ext_resource type="Script" path="res://MoonCast/res/MC_physics_table.gd" id="1_wg888"]
+[ext_resource type="Script" path="res://MoonCast/MC_physics_table.gd" id="1_wg888"]
 
 [resource]
 script = ExtResource("1_wg888")

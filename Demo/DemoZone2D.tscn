@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://da3mku80c78tg" path="res://Demo/assets/background.png" id="1_vrw6c"]
 [ext_resource type="Texture2D" uid="uid://bot8e7aljq2o1" path="res://Demo/assets/spritesheet-export.png" id="2_20pip"]
-[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player/mrmooncastmouse.tscn" id="4_a77i0"]
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="4_a77i0"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="5_7f6lf"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="6_0c1un"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="6_w6uua"]
@@ -479,6 +479,7 @@ volume_db = -12.813
 autoplay = true
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("4_a77i0")]
+position = Vector2(-2, 42)
 anim_stand = &"standing_wind"
 anim_free_fall = &""
 

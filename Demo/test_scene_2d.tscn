@@ -1,6 +1,6 @@
 [gd_scene load_steps=32 format=3 uid="uid://l6j7c0hm73c"]
 
-[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player/mrmooncastmouse.tscn" id="2_43wwi"]
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="2_43wwi"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="2_lr3xy"]
 [ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/Audio/Sonic 2/spindash_charge.wav" id="3_dlbvb"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]

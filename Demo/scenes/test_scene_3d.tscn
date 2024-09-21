@@ -1,0 +1,53 @@
+[gd_scene load_steps=8 format=3 uid="uid://cevdou1y8kc5k"]
+
+[ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d.tscn" id="1_73jpb"]
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="2_wb0pl"]
+
+[sub_resource type="Sky" id="Sky_0hq6w"]
+
+[sub_resource type="Environment" id="Environment_noruf"]
+background_mode = 1
+background_color = Color(0.405178, 0.592296, 1, 1)
+sky = SubResource("Sky_0hq6w")
+ambient_light_source = 3
+ambient_light_color = Color(0.685835, 0.685835, 0.685835, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sri1c"]
+shading_mode = 2
+diffuse_mode = 3
+albedo_color = Color(1, 0, 0.403922, 1)
+albedo_texture = ExtResource("2_wb0pl")
+
+[sub_resource type="BoxMesh" id="BoxMesh_ri6vl"]
+material = SubResource("StandardMaterial3D_sri1c")
+flip_faces = true
+size = Vector3(10000, 1, 10000)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_vljlb"]
+points = PackedVector3Array(-5000, -0.5, -5000, -5000, 0.5, -5000, 5000, -0.5, -5000, -5000, -0.5, 5000, -5000, 0.5, 5000, 5000, 0.5, -5000, 5000, -0.5, 5000, 5000, 0.5, 5000)
+
+[node name="test_scene_3d" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_noruf")
+
+[node name="MC_3D" parent="." instance=ExtResource("1_73jpb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="Camera3D" type="Camera3D" parent="MC_3D"]
+transform = Transform3D(-4.10376e-08, 0.344381, -0.93883, 1.50534e-08, 0.93883, 0.344381, 1, 0, -4.37114e-08, -13.3217, 7.38998, 9.53674e-07)
+
+[node name="Ground" type="Node3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("BoxMesh_ri6vl")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ground"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_vljlb")
