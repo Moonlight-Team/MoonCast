@@ -527,7 +527,7 @@ func play_animation(anim_name:StringName, force:bool = false) -> void:
 		if is_instance_valid(animations) and animations.has_animation(anim_name):
 			animations.play(anim_name)
 			animation_set = true
-		if is_instance_valid(animated_sprite1) and animated_sprite1.sprite_frames.has_animation(anim_name):
+		if is_instance_valid(animated_sprite1.sprite_frames) and animated_sprite1.sprite_frames.has_animation(anim_name):
 			animated_sprite1.play(anim_name)
 			animation_set = true
 		current_anim = anim_name
