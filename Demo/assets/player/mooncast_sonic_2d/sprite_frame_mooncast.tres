@@ -25,14 +25,14 @@
 [ext_resource type="Texture2D" uid="uid://d3bri5pe403la" path="res://Demo/assets/player/mooncast_sonic_2d/wind/wind_2.tres" id="23_iewdr"]
 [ext_resource type="Texture2D" uid="uid://c04gwp3yppb0q" path="res://Demo/assets/player/mooncast_sonic_2d/wind/wind_3.tres" id="24_ggqj3"]
 [ext_resource type="Texture2D" uid="uid://chgvx8n4apf1v" path="res://Demo/assets/player/mooncast_sonic_2d/wind/wind_4.tres" id="25_5qmat"]
-[ext_resource type="Texture2D" uid="uid://dxlrn3fdwl33k" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_1.tres" id="26_3clvv"]
-[ext_resource type="Texture2D" uid="uid://cn88eh2cceabr" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_2.tres" id="27_qdx84"]
-[ext_resource type="Texture2D" uid="uid://jbxgwiej31i4" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_3.tres" id="28_c6vrq"]
-[ext_resource type="Texture2D" uid="uid://ddyr1251qttgu" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_4.tres" id="29_m4h1f"]
-[ext_resource type="Texture2D" uid="uid://b5a7ox2e7chis" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_5.tres" id="30_12kwy"]
-[ext_resource type="Texture2D" uid="uid://c0ukr8o43wi8w" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_6.tres" id="31_qerk5"]
-[ext_resource type="Texture2D" uid="uid://dt8kqfwuw04do" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_7.tres" id="32_cgrwq"]
-[ext_resource type="Texture2D" uid="uid://cjugj11k2rtoj" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_8.tres" id="33_gmobd"]
+[ext_resource type="Texture2D" uid="uid://kt3kj50aipde" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_1.tres" id="26_4d5io"]
+[ext_resource type="Texture2D" uid="uid://6xmed3byrk4y" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_2.tres" id="27_bil8m"]
+[ext_resource type="Texture2D" uid="uid://beqyqt45a4e2o" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_3.tres" id="28_rbdbt"]
+[ext_resource type="Texture2D" uid="uid://c5av0uuuwcxpm" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_4.tres" id="29_f84rr"]
+[ext_resource type="Texture2D" uid="uid://eijk830e5n56" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_5.tres" id="30_qe7ua"]
+[ext_resource type="Texture2D" uid="uid://diejc0s3b8wrb" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_6.tres" id="31_wken6"]
+[ext_resource type="Texture2D" uid="uid://bg0y8k1sihq3a" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_7.tres" id="32_071y7"]
+[ext_resource type="Texture2D" uid="uid://c2m4avw1hmmty" path="res://Demo/assets/player/mooncast_sonic_2d/walk/walk_8.tres" id="33_b7cuo"]
 
 [resource]
 animations = [{
@@ -143,28 +143,28 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("26_3clvv")
+"texture": ExtResource("26_4d5io")
 }, {
 "duration": 1.0,
-"texture": ExtResource("27_qdx84")
+"texture": ExtResource("27_bil8m")
 }, {
 "duration": 1.0,
-"texture": ExtResource("28_c6vrq")
+"texture": ExtResource("28_rbdbt")
 }, {
 "duration": 1.0,
-"texture": ExtResource("29_m4h1f")
+"texture": ExtResource("29_f84rr")
 }, {
 "duration": 1.0,
-"texture": ExtResource("30_12kwy")
+"texture": ExtResource("30_qe7ua")
 }, {
 "duration": 1.0,
-"texture": ExtResource("31_qerk5")
+"texture": ExtResource("31_wken6")
 }, {
 "duration": 1.0,
-"texture": ExtResource("32_cgrwq")
+"texture": ExtResource("32_071y7")
 }, {
 "duration": 1.0,
-"texture": ExtResource("33_gmobd")
+"texture": ExtResource("33_b7cuo")
 }],
 "loop": true,
 "name": &"walk",

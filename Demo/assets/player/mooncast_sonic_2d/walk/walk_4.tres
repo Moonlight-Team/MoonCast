@@ -1,8 +1,8 @@
-[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://ddyr1251qttgu"]
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://c5av0uuuwcxpm"]
 
-[ext_resource type="Texture2D" uid="uid://dc04s7ordd7d5" path="res://Demo/assets/player/mooncast_sonic_2d/walk_new.png" id="1_ihavt"]
+[ext_resource type="Texture2D" uid="uid://4cgokjbonp65" path="res://Demo/assets/player/mooncast_sonic_2d/spritesheet_moon.png" id="1_66kja"]
 
 [resource]
-atlas = ExtResource("1_ihavt")
-region = Rect2(147, 0, 45, 43)
-margin = Rect2(0, 0, 0, 4)
+atlas = ExtResource("1_66kja")
+region = Rect2(129, 48, 45, 47)
+margin = Rect2(5, 3, 0, 0)
