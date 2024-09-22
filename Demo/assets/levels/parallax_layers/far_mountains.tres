@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://dfdbx4jniuil"]
+
+[ext_resource type="Texture2D" uid="uid://crmdkeik1jhwi" path="res://Demo/assets/levels/parallax_layers/SHZ_parallax_raw.png" id="1_hqevo"]
+
+[resource]
+atlas = ExtResource("1_hqevo")
+region = Rect2(0, 68, 256, 51)

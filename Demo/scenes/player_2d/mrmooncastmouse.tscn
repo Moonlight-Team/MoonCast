@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=16 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/mooncast_physics.tres" id="2_rii83"]
@@ -10,6 +10,10 @@
 [ext_resource type="SpriteFrames" uid="uid://bpvjns0vskghr" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.tres" id="7_o1ngo"]
 [ext_resource type="Script" path="res://Demo/abilities/switch_skin.gd" id="8_ax5uv"]
 [ext_resource type="AudioStream" uid="uid://bdf5oypybgqj1" path="res://Demo/assets/Audio/SFX/switch_outfits.ogg" id="9_apyss"]
+[ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="11_jsmc0"]
+[ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/Audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
+[ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/Audio/Sonic 2/spindash_release.wav" id="13_gukst"]
+[ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="14_oykrb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
@@ -50,14 +54,23 @@ sfx_hurt = ExtResource("6_jrcbu")
 shape = SubResource("RectangleShape2D_x7kbe")
 
 [node name="Cam" type="Camera2D" parent="."]
+position = Vector2(-8, 0)
 
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
 position = Vector2(2, 0)
-sprite_frames = ExtResource("7_hprdh")
+sprite_frames = ExtResource("7_o1ngo")
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")
 button_switch = &"switch_chars"
 skin_sfx = ExtResource("9_apyss")
 skins = Array[SpriteFrames]([ExtResource("7_hprdh"), ExtResource("7_o1ngo")])
+
+[node name="Spindash" type="Node" parent="."]
+script = ExtResource("11_jsmc0")
+sfx_charge = ExtResource("12_40a6c")
+sfx_release = ExtResource("13_gukst")
+
+[node name="SuperPeelOut" type="Node" parent="."]
+script = ExtResource("14_oykrb")
