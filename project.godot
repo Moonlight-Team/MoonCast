@@ -26,7 +26,7 @@ config/icon="res://icon.svg"
 window/size/viewport_width=420
 window/size/viewport_height=240
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep_width"
+window/stretch/aspect="expand"
 window/stretch/scale_mode="integer"
 display_server/driver.linuxbsd="x11"
 

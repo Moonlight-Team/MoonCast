@@ -1,0 +1,81 @@
+[gd_scene load_steps=5 format=3 uid="uid://dgbkwdyscsahk"]
+
+[ext_resource type="Script" path="res://Demo/scenes/gui/pause_menu.gd" id="1_opu2g"]
+[ext_resource type="Theme" uid="uid://cc45jjppij0nc" path="res://Demo/assets/pause_menu_buttons.tres" id="2_j3bkn"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_l8xli"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_24jk4"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+script = ExtResource("1_opu2g")
+pause_button = &"start"
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_l8xli")
+
+[node name="Margins" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="TabContainer" type="TabContainer" parent="Panel/Margins"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_24jk4")
+current_tab = 0
+tabs_visible = false
+
+[node name="UI" type="HBoxContainer" parent="Panel/Margins/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="guesswhereweare" type="Label" parent="Panel/Margins/TabContainer/UI"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Pause Menu"
+
+[node name="menu" type="VBoxContainer" parent="Panel/Margins/TabContainer/UI"]
+layout_mode = 2
+size_flags_horizontal = 10
+theme = ExtResource("2_j3bkn")
+
+[node name="resume" type="Button" parent="Panel/Margins/TabContainer/UI/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Resume"
+
+[node name="restart" type="Button" parent="Panel/Margins/TabContainer/UI/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Restart"
+
+[node name="options" type="Button" parent="Panel/Margins/TabContainer/UI/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Options"
+
+[node name="quit" type="Button" parent="Panel/Margins/TabContainer/UI/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Quit to Title"
+
+[connection signal="pressed" from="Panel/Margins/TabContainer/UI/menu/resume" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="Panel/Margins/TabContainer/UI/menu/restart" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="Panel/Margins/TabContainer/UI/menu/options" to="." method="_on_options_pressed"]
+[connection signal="pressed" from="Panel/Margins/TabContainer/UI/menu/quit" to="." method="_on_quit_pressed"]

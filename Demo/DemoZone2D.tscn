@@ -1,5 +1,6 @@
-[gd_scene load_steps=14 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=15 format=4 uid="uid://bytxq44ex4la0"]
 
+[ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_kw6bl"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="4_a77i0"]
 [ext_resource type="Script" path="res://Demo/assets/levels/parallax_layers/water_generation.gd" id="5_gxdjc"]
 [ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="6_8lwrg"]
@@ -20,6 +21,9 @@ size = Vector2(458.912, 20)
 
 [node name="SakuraHill1" type="Node2D"]
 texture_filter = 1
+
+[node name="PauseMenu" parent="." instance=ExtResource("1_kw6bl")]
+visible = false
 
 [node name="StageMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("7_4uoqi")
