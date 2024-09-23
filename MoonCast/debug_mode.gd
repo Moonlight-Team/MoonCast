@@ -19,7 +19,6 @@ func _setup_2D(player:MoonCastPlayer2D) -> void:
 	glob_player = player
 	player.process_mode = Node.PROCESS_MODE_PAUSABLE
 	self.process_mode = Node.PROCESS_MODE_ALWAYS
-	print("Debug setup complete")
 
 func _process(_delta: float) -> void:
 	if pause_next_frame:
@@ -33,8 +32,8 @@ func _process(_delta: float) -> void:
 		pause_next_frame = true
 	
 	if Input.is_action_just_pressed(button_enable_debug):
-		print("Debug enabled: ", in_debug_mode)
 		in_debug_mode = not in_debug_mode
+		get_tree().paused = in_debug_mode
 
 func _physics_process(_delta: float) -> void:
 	if in_debug_mode:

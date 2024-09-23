@@ -789,7 +789,7 @@ func process_ground() -> void:
 				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
 		
 		#Check if the player wants to (and can) jump
-		if Input.is_action_pressed(physics.button_jump) and can_jump:
+		if Input.is_action_just_pressed(physics.button_jump) and can_jump:
 			jumping = true
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
@@ -917,8 +917,9 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 	if jumping:
 		jumping = false
 		#TODO: Set can_jump to false and add a jump cooldown 
+		can_jump = false
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
-		jump_timer.start(0.2)
+		jump_timer.start(0.15)
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
@@ -1199,7 +1200,7 @@ func _physics_process(delta: float) -> void:
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
 	if not state_abilities.is_empty():
-		for customized_states in state_abilities:
+		for customized_states:StringName in state_abilities:
 			var state_node:MoonCastAbility = get_node(NodePath(customized_states))
 			#If the state returns false, that means it has requested a skip in the
 			#regular state processing

@@ -45,6 +45,7 @@ anim_jump = &"jump_ball"
 anim_free_fall = &"standing_wind"
 anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
 anim_vary_speed_playback = Array[StringName]([&"walk", &"run"])
+sfx_bus = &"SFX"
 sfx_jump = ExtResource("3_o6288")
 sfx_roll = ExtResource("4_rcomx")
 sfx_skid = ExtResource("5_fe7cx")
