@@ -1,18 +1,29 @@
-[gd_scene load_steps=6 format=3 uid="uid://dgbkwdyscsahk"]
+[gd_scene load_steps=11 format=3 uid="uid://dgbkwdyscsahk"]
 
 [ext_resource type="Script" path="res://Demo/scenes/gui/pause_menu.gd" id="1_opu2g"]
+[ext_resource type="FontFile" uid="uid://dj7adu3cf3vuc" path="res://Demo/assets/gui/Rodin-Bold.ttf" id="2_67olp"]
 [ext_resource type="Theme" uid="uid://cc45jjppij0nc" path="res://Demo/assets/pause_menu_buttons.tres" id="2_j3bkn"]
+[ext_resource type="AudioStream" uid="uid://brx6w374bgcc2" path="res://Demo/assets/Audio/gui/Dreamcast Sounds/SELECT.wav" id="2_xqvs1"]
+[ext_resource type="AudioStream" uid="uid://d2eghet26sb7y" path="res://Demo/assets/Audio/gui/Dreamcast Sounds/CONFIRMATION.wav" id="3_py2i4"]
+[ext_resource type="AudioStream" uid="uid://buepbxvb6tmfo" path="res://Demo/assets/Audio/gui/Dreamcast Sounds/BACK.wav" id="4_mmtby"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_l8xli"]
+[sub_resource type="Theme" id="Theme_mu0qj"]
+Button/fonts/font = ExtResource("2_67olp")
+Label/fonts/font = ExtResource("2_67olp")
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_24jk4"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_t8ujy"]
 font_size = 40
 
+[sub_resource type="AudioStreamPolyphonic" id="AudioStreamPolyphonic_im4cm"]
+
 [node name="PauseMenu" type="CanvasLayer"]
 script = ExtResource("1_opu2g")
 pause_button = &"start"
+sfx_button_move = ExtResource("2_xqvs1")
+sfx_button_select = ExtResource("3_py2i4")
+sfx_button_exit = ExtResource("4_mmtby")
 
 [node name="Panel" type="Panel" parent="."]
 anchors_preset = 15
@@ -20,7 +31,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxEmpty_l8xli")
+theme = SubResource("Theme_mu0qj")
 
 [node name="Margins" type="MarginContainer" parent="Panel"]
 layout_mode = 1
@@ -88,7 +99,14 @@ size_flags_vertical = 3
 action_mode = 0
 text = "Quit"
 
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = SubResource("AudioStreamPolyphonic_im4cm")
+
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/resume" to="." method="button_movement"]
 [connection signal="pressed" from="Panel/Margins/Sections/Main/menu/resume" to="." method="_on_resume_pressed"]
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/restart" to="." method="button_movement"]
 [connection signal="pressed" from="Panel/Margins/Sections/Main/menu/restart" to="." method="_on_restart_pressed"]
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/options" to="." method="button_movement"]
 [connection signal="pressed" from="Panel/Margins/Sections/Main/menu/options" to="." method="_on_options_pressed"]
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/quit" to="." method="button_movement"]
 [connection signal="pressed" from="Panel/Margins/Sections/Main/menu/quit" to="." method="_on_quit_pressed"]
