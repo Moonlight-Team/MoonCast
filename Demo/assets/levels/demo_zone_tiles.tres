@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" load_steps=16 format=3 uid="uid://ci6t4vh0uto8w"]
+[gd_resource type="TileSet" load_steps=17 format=3 uid="uid://ci6t4vh0uto8w"]
 
 [ext_resource type="Texture2D" uid="uid://ctcypjw6fae3f" path="res://Demo/assets/levels/TileSheet.png" id="1_xh4o4"]
 [ext_resource type="Texture2D" uid="uid://o56rnvb7qm67" path="res://Demo/assets/levels/SHZ_tileset_ex.png" id="3_o16ac"]
@@ -11,6 +11,9 @@ tile_data = PackedInt32Array(131072, 524288, 1, 196608, 983040, 0, 262144, 98304
 
 [sub_resource type="TileMapPattern" id="TileMapPattern_lnom2"]
 tile_data = PackedInt32Array(131072, 327682, 1879048192, 1, 327682, 805306368, 65537, 393218, 268435456, 131073, 262146, 268435456)
+
+[sub_resource type="TileMapPattern" id="TileMapPattern_xmbvx"]
+tile_data = PackedInt32Array(65536, 589826, 5, 131072, 589826, 6, 196608, 589826, 7, 1, 655362, 4, 65537, 655362, 5, 131073, 655362, 6, 196609, 655362, 7, 262145, 655362, 8, 2, 720898, 4, 65538, 720898, 5, 131074, 720898, 6, 196610, 720898, 7, 262146, 720898, 8, 327682, 720898, 9, 3, 786434, 4, 65539, 786434, 5, 131075, 786434, 6, 196611, 786434, 7, 262147, 786434, 8, 327683, 786434, 9, 4, 851970, 4, 65540, 851970, 5, 131076, 851970, 6, 196612, 851970, 7, 262148, 851970, 8, 65541, 917506, 5, 131077, 917506, 6, 196613, 917506, 7, 262149, 917506, 8, 131078, 983042, 6, 196614, 983042, 7)
 
 [sub_resource type="TileMapPattern" id="TileMapPattern_cnh4r"]
 tile_data = PackedInt32Array(458752, 983040, 0, 393217, 0, 1, 458753, 983040, 0, 393218, 65536, 1, 458754, 983040, 0, 393219, 589824, 1, 458755, 983040, 0, 393220, 851968, 1, 458756, 983040, 0, 327685, 917504, 1, 393221, 983040, 0, 458757, 983040, 0, 65542, 0, 1073741825, 131078, 65536, 1073741825, 196614, 589824, 1073741825, 262150, 851968, 1073741825, 327686, 983040, 0, 393222, 983040, 0, 458758, 983040, 0, 7, 983040, 0, 65543, 983040, 0, 131079, 983040, 0, 196615, 983040, 0, 262151, 983040, 0, 327687, 983040, 0, 393223, 983040, 0, 458759, 983040, 0)
@@ -382,6 +385,37 @@ texture = ExtResource("3_o16ac")
 9:3/2/terrains_peering_bit/top_left_corner = 0
 9:3/2/terrains_peering_bit/top_side = 0
 9:3/2/terrains_peering_bit/top_right_corner = 0
+9:5/0 = 0
+10:4/0 = 0
+10:5/0 = 0
+11:4/0 = 0
+12:4/0 = 0
+13:4/0 = 0
+11:5/0 = 0
+12:5/0 = 0
+13:5/0 = 0
+14:5/0 = 0
+9:6/0 = 0
+10:6/0 = 0
+11:6/0 = 0
+12:6/0 = 0
+13:6/0 = 0
+14:6/0 = 0
+15:6/0 = 0
+9:7/0 = 0
+10:7/0 = 0
+11:7/0 = 0
+12:7/0 = 0
+13:7/0 = 0
+14:7/0 = 0
+15:7/0 = 0
+10:8/0 = 0
+11:8/0 = 0
+12:8/0 = 0
+13:8/0 = 0
+14:8/0 = 0
+11:9/0 = 0
+12:9/0 = 0
 
 [resource]
 physics_layer_0/collision_layer = 1
@@ -413,3 +447,4 @@ pattern_7 = SubResource("TileMapPattern_5tfe8")
 pattern_8 = SubResource("TileMapPattern_ngs77")
 pattern_9 = SubResource("TileMapPattern_mg4cy")
 pattern_10 = SubResource("TileMapPattern_lnom2")
+pattern_11 = SubResource("TileMapPattern_xmbvx")

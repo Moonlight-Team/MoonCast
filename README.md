@@ -35,6 +35,7 @@ Most other information pertaining to specifics of the engine, such as the use of
 * Sonic Moonlight: The fangame that served as a catalyst for this engine to come into fruition.
 * [KlashiCola](https://github.com/Klashicola): Original assets, programming
 * [c08oprkiua](https://github.com/c08oprkiua): Main programmer
+* CyberFog: Editor icons
 ### Demo:
 * [KlashiCola](https://github.com/Klashicola): 3D modeling
 * SS: Sonic sprites, level art
