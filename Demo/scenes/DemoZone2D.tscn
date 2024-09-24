@@ -31,7 +31,6 @@ volume_db = -12.813
 autoplay = true
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("3_p8adb")]
-anim_stand = &"standing_wind"
 anim_free_fall = &""
 
 [node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse"]
