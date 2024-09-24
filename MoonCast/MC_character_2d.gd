@@ -919,7 +919,7 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		#TODO: Set can_jump to false and add a jump cooldown 
 		can_jump = false
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
-		jump_timer.start(0.15)
+		jump_timer.start(physics.jump_spam_timer)
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:

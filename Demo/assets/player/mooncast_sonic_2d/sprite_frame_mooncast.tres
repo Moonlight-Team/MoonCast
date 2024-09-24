@@ -1,6 +1,6 @@
-[gd_resource type="SpriteFrames" load_steps=34 format=3 uid="uid://bpvjns0vskghr"]
+[gd_resource type="SpriteFrames" load_steps=37 format=3 uid="uid://bpvjns0vskghr"]
 
-[ext_resource type="Texture2D" uid="uid://bwf6ggqpwd0lv" path="res://Demo/assets/player/mooncast_sonic_2d/standing.tres" id="1_whmt7"]
+[ext_resource type="Texture2D" uid="uid://bwf6ggqpwd0lv" path="res://Demo/assets/player/mooncast_sonic_2d/idle/standing.tres" id="1_fva0o"]
 [ext_resource type="Texture2D" uid="uid://bk0puclncbkem" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_1.tres" id="2_pf7h5"]
 [ext_resource type="Texture2D" uid="uid://vr5a1sm4q68r" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_2.tres" id="3_kqr5w"]
 [ext_resource type="Texture2D" uid="uid://dlctn5iyx0tt4" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_3.tres" id="4_41r3e"]
@@ -16,8 +16,11 @@
 [ext_resource type="Texture2D" uid="uid://be8fospyspj5n" path="res://Demo/assets/player/mooncast_sonic_2d/run/run_2.tres" id="14_c8gj4"]
 [ext_resource type="Texture2D" uid="uid://c83f2kvtsdwom" path="res://Demo/assets/player/mooncast_sonic_2d/run/run_3.tres" id="15_2sfgg"]
 [ext_resource type="Texture2D" uid="uid://c5f8i8ebgaif5" path="res://Demo/assets/player/mooncast_sonic_2d/run/run_4.tres" id="16_0wxku"]
+[ext_resource type="Texture2D" uid="uid://cngpmoth3urs6" path="res://Demo/assets/player/mooncast_sonic_2d/skid/skid_1.tres" id="17_m51rg"]
 [ext_resource type="Texture2D" uid="uid://dphw23al4414v" path="res://Demo/assets/player/mooncast_sonic_2d/spindash/spindash_1.tres" id="17_vvs0x"]
+[ext_resource type="Texture2D" uid="uid://c202lnmyf1bve" path="res://Demo/assets/player/mooncast_sonic_2d/skid/skid_2.tres" id="18_jbuoq"]
 [ext_resource type="Texture2D" uid="uid://ckit4h3sxgbuj" path="res://Demo/assets/player/mooncast_sonic_2d/spindash/spindash_2.tres" id="18_yqgbh"]
+[ext_resource type="Texture2D" uid="uid://crorps2rttock" path="res://Demo/assets/player/mooncast_sonic_2d/skid/skid_3.tres" id="19_2s75d"]
 [ext_resource type="Texture2D" uid="uid://dcc3cca3c0lgs" path="res://Demo/assets/player/mooncast_sonic_2d/spindash/spindash_3.tres" id="19_x28rb"]
 [ext_resource type="Texture2D" uid="uid://bj553r56c7pnp" path="res://Demo/assets/player/mooncast_sonic_2d/spindash/spindash_4.tres" id="20_p2vi0"]
 [ext_resource type="Texture2D" uid="uid://by04d7bbbfn52" path="res://Demo/assets/player/mooncast_sonic_2d/spindash/spindash_5.tres" id="21_68l8h"]
@@ -38,7 +41,7 @@
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_whmt7")
+"texture": ExtResource("1_fva0o")
 }],
 "loop": true,
 "name": &"default",
@@ -103,6 +106,20 @@ animations = [{
 "loop": true,
 "name": &"run",
 "speed": 15.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("17_m51rg")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_jbuoq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_2s75d")
+}],
+"loop": true,
+"name": &"skid",
+"speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,

@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]
 [ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="4_4hv4l"]
 [ext_resource type="Script" path="res://Demo/abilities/dynamic_camera.gd" id="6_qevq0"]
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="7_2q626"]
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)

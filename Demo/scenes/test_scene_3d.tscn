@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://cevdou1y8kc5k"]
 
-[ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d.tscn" id="1_73jpb"]
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="2_wb0pl"]
+[ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d/player_3d.tscn" id="1_73jpb"]
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/gui/dream.png" id="2_wb0pl"]
 
 [sub_resource type="Sky" id="Sky_0hq6w"]
 

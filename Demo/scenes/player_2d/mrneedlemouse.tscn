@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Demo/abilities/classic_physics.tres" id="2_b6fdh"]
-[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/Audio/Sonic 2/jump.wav" id="3_i5f3k"]
-[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/Audio/SFX/roll.wav" id="4_usa1h"]
-[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/Audio/Sonic 2/skid.wav" id="5_xm06n"]
-[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/Audio/Sonic 2/ouch.wav" id="6_msc3m"]
+[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_i5f3k"]
+[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_usa1h"]
+[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_xm06n"]
+[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_msc3m"]
 [ext_resource type="Texture2D" uid="uid://q5thi20c5oyo" path="res://Demo/assets/player/Sonic.png" id="7_bgmmo"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]

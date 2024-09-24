@@ -1,6 +1,6 @@
 [gd_resource type="SpriteFrames" load_steps=34 format=3 uid="uid://dm67r4cqj7ud5"]
 
-[ext_resource type="Texture2D" uid="uid://cahd6rs4vo850" path="res://Demo/assets/player/mooncast_sonic_2d/ice_standing.tres" id="1_dn6q5"]
+[ext_resource type="Texture2D" uid="uid://cahd6rs4vo850" path="res://Demo/assets/player/mooncast_sonic_2d/idle/ice_standing.tres" id="1_dn6q5"]
 [ext_resource type="Texture2D" uid="uid://bk0puclncbkem" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_1.tres" id="2_lwbaf"]
 [ext_resource type="Texture2D" uid="uid://vr5a1sm4q68r" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_2.tres" id="3_1osck"]
 [ext_resource type="Texture2D" uid="uid://dlctn5iyx0tt4" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_3.tres" id="4_5227o"]

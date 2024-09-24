@@ -2,17 +2,17 @@
 
 [ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/mooncast_physics.tres" id="2_rii83"]
-[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/Audio/Sonic 2/jump.wav" id="3_o6288"]
-[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/Audio/SFX/roll.wav" id="4_rcomx"]
-[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/Audio/Sonic 2/skid.wav" id="5_fe7cx"]
-[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/Audio/Sonic 2/ouch.wav" id="6_jrcbu"]
+[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_o6288"]
+[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_rcomx"]
+[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_fe7cx"]
+[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
 [ext_resource type="SpriteFrames" uid="uid://dm67r4cqj7ud5" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_ice.tres" id="7_hprdh"]
 [ext_resource type="SpriteFrames" uid="uid://bpvjns0vskghr" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.tres" id="7_o1ngo"]
 [ext_resource type="Script" path="res://Demo/abilities/switch_skin.gd" id="8_ax5uv"]
-[ext_resource type="AudioStream" uid="uid://bdf5oypybgqj1" path="res://Demo/assets/Audio/SFX/switch_outfits.ogg" id="9_apyss"]
+[ext_resource type="AudioStream" uid="uid://bdf5oypybgqj1" path="res://Demo/assets/audio/SFX/switch_outfits.ogg" id="9_apyss"]
 [ext_resource type="Script" path="res://Demo/abilities/spindash.gd" id="11_jsmc0"]
-[ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/Audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
-[ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/Audio/Sonic 2/spindash_release.wav" id="13_gukst"]
+[ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
+[ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="14_oykrb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
@@ -61,6 +61,8 @@ position = Vector2(-8, 0)
 texture_filter = 1
 position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
+animation = &"skid"
+frame_progress = 0.277423
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")

@@ -1,8 +1,8 @@
 [gd_scene load_steps=8 format=3 uid="uid://b63ecpfrllawj"]
 
-[ext_resource type="Script" path="res://Demo/main_menu.gd" id="1_6uy4f"]
+[ext_resource type="Script" path="res://Demo/scenes/gui/main_menu.gd" id="1_6uy4f"]
 [ext_resource type="Texture2D" uid="uid://7xu3jkqjgesn" path="res://MoonCast/assets/wingedver.svg" id="1_t4b0w"]
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/dream.png" id="2_bqp32"]
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/gui/dream.png" id="2_bqp32"]
 [ext_resource type="VideoStream" path="res://video/Splash.ogv" id="2_vkh7x"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7ee8e"]
@@ -111,8 +111,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_6uy4f")
-main_2D = "res://Demo/DemoZone2D.tscn"
-test_2D = "res://Demo/test_scene_2d.tscn"
+main_2D = "res://Demo/scenes/DemoZone2D.tscn"
+test_2D = "res://Demo/scenes/test_scene_2d.tscn"
 
 [node name="intro_video" type="VideoStreamPlayer" parent="."]
 z_index = 2

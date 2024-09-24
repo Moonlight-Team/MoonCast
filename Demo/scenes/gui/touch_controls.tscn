@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://81vx8lyybmm7"]
 
-[ext_resource type="Texture2D" uid="uid://27dg4xe6wqu" path="res://Demo/assets/VirtualDPad.png" id="1_lonqo"]
+[ext_resource type="Texture2D" uid="uid://ddgdl5td13ano" path="res://Demo/assets/gui/VirtualDPad.png" id="1_lonqo"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_w43bf"]
 atlas = ExtResource("1_lonqo")
@@ -16,14 +16,16 @@ region = Rect2(22, 334, 155, 155)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_iv81a"]
 size = Vector2(250, 250)
 
-[node name="TouchControls" type="Node2D"]
+[node name="CanvasLayer" type="CanvasLayer"]
 
-[node name="D-pad" type="Sprite2D" parent="."]
+[node name="TouchControls" type="Node2D" parent="."]
+
+[node name="D-pad" type="Sprite2D" parent="TouchControls"]
 position = Vector2(67, 168)
 scale = Vector2(0.35, 0.35)
 texture = SubResource("AtlasTexture_w43bf")
 
-[node name="Right" type="TouchScreenButton" parent="D-pad"]
+[node name="Right" type="TouchScreenButton" parent="TouchControls/D-pad"]
 position = Vector2(105.714, 5.48363e-05)
 rotation = 1.5708
 shape = SubResource("RectangleShape2D_f7rgl")
@@ -31,21 +33,21 @@ passby_press = true
 action = "right"
 visibility_mode = 1
 
-[node name="Up" type="TouchScreenButton" parent="D-pad"]
+[node name="Up" type="TouchScreenButton" parent="TouchControls/D-pad"]
 position = Vector2(2.74181e-05, -105.714)
 shape = SubResource("RectangleShape2D_f7rgl")
 passby_press = true
 action = "up"
 visibility_mode = 1
 
-[node name="Down" type="TouchScreenButton" parent="D-pad"]
+[node name="Down" type="TouchScreenButton" parent="TouchControls/D-pad"]
 position = Vector2(2.74181e-05, 105.714)
 shape = SubResource("RectangleShape2D_f7rgl")
 passby_press = true
 action = "down"
 visibility_mode = 1
 
-[node name="Left" type="TouchScreenButton" parent="D-pad"]
+[node name="Left" type="TouchScreenButton" parent="TouchControls/D-pad"]
 position = Vector2(-105.714, 6.10352e-05)
 rotation = 1.5708
 shape = SubResource("RectangleShape2D_f7rgl")
@@ -53,7 +55,7 @@ passby_press = true
 action = "left"
 visibility_mode = 1
 
-[node name="Jump" type="TouchScreenButton" parent="."]
+[node name="Jump" type="TouchScreenButton" parent="TouchControls"]
 position = Vector2(323, 142)
 scale = Vector2(0.36, 0.36)
 texture_normal = SubResource("AtlasTexture_kp8jh")

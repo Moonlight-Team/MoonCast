@@ -49,7 +49,17 @@ class_name MoonCastPhysicsTable
 @export var jump_short_limit:float = 4.0
 ##The cooldown time, in seconds, between the player landing, and when they will 
 ##next be able to jump
-@export var jump_spam_timer:float = 0.4
+@export var jump_spam_timer:float = 0.15
+
+@export_group("Control", "control_")
+##If true, the player must release all directional input before being able to roll while moving.
+@export var control_move_roll_lock:bool = true
+##If this is set to false, the character cannot roll. 
+@export var control_rolling_enabled:bool = true
+##If this is set to true, the character can roll in midair after initially falling.
+@export var control_can_midair_roll:bool = false
+##If true, the player is vulnerable when jumping.
+@export var control_is_jump_vulnerable:bool = false
 
 @export_group("Inputs", "button_")
 ##The action name for pressing up
