@@ -4,6 +4,16 @@ extends Resource
 ##agnostic, values, for both 3D and 2D physics in MoonCast.
 class_name MoonCastPhysicsTable
 
+@export_group("Control Options", "control_")
+##If true, the player must release all directional input before being able to roll while moving.
+@export var control_move_roll_lock:bool = true
+##If this is set to false, the character cannot roll. 
+@export var control_rolling_enabled:bool = true
+##If this is set to true, the character can roll in midair after initially falling.
+@export var control_can_midair_roll:bool = false
+##If true, the player is vulnerable when jumping.
+@export var control_is_jump_vulnerable:bool = false
+
 @export_group("Ground", "ground_")
 ##The minimum speed the player needs to be moving to not be considered to be at a standstill.
 @export var ground_min_speed:float = 0.2
@@ -50,27 +60,3 @@ class_name MoonCastPhysicsTable
 ##The cooldown time, in seconds, between the player landing, and when they will 
 ##next be able to jump
 @export var jump_spam_timer:float = 0.15
-
-@export_group("Control", "control_")
-##If true, the player must release all directional input before being able to roll while moving.
-@export var control_move_roll_lock:bool = true
-##If this is set to false, the character cannot roll. 
-@export var control_rolling_enabled:bool = true
-##If this is set to true, the character can roll in midair after initially falling.
-@export var control_can_midair_roll:bool = false
-##If true, the player is vulnerable when jumping.
-@export var control_is_jump_vulnerable:bool = false
-
-@export_group("Inputs", "button_")
-##The action name for pressing up
-@export var button_up:StringName = &"ui_up"
-##The action name for pressing down
-@export var button_down:StringName = &"ui_down"
-##The action name for pressing left
-@export var button_left:StringName = &"ui_left"
-##The action name for pressing right
-@export var button_right:StringName = &"ui_right"
-##The action name for jumping
-@export var button_jump:StringName = &"ui_accept"
-##The action name for rolling
-@export var button_roll:StringName = &"ui_select"

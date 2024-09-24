@@ -4,6 +4,10 @@
 
 [resource]
 script = ExtResource("1_ainab")
+control_move_roll_lock = false
+control_rolling_enabled = true
+control_can_midair_roll = true
+control_is_jump_vulnerable = false
 ground_min_speed = 0.2
 ground_stick_speed = 0.4
 ground_top_speed = 6.0
@@ -14,7 +18,7 @@ ground_slope_factor = 0.125
 air_top_speed = 6.0
 air_acceleration = 0.1
 air_gravity_strength = 0.21875
-rolling_min_speed = 0.2
+rolling_min_speed = 0.4
 rolling_active_stop = 0.5
 rolling_flat_factor = 0.05
 rolling_uphill_factor = 0.078125
@@ -22,13 +26,3 @@ rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
 jump_short_limit = 4.0
 jump_spam_timer = 0.15
-control_move_roll_lock = true
-control_rolling_enabled = true
-control_can_midair_roll = false
-control_is_jump_vulnerable = false
-button_up = &"up"
-button_down = &"down"
-button_left = &"left"
-button_right = &"right"
-button_jump = &"jump"
-button_roll = &"down"

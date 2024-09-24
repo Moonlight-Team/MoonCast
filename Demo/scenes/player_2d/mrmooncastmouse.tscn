@@ -1,8 +1,9 @@
-[gd_scene load_steps=16 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=18 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/mooncast_physics.tres" id="2_rii83"]
 [ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_o6288"]
+[ext_resource type="Script" path="res://MoonCast/MC_control_set.gd" id="3_xc58p"]
 [ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_rcomx"]
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_fe7cx"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
@@ -15,6 +16,20 @@
 [ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="14_oykrb"]
 
+[sub_resource type="Resource" id="Resource_04jp1"]
+script = ExtResource("3_xc58p")
+direction_up = &"up"
+direction_down = &"down"
+direction_left = &"left"
+direction_right = &"right"
+action_jump = &"jump"
+action_roll = &"down"
+action_custom = Dictionary[StringName, StringName]({})
+camera_up = &""
+camera_down = &""
+camera_left = &""
+camera_right = &""
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
 
@@ -25,7 +40,7 @@ floor_block_on_wall = false
 floor_snap_length = 15.0
 script = ExtResource("1_x65an")
 physics = ExtResource("2_rii83")
-can_midair_roll = true
+controls = SubResource("Resource_04jp1")
 rotation_static_collision = true
 camera_look_up_offset = -50
 camera_look_down_offset = 50
@@ -61,7 +76,6 @@ position = Vector2(-8, 0)
 texture_filter = 1
 position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
-frame_progress = 0.778474
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")

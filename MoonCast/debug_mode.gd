@@ -37,4 +37,4 @@ func _process(_delta: float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if in_debug_mode:
-		glob_player.position += Input.get_vector(glob_player.physics.button_left, glob_player.physics.button_right, glob_player.physics.button_up, glob_player.physics.button_down) * 2.0
+		glob_player.position += Input.get_vector(glob_player.controls.direction_left, glob_player.controls.direction_right, glob_player.controls.direction_up, glob_player.controls.direction_down) * 2.0

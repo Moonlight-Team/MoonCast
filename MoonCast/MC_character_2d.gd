@@ -3,60 +3,50 @@ extends CharacterBody2D
 ##A 2D player in MoonCast
 class_name MoonCastPlayer2D
 #region Consts & Enums
-##State flags for various things the player can do or is doing
+##State flags for various things the player can do or is doing.
 enum StateFlags {
 	##Flag for the player moving. This means they are traveling
 	##above the minimum ground speed.
 	MOVING = 1,
 	##Flag for the player being on the ground. If this is not set,
 	##the player is in the air.
-	GROUNDED = 2, 
+	is_grounded = 2, 
 	##Flag for the player rolling.
 	ROLLING = 4,
 	##Flag for the player jumping.
 	JUMPING = 8,
 	##Flag for the player balancing on a ledge.
 	BALANCING = 16,
-	##Flag for the player crouching
+	##Flag for the player crouching.
 	CROUCHING = 32,
 	##Flag for rotation lock. This prevents the player from changing directions.
 	CHANGE_DIRECTION = 64,
-	##Flag for pushing an object
+	##Flag for pushing an object.
 	PUSHING = 128
-}
-
-enum WallMode {
-	##The player is on the ground
-	GROUND = 0,
-	##The player is on a wall that is to the right of the player, in a 2D sense
-	WALL_RIGHT = 90,
-	##The player is on a wall that is to the left of the player, in a 2D sense
-	WALL_LEFT = 270,
-	##The player is on the ceiling
-	CEILING = 180
 }
 
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
 
+##The sfx name for [member sfx_jump].
 const sfx_jump_name:StringName = &"jump"
+##The sfx name for [member sfx_roll].
 const sfx_roll_name:StringName = &"roll"
+##The sfx name for [sfx_skid].
 const sfx_skid_name:StringName = &"skid"
+##The sfx name for [sfx_hurt].
 const sfx_hurt_name:StringName = &"hurt"
 #endregion
 #region Exported Vars
 @export_group("Physics & Controls")
-##The physics table for this player
+##The physics table for this player.
 @export var physics:MoonCastPhysicsTable = MoonCastPhysicsTable.new()
+##The control settings for this player.
+@export var controls:MoonCastControlSettings = MoonCastControlSettings.new()
 ##The default direction of gravity.
 @export var default_up_direction:Vector2 = Vector2.UP
-##If this is set to false, the character cannot roll. 
-@export var rolling_enabled:bool = true
-##If this is set to true, the character can roll in midair after initially falling.
-@export var can_midair_roll:bool = false
-##If true, the player is vulnerable when jumping.
-@export var is_jump_vulnerable:bool = false
+
 @export_group("Rotation", "rotation_")
 ##If true, classic rotation snapping will be used, for a more "Genesis" feel.
 ##Otherwise, rotation operates smoothly, like in Sonic Mania. This is purely aesthetic.
@@ -73,13 +63,13 @@ const sfx_hurt_name:StringName = &"hurt"
 @export var rotation_static_collision:bool = false
 
 @export_group("Camera", "camera_")
-
+##How many pixels above the player the camera will move to when the player holds up at a standstill.
 @export var camera_look_up_offset:int
-
+##How many pixels below the player the camera will move to when the player holds down at a standstill.
 @export var camera_look_down_offset:int
-
+##The offset from the player's position (center on screen) the camera will sit at.
 @export var camera_neutral_offset:Vector2
-
+##How fast the camera will move around.
 @export var camera_move_speed:float
 
 @export_group("Animations", "anim_")
@@ -94,14 +84,14 @@ const sfx_hurt_name:StringName = &"hurt"
 ##The animation for rolling.
 @export var anim_roll:StringName
 ##The animations for when the player is walking or running on the ground.
-##The key is the minimum percentage of ground_velocity in relation
-##to physics.ground_top_speed that the player must be going for this animation
+##[br]The key is the minimum percentage of [member ground_velocity] in relation
+##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
 @export var anim_run:Dictionary[float, StringName]
 ##The animations for when the player is skidding to a halt.
-##The key is the minimum percentage of ground_velocity in relation
-##to physics.ground_top_speed that the player must be going for this animation
+##The key is the minimum percentage of [member ground_velocity] in relation
+##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
 @export var anim_skid:Dictionary[float, StringName]
@@ -111,16 +101,17 @@ const sfx_hurt_name:StringName = &"hurt"
 @export var anim_jump:StringName
 ##The animation to play when falling without being hurt or in a ball.
 @export var anim_free_fall:StringName
-##The animation to play when the player dies.
+##The default animation to play when the player dies.
 @export var anim_death:StringName
 ##A set of custom animations to play when the player dies for various abnormal reasons.
 ##The key is their reason of death, and the value is the animation that will play.
 @export var anim_death_custom:Dictionary[StringName, StringName]
 
 ##A list of animations that will not be rotated to align to the ground.
-##In the air, the player's animation rotation will always be 0.
+##In the air, the player's animation rotation will always be 0, regardless of being in this
+##list or not.
 @export var anim_rotation_blacklist:Array[StringName]
-##A list of animations that will vary in playback speed based on ground_velocity.
+##A list of animations that will vary in playback speed based on the value of [member ground_velocity].
 @export var anim_vary_speed_playback:Array[StringName]
 
 @export_group("Sound Effects", "sfx_")
@@ -141,7 +132,7 @@ const sfx_hurt_name:StringName = &"hurt"
 #generally speaking, these should *not* be directly accessed unless absolutely needed, 
 #but they still have documentation because documentation is good
 ##The AnimationPlayer for all the animations triggered by the player.
-##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
+##If you have an [class AnimatedSprite2D], you do not need a child [class Sprite2D] nor [class AnimationPlayer].
 var animations:AnimationPlayer = null
 ##The Sprite2D node for this player.
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
@@ -150,14 +141,14 @@ var sprite1:Sprite2D = null
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
 var animated_sprite1:AnimatedSprite2D = null
 
-##A central node around which all the raycasts rotate
+##A central node around which all the raycasts rotate.
 var raycast_wheel:Node2D = Node2D.new()
 ##The left ground raycast, used for determining balancing and rotation.
 ##[br]
-##Its position is based on the farthest down and left CollisionShape2D shape that 
+##Its position is based on the farthest down and left [CollisionShape2D] shape that 
 ##is a child of the player (ie. it is not going to account for collision shapes that
 ##aren't going to touch the ground due to other lower shapes), and it points to that 
-##shape's lowest reaching y value, plus 1 to clip slightly into the ground.
+##shape's lowest reaching y value, plus [floor_snap_length] into the ground.
 var ray_ground_left:RayCast2D = RayCast2D.new()
 ##The right ground raycast, used for determining balancing and rotation.
 ##Its position and target_position are determined the same way ray_ground_left.position
@@ -204,8 +195,6 @@ var state_abilities:Array[StringName]
 var current_anim:StringName
 
 var anim_run_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
-##A sorted (largest to smallest) array of the keys in anim_skid
-
 var anim_skid_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
 #endregion
 #region physics vars
@@ -236,7 +225,7 @@ var animation_set:bool = false
 var ground_velocity:float = 0:
 	set(new_gvel):
 		ground_velocity = new_gvel
-		moving = absf(ground_velocity) > physics.ground_min_speed
+		is_moving = absf(ground_velocity) > physics.ground_min_speed
 ##The character's current velocity in space.
 var space_velocity:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
@@ -265,6 +254,24 @@ var can_move:bool = true:
 			state_can_be &= ~StateFlags.MOVING
 	get:
 		return state_can_be & StateFlags.MOVING
+##If true, the player can move. 
+var can_roll:bool = true:
+	set(on):
+		if physics.control_rolling_enabled:
+			if physics.control_move_roll_lock:
+				if on and is_zero_approx(input_direction):
+					state_can_be |= StateFlags.ROLLING
+				else:
+					state_can_be &= ~StateFlags.ROLLING
+			else:
+				if on:
+					state_can_be |= StateFlags.ROLLING
+				else:
+					state_can_be &= ~StateFlags.ROLLING
+		else:
+			state_can_be &= ~StateFlags.ROLLING
+	get:
+		return state_can_be & StateFlags.ROLLING
 ##If true, the player can crouch.
 var can_crouch:bool = true:
 	set(on):
@@ -297,22 +304,22 @@ var can_push:bool = true:
 ##to be the ground.
 ##A signal is emitted whenever this value is changed;
 ##contact_air when false, and contact_ground when true
-var grounded:bool:
+var is_grounded:bool:
 	set(now_grounded):
 		if now_grounded:
 			#check before the value is actually set
-			if not grounded:
+			if not is_grounded:
 				contact_ground.emit(self)
-			state_is |= StateFlags.GROUNDED
+			state_is |= StateFlags.is_grounded
 		else:
 			#check before the value is actually set
-			if grounded:
+			if is_grounded:
 				contact_air.emit(self)
-			state_is &= ~StateFlags.GROUNDED
+			state_is &= ~StateFlags.is_grounded
 	get:
-		return state_is & StateFlags.GROUNDED
+		return state_is & StateFlags.is_grounded
 ##If true, the player is moving.
-var moving:bool:
+var is_moving:bool:
 	set(on):
 		if on:
 			state_is |= StateFlags.MOVING
@@ -322,7 +329,7 @@ var moving:bool:
 	get:
 		return state_is & StateFlags.MOVING
 ##If true, the player is in a jump.
-var jumping:bool:
+var is_jumping:bool:
 	set(on):
 		if on:
 			state_is |= StateFlags.JUMPING
@@ -333,19 +340,16 @@ var jumping:bool:
 ##If true, the player is rolling.
 var rolling:bool:
 	set(on):
-		if rolling_enabled:
-			if on:
-				can_change_direction = false
-				state_is |= StateFlags.ROLLING
-			else:
-				can_change_direction = true
-				state_is &= ~StateFlags.ROLLING
+		if on:
+			can_change_direction = false
+			state_is |= StateFlags.ROLLING
 		else:
-			rolling = false
+			can_change_direction = true
+			state_is &= ~StateFlags.ROLLING
 	get:
 		return state_is & StateFlags.ROLLING
 ##If true, the player is crouching.
-var crouching:bool:
+var is_crouching:bool:
 	set(on):
 		if on:
 			state_is |= StateFlags.CROUCHING
@@ -386,7 +390,7 @@ var is_pushing:bool = false:
 ##rotation so that physics remain consistent despite certain rotation
 ##settings.
 var sprite_rotation:float
-##The rotation of the collision. when grounded, this is the ground angle.
+##The rotation of the collision. when is_grounded, this is the ground angle.
 ##In the air, this should be 0.
 var collision_rotation:float:
 	get:
@@ -630,16 +634,16 @@ func check_possible_state(check:int) -> int:
 
 ##Returns if the player is going left
 func is_going_left() -> bool:
-	if grounded:
-		return moving and ground_velocity < 0
+	if is_grounded:
+		return is_moving and ground_velocity < 0
 	else:
 		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x < 0
 
 ##Returns if the player is going right
 func is_going_right() -> bool:
-	if grounded:
-		return moving and ground_velocity > 0
+	if is_grounded:
+		return is_moving and ground_velocity > 0
 	else:
 		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x > 0
@@ -743,10 +747,10 @@ func lose_floor_grip() -> bool:
 func process_air() -> void:
 	# Allow the player to change the duration of the jump by releasing the jump
 	# button early
-	if not Input.is_action_pressed(physics.button_jump) and jumping:
+	if not Input.is_action_pressed(controls.action_jump) and is_jumping:
 		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
 	
-	if can_midair_roll and not rolling and Input.is_action_pressed(physics.button_roll):
+	if not rolling and roll_checks() and Input.is_action_pressed(controls.action_roll):
 		rolling = true
 		play_animation(anim_roll)
 		play_sound_effect(sfx_roll_name)
@@ -776,6 +780,7 @@ func process_ground() -> void:
 		ground_velocity += physics.air_gravity_strength * sine_ground_angle
 		
 		#apply slope factors
+		
 		if is_zero_approx(collision_rotation): #If we're on level ground
 			#If we're also moving at all
 			if not is_zero_approx(ground_velocity):
@@ -789,8 +794,8 @@ func process_ground() -> void:
 				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
 		
 		#Check if the player wants to (and can) jump
-		if Input.is_action_just_pressed(physics.button_jump) and can_jump:
-			jumping = true
+		if Input.is_action_just_pressed(controls.action_jump) and can_jump:
+			is_jumping = true
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
 		if not is_equal_approx(facing_direction, signf(ground_velocity)):
@@ -799,7 +804,7 @@ func process_ground() -> void:
 			sprites_flip()
 	else:
 		#slope factors for being on foot
-		if moving:
+		if is_moving:
 			#apply gravity if we're on a slope and not standing still
 			ground_velocity += physics.air_gravity_strength * sine_ground_angle
 			
@@ -809,15 +814,15 @@ func process_ground() -> void:
 				ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		
 		#Check if the player wants to (and can) jump
-		if Input.is_action_pressed(physics.button_jump) and can_jump:
-			jumping = true
+		if Input.is_action_pressed(controls.action_jump) and can_jump:
+			is_jumping = true
 		
 		#input processing
 		if is_zero_approx(input_direction): #handle input-less deceleration
 			if not is_zero_approx(ground_velocity):
 				ground_velocity = move_toward(ground_velocity, 0.0, physics.ground_deceleration)
 			#snap ground velocity to the minimum ground speed
-			if not moving:
+			if not is_moving:
 				ground_velocity = 0
 		#If input matches the direction we're going
 		elif is_equal_approx(facing_direction, signf(ground_velocity)):
@@ -843,32 +848,32 @@ func process_ground() -> void:
 						play_sound_effect(sfx_skid_name)
 					break
 	
-	#fall off if the player is on a steep slope or wall and is not
-	#going fast enough to stick to walls
-	#if lose_floor_grip():
-		#grounded = false
-	
 	#Do rolling or crouching checks
-	if absf(ground_velocity) > physics.rolling_min_speed: #can roll
+	
+	#if the player is moving fast enough and can be rolling according to external settings
+	if absf(ground_velocity) > physics.rolling_min_speed:
 		#We're moving too fast to crouch
-		crouching = false
+		is_crouching = false
+		
 		#Roll if the player tries to, and is not already rolling
-		if rolling_enabled and Input.is_action_pressed(physics.button_roll) and not rolling:
+		if roll_checks() and not rolling and Input.is_action_pressed(controls.action_roll):
 			rolling = true
 			play_sound_effect(sfx_roll_name)
+		
 	else: #standing or crouching
 		#Disable rolling
+		can_roll = false
 		rolling = false
 		#don't allow crouching when balacing
 		if not is_balancing:
 			#Only crouch while the input is still held down
-			if Input.is_action_pressed(physics.button_down):
-				if not crouching: #only crouch if we weren't before
-					crouching = true
+			if Input.is_action_pressed(controls.direction_down):
+				if not is_crouching: #only crouch if we weren't before
+					is_crouching = true
 			else: #down is not held, uncrouch
 				#Re-enable controlling and return the player to their standing state
-				if crouching:
-					crouching = false
+				if is_crouching:
+					is_crouching = false
 				can_move = true
 	
 	#jumping logic
@@ -877,23 +882,80 @@ func process_ground() -> void:
 	#we need to calculate this before we leave the ground, becuase collision_rotation
 	#is reset when we do
 	var rotation_vector:Vector2 = Vector2.from_angle(collision_rotation)
-	if jumping:
+	
+	if is_jumping:
 		jump.emit(self)
 		#Add velocity to the jump
 		space_velocity.x += physics.jump_velocity * rotation_vector.y
 		space_velocity.y -= physics.jump_velocity * rotation_vector.x
 		
-		grounded = false
+		is_grounded = false
 		
 		play_animation(anim_jump, true)
 		play_sound_effect(sfx_jump_name)
-		#rolling is used as a shorthand for if the player is 
-		#"attacking". Therefore, it should not be set if the player
-		#should be vulnerable in midair
-		rolling = not is_jump_vulnerable
+		
+		#the following does not apply if we are already rolling
+		if not rolling:
+			#rolling is used as a shorthand for if the player is 
+			#"attacking". Therefore, it should not be set if the player
+			#should be vulnerable in midair
+			rolling = not  physics.control_is_jump_vulnerable
 	else:
 		#apply the ground velocity to the "actual" velocity
 		space_velocity = ground_velocity * rotation_vector
+
+
+func roll_checks() -> bool:
+	#check this first, cause if we aren't allowed to roll externally, we don't
+	#need the more nitty gritty checks
+	if  physics.control_rolling_enabled:
+		#If the player is is_grounded, they can roll, since the previous check for
+		#it being enabled is true. If they're in the air though, they can only 
+		#roll if they can midair roll, and they aren't already rolling
+		can_roll = true if is_grounded else (physics.control_can_midair_roll and not rolling)
+		
+		#we only care about this check if the player isn't already rolling, so that
+		#external influences on rolling, such as tubes, are not affected
+		if not rolling and physics.control_move_roll_lock:
+			#only allow rolling if we aren't going left or right actively
+			can_roll = can_roll and is_zero_approx(input_direction)
+	
+	else:
+		can_roll = false
+	return can_roll
+
+##Apply checks used for setting rolling and crouching.
+func apply_roll_crouch_checks() -> void:
+	#if the player is moving fast enough and can be rolling according to external settings
+	if absf(ground_velocity) > physics.rolling_min_speed and  physics.control_rolling_enabled:
+		#We're moving too fast to crouch
+		is_crouching = false
+		
+		#we only care about this check if the player isn't already rolling, so that
+		#external influences on rolling, such as tubes, are not affected
+		if not rolling and physics.control_move_roll_lock:
+			#only allow rolling if we aren't going left or right actively
+			can_roll = can_roll and is_zero_approx(input_direction)
+		
+		#Roll if the player tries to, and is not already rolling
+		if can_roll and not rolling and Input.is_action_pressed(controls.action_roll):
+			rolling = true
+			play_sound_effect(sfx_roll_name)
+	else: #standing or crouching
+		#Disable rolling
+		can_roll = false
+		rolling = false
+		#don't allow crouching when balacing
+		if not is_balancing:
+			#Only crouch while the input is still held down
+			if Input.is_action_pressed(controls.direction_down):
+				if not is_crouching: #only crouch if we weren't before
+					is_crouching = true
+			else: #down is not held, uncrouch
+				#Re-enable controlling and return the player to their standing state
+				if is_crouching:
+					is_crouching = false
+				can_move = true
 
 ##A function that is called when the player enters the air from
 ##previously being on the ground
@@ -903,19 +965,20 @@ func enter_air(_player:MoonCastPlayer2D = null) -> void:
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
 func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
-	if Input.is_action_pressed(physics.button_roll):
-		rolling = true
-		play_sound_effect(sfx_roll_name)
-	else:
-		rolling = false
 	#Transfer space_velocity to ground_velocity
 	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) 
 	#applied_ground_speed *= (space_velocity + Vector2(0, 0.5))
 	applied_ground_speed *= (space_velocity)
 	ground_velocity = applied_ground_speed.x + applied_ground_speed.y
 	
-	if jumping:
-		jumping = false
+	if roll_checks() and Input.is_action_pressed(controls.action_roll):
+		rolling = true
+		play_sound_effect(sfx_roll_name)
+	else:
+		rolling = false
+	
+	if is_jumping:
+		is_jumping = false
 		#TODO: Set can_jump to false and add a jump cooldown 
 		can_jump = false
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
@@ -924,9 +987,8 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
-	#TODO: implemnt "pushing" state variable, mess with it here
-	#var stop_on_wall:bool = (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0)
 	if (ray_wall_left.is_colliding() and space_velocity.x < 0) or (ray_wall_right.is_colliding() and space_velocity.x > 0):
+	#if is_on_wall() and space_velocity.x:
 		#null horizontal velocity if the player is on a wall
 		space_velocity.x = 0
 		ground_velocity = 0
@@ -938,13 +1000,12 @@ func update_collision_rotation() -> void:
 		is_pushing = false
 	
 	var point_count:int = int(ray_ground_left.is_colliding()) + int(ray_ground_central.is_colliding()) + int(ray_ground_right.is_colliding())
-	#IMPORTANT: Do NOT set grounded until angle is calculated, so that landing on the ground 
+	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
 	var in_ground_range:bool = bool(point_count)
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
 	var will_actually_land:bool = get_slide_collision_count() > 0 and not is_on_wall_only()
-	
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing what the ground angle is/will be, to apply landing speed
@@ -960,7 +1021,7 @@ func update_collision_rotation() -> void:
 					is_balancing = true
 					#Don't update rotation if we were already grounded. This allows for 
 					#slope launch physics while retaining slope landing physics.
-					if not grounded:
+					if not is_grounded:
 						if ray_ground_left.is_colliding():
 							collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 							facing_direction = 1.0 #slope is to the left, face right
@@ -982,7 +1043,7 @@ func update_collision_rotation() -> void:
 				3:
 					is_balancing = false
 					
-					if not grounded:
+					if not is_grounded:
 						var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 						var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 						
@@ -998,7 +1059,7 @@ func update_collision_rotation() -> void:
 						if absf(angle_difference(collision_rotation, gnd_angle)) < default_max_angle:
 							collision_rotation = gnd_angle
 		
-		if moving:
+		if is_moving:
 			up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 		else:
 			up_direction = default_up_direction
@@ -1012,39 +1073,40 @@ func update_collision_rotation() -> void:
 		
 		var floor_is_too_steep:bool = fmod(absf(global_collision_rotation), PI) >= fmod(floor_max_angle, PI)
 		
-		if grounded:
-			grounded = in_ground_range
+		if is_grounded:
+			is_grounded = in_ground_range
 			#this will "un-land" the player if they're on a steep slope
 			
 			if fast_enough:
 				floor_max_angle = PI
-				grounded = in_ground_range
+				is_grounded = in_ground_range
 			else: #not fast enough to simply stick to the ground
 				
-				grounded = in_ground_range and not floor_is_too_steep
+				#TODO: Control lock timer
+				is_grounded = in_ground_range and not floor_is_too_steep
 		else:
-			grounded = in_ground_range and will_actually_land
+			is_grounded = in_ground_range and will_actually_land
 		
 		#set sprite rotations
-		if moving and in_ground_range:
+		if is_moving and in_ground_range:
 			if anim_rotation_blacklist.has(current_anim):
 				sprite_rotation = 0
-			
-			var rotation_snap:float = snappedf(collision_rotation, rotation_snap_interval)
-			if rotation_classic_snap:
-				sprite_rotation = snappedf(collision_rotation, rotation_snap_interval)
 			else:
-				var actual_rotation_speed:float = rotation_adjustment_speed
-				if limitAngle(sprite_rotation) > (rotation_snap + rotation_snap):
-					actual_rotation_speed *= 2
-				sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
+				var rotation_snap:float = snappedf(collision_rotation, rotation_snap_interval)
+				if rotation_classic_snap:
+					sprite_rotation = snappedf(collision_rotation, rotation_snap_interval)
+				else:
+					var actual_rotation_speed:float = rotation_adjustment_speed
+					if limitAngle(sprite_rotation) > (rotation_snap + rotation_snap):
+						actual_rotation_speed *= 2
+					sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
 		
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
 		#it's important to set this here so that slope launching is calculated 
 		#before reseting collision rotation
-		grounded = false
+		is_grounded = false
 		
 		#ground sensors point whichever direction the player is traveling vertically
 		#this is so that landing on the ceiling is made possible
@@ -1056,8 +1118,9 @@ func update_collision_rotation() -> void:
 		#Ceiling landing check
 		if space_velocity.y < 0 and in_ground_range:
 			#The player can land on "steep ceilings", but not flat ones
+			printt(collision_rotation, fmod(collision_rotation, PI), floor_max_angle)
 			if fmod(collision_rotation, PI) <= floor_max_angle:
-				grounded = true
+				is_grounded = true
 			else:
 				#they bonked their head on the ceiling, funne
 				space_velocity.y = 0
@@ -1084,17 +1147,17 @@ func update_animations() -> void:
 	#rolling is rolling, whether the player is in the air or on the ground
 	if rolling:
 		play_animation(anim_roll, true)
-	elif not grounded:
-		if jumping:
+	elif not is_grounded:
+		if is_jumping:
 			play_animation(anim_jump)
 		else:
 			play_animation(anim_free_fall, true)
-	elif grounded:
+	elif is_grounded:
 		if is_pushing:
 			play_animation(anim_push)
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		elif moving:
+		elif is_moving:
 			for speeds:float in anim_run_lib.sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
@@ -1116,13 +1179,13 @@ func update_animations() -> void:
 				else:
 					play_animation(anim_stand)
 			else:
-				if Input.is_action_pressed(physics.button_up):
+				if Input.is_action_pressed(controls.direction_up):
 					#TODO: Add some API stuff to make this usable for stuff like camera repositioning
 					if current_anim != anim_look_up:
 						play_animation(anim_look_up)
 					
 					move_camera_vertical(camera_look_up_offset)
-				elif crouching:
+				elif is_crouching:
 					play_animation(anim_crouch)
 					move_camera_vertical(camera_look_down_offset)
 				else:
@@ -1195,7 +1258,7 @@ func _physics_process(delta: float) -> void:
 	
 	input_direction = 0.0
 	if can_move:
-		input_direction = Input.get_axis(physics.button_left, physics.button_right)
+		input_direction = Input.get_axis(controls.direction_left, controls.direction_right)
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -1209,16 +1272,16 @@ func _physics_process(delta: float) -> void:
 				break
 	
 	if not skip_builtin_states:
-		if grounded:
+		if is_grounded:
 			process_ground()
 			#If we're still on the ground, call the state function
-			if grounded:
+			if is_grounded:
 				state_ground.emit(self)
 		else:
 			process_air()
 			state_air.emit(self)
 			#If we're still in the air, call the state function
-			if not grounded:
+			if not is_grounded:
 				state_air.emit(self)
 	#Make the callback for physics post-calculation
 	#But this is *before* actually moving, or else it'd be nearly

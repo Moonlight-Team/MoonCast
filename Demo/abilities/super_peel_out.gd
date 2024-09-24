@@ -23,14 +23,14 @@ func _setup_2D(player:MoonCastPlayer2D) -> void:
 	player
 
 func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
-	if player.grounded:
-		if Input.is_action_pressed(player.physics.button_up):
-			player.jumping = false
+	if player.is_grounded:
+		if Input.is_action_pressed(player.controls.direction_up):
+			player.is_jumping = false
 			player.can_jump = false
 			if charging:
 				#already charging, increase ground velocity
 				player.ground_velocity = move_toward(player.ground_velocity, launch_speed_direction, charge_per_tick)
-			elif not player.moving and Input.is_action_pressed(player.physics.button_jump):
+			elif not player.is_moving and Input.is_action_pressed(player.controls.action_jump):
 				#initiate a charge
 				charge_timer.timeout.connect(func(): charge_complete = true, CONNECT_ONE_SHOT)
 				charge_timer.start(charge_time)
@@ -55,5 +55,5 @@ func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
 			charge_complete = false
 
 func _post_physics_2D(player:MoonCastPlayer2D) -> void:
-	if charging and player.grounded:
+	if charging and player.is_grounded:
 		player.space_velocity = Vector2.ZERO
