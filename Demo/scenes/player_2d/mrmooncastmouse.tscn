@@ -61,8 +61,7 @@ position = Vector2(-8, 0)
 texture_filter = 1
 position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
-animation = &"skid"
-frame_progress = 0.277423
+frame_progress = 0.778474
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")
