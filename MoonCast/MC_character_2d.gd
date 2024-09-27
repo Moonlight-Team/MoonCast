@@ -22,7 +22,9 @@ enum StateFlags {
 	##Flag for rotation lock. This prevents the player from changing directions.
 	CHANGE_DIRECTION = 64,
 	##Flag for pushing an object.
-	PUSHING = 128
+	PUSHING = 128,
+	##Flag for slipping on the ground.
+	SLIPPING = 256
 }
 
 const perf_ground_velocity:StringName = &"Ground Velocity"
@@ -471,6 +473,7 @@ func setup_children() -> void:
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)
 	sfx_player.stream = sfx_player_res
+	sfx_player.bus = sfx_bus
 	sfx_player.play()
 	sfx_playback_ref = sfx_player.get_stream_playback()
 	

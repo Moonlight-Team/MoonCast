@@ -30,8 +30,8 @@ visible = false
 
 [node name="StageMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("2_fhvme")
-volume_db = -12.813
 autoplay = true
+bus = &"Music"
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("3_p8adb")]
 position = Vector2(-4, 27)

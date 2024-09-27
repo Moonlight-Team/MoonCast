@@ -21,6 +21,7 @@ func _input(event: InputEvent) -> void:
 
 func _on_2d_pressed() -> void:
 	if Input.is_action_pressed(&"y") and not test_2D.is_empty():
+		get_tree().debug_collisions_hint = true
 		get_tree().change_scene_to_file(test_2D)
 	elif not main_2D.is_empty():
 		get_tree().change_scene_to_file(main_2D)
