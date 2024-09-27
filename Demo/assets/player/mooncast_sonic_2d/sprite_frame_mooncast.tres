@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=41 format=3 uid="uid://bpvjns0vskghr"]
+[gd_resource type="SpriteFrames" load_steps=45 format=3 uid="uid://bpvjns0vskghr"]
 
 [ext_resource type="Texture2D" uid="uid://bwf6ggqpwd0lv" path="res://Demo/assets/player/mooncast_sonic_2d/idle/standing.tres" id="1_fva0o"]
 [ext_resource type="Texture2D" uid="uid://dub3fvu26ds64" path="res://Demo/assets/player/mooncast_sonic_2d/idle/wait_1.tres" id="2_7teui"]
@@ -10,8 +10,12 @@
 [ext_resource type="Texture2D" uid="uid://d27b3rmlrurof" path="res://Demo/assets/player/mooncast_sonic_2d/idle/wait_4.tres" id="5_5peef"]
 [ext_resource type="Texture2D" uid="uid://bimqvfeyq44w8" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_4.tres" id="5_6lcmq"]
 [ext_resource type="Texture2D" uid="uid://bkmd8oemtx6dw" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_5.tres" id="6_opeuu"]
+[ext_resource type="Texture2D" uid="uid://btm7k6uebscno" path="res://Demo/assets/player/mooncast_sonic_2d/falling/falling_1.tres" id="6_uqltr"]
+[ext_resource type="Texture2D" uid="uid://bit2e60tmg8mu" path="res://Demo/assets/player/mooncast_sonic_2d/falling/falling_2.tres" id="7_7j5wl"]
 [ext_resource type="Texture2D" uid="uid://doh5l3e4qond" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_6.tres" id="7_45lpi"]
+[ext_resource type="Texture2D" uid="uid://dkew7jiw0gs5q" path="res://Demo/assets/player/mooncast_sonic_2d/falling/falling_3.tres" id="8_2s0d0"]
 [ext_resource type="Texture2D" uid="uid://bdodd57s1uun8" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_7.tres" id="8_bl86i"]
+[ext_resource type="Texture2D" uid="uid://c3qc6c5ke6ky8" path="res://Demo/assets/player/mooncast_sonic_2d/falling/falling_4.tres" id="9_3fvbm"]
 [ext_resource type="Texture2D" uid="uid://6ha78bus20n7" path="res://Demo/assets/player/mooncast_sonic_2d/spin/spin_8.tres" id="9_ki6ko"]
 [ext_resource type="Texture2D" uid="uid://c8yxi3wcaa027" path="res://Demo/assets/player/mooncast_sonic_2d/look_up/look_up_1.tres" id="10_gqnca"]
 [ext_resource type="Texture2D" uid="uid://c2rquxnhsrykc" path="res://Demo/assets/player/mooncast_sonic_2d/look_up/look_up_2.tres" id="11_tlkto"]
@@ -82,6 +86,23 @@ animations = [{
 }],
 "loop": true,
 "name": &"default",
+"speed": 20.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_uqltr")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_7j5wl")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_2s0d0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_3fvbm")
+}],
+"loop": true,
+"name": &"falling",
 "speed": 20.0
 }, {
 "frames": [{

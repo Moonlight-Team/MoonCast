@@ -47,6 +47,8 @@ camera_look_down_offset = 50
 camera_move_speed = 5.0
 anim_stand = &"default"
 anim_look_up = &"look_up"
+anim_balance = &"default"
+anim_crouch = &"default"
 anim_roll = &"jump_ball"
 anim_run = Dictionary[float, StringName]({
 0.01: &"walk",
@@ -57,7 +59,7 @@ anim_skid = Dictionary[float, StringName]({
 })
 anim_push = &"standing"
 anim_jump = &"jump_ball"
-anim_free_fall = &"standing_wind"
+anim_free_fall = &"falling"
 anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
 anim_vary_speed_playback = Array[StringName]([&"walk", &"run"])
 sfx_bus = &"SFX"
@@ -69,13 +71,11 @@ sfx_hurt = ExtResource("6_jrcbu")
 [node name="RectangleShape" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_x7kbe")
 
-[node name="Cam" type="Camera2D" parent="."]
-position = Vector2(-8, 0)
-
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
 position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
+frame_progress = 0.386326
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")
@@ -85,6 +85,7 @@ skins = Array[SpriteFrames]([ExtResource("7_hprdh"), ExtResource("7_o1ngo")])
 
 [node name="Spindash" type="Node" parent="."]
 script = ExtResource("11_jsmc0")
+spindash_inital = 1.25
 sfx_charge = ExtResource("12_40a6c")
 sfx_release = ExtResource("13_gukst")
 

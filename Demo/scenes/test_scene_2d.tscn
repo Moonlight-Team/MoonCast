@@ -257,6 +257,8 @@ shape = SubResource("CircleShape2D_320si")
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("2_43wwi")]
 
+[node name="Camera2D" type="Camera2D" parent="mrmooncastmouse"]
+
 [node name="DebugMode" type="Node" parent="mrmooncastmouse"]
 script = ExtResource("3_pfiy8")
 button_enable_debug = &"x"
