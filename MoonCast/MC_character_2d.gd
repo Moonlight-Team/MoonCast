@@ -821,7 +821,8 @@ func roll_checks() -> bool:
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	collision_rotation = 0
 	up_direction = default_up_direction
-	is_slipping = false
+	if is_jumping:
+		is_slipping = false
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -976,7 +977,7 @@ func update_collision_rotation() -> void:
 				if floor_is_too_steep and not is_slipping:
 					is_slipping = true
 					ground_velocity = 0.0
-					#is_grounded = false
+					is_grounded = false
 					#set up the connection for the control lock timer.
 					#It actually starts when the player lands.
 					control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
