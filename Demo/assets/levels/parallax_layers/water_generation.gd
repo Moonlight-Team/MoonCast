@@ -2,6 +2,7 @@ extends Node2D
 
 @export var start_atlas:AtlasTexture
 @export var autoscroll_speed:float = 10.0
+@export var vertical_scroll_scale:float = 0.04
 
 @onready var beginning_ref:Parallax2D = $"Near Mountains"
 
@@ -34,7 +35,7 @@ func generate_water() -> void:
 		
 		current_parallax.add_child(new_sprite)
 		
-		current_parallax.scroll_scale = Vector2(current_speed, 0)
+		current_parallax.scroll_scale = Vector2(current_speed, vertical_scroll_scale)
 		const half_ref_text_x:int = 25
 		current_parallax.scroll_offset = Vector2(0, y_offset + current_row + half_ref_text_x)
 		current_parallax.repeat_size = Vector2(atlas_width, 0)

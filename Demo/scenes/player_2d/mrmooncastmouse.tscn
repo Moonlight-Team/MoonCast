@@ -57,7 +57,7 @@ anim_run = Dictionary[float, StringName]({
 anim_skid = Dictionary[float, StringName]({
 0.4: &"skid"
 })
-anim_push = &"standing"
+anim_push = &"default"
 anim_jump = &"jump_ball"
 anim_free_fall = &"falling"
 anim_rotation_blacklist = Array[StringName]([&"jump_ball"])

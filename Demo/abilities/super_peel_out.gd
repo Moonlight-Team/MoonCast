@@ -40,7 +40,7 @@ func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
 				charge_per_tick = launch_speed / (ProjectSettings.get(&"physics/common/physics_ticks_per_second") * charge_time)
 				
 				charging = true
-				player.can_move = false
+				player.can_be_moving = false
 		
 		elif charging:
 			#cancel if we were charging but the charge did not complete
@@ -48,7 +48,7 @@ func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
 				player.ground_velocity = 0.0
 			
 			#re-enable moving
-			player.can_move = true
+			player.can_be_moving = true
 			player.can_jump = true
 			charge_complete = false
 			charging = false

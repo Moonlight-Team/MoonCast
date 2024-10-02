@@ -234,25 +234,26 @@ debug_color = Color(1, 0, 0, 1)
 modulate = Color(0.369107, 0.369107, 0.369107, 1)
 show_behind_parent = true
 repeat_size = Vector2(636, 356)
-repeat_times = 4
+repeat_times = 6
 
 [node name="Run" type="Sprite2D" parent="Parallax2D"]
 show_behind_parent = true
 texture = ExtResource("7_2q626")
 
-[node name="StaticBody2D" type="StaticBody2D" parent="."]
+[node name="BouncyPlatform" type="AnimatableBody2D" parent="."]
 position = Vector2(679, 379)
 physics_material_override = SubResource("PhysicsMaterial_vayao")
+constant_linear_velocity = Vector2(0, -100)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncyPlatform"]
 shape = SubResource("RectangleShape2D_d8jta")
 debug_color = Color(0.823529, 0.721569, 0, 1)
 
-[node name="RigidBody2D" type="RigidBody2D" parent="."]
+[node name="BouncyBall" type="RigidBody2D" parent="."]
 position = Vector2(673, 282)
 physics_material_override = SubResource("PhysicsMaterial_aalw2")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncyBall"]
 shape = SubResource("CircleShape2D_320si")
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("2_43wwi")]

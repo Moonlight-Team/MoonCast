@@ -58,7 +58,7 @@ func _air_state_2D(player:MoonCastPlayer2D) -> void:
 func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
 	charge_timer.stop()
 	if charged:
-		player.rolling = true
+		player.is_rolling = true
 		if is_equal_approx(signf(player.facing_direction), signf(player.ground_velocity)):
 			player.ground_velocity = player.facing_direction * forward_speed
 		else:

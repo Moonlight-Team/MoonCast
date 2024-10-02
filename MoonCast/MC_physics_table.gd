@@ -14,11 +14,17 @@ class_name MoonCastPhysicsTable
 ##If true, the player is vulnerable when jumping.
 @export var control_is_jump_vulnerable:bool = false
 
+
 @export_group("Ground", "ground_")
 ##The minimum speed the player needs to be moving to not be considered to be at a standstill.
 @export var ground_min_speed:float = 0.2
 ##The minimum speed the player needs to be moving at to not slip down slopes.
 @export var ground_stick_speed:float = 0.2
+##The angle the floor has to be at for the player to begin to slip on it.
+@export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_slip_angle:float = deg_to_rad(35.0)
+##The amount of time, in seconds, the player will be slipping when on a slope that is steeper than
+##[member ground_slip_angle].
+@export var ground_slip_time:float = 0.5
 ##The top speed the player can reach by input on level ground alone.
 @export var ground_top_speed:float = 6.0
 ##How much the player will accelerate on the ground each frame.
