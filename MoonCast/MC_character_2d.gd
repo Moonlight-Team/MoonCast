@@ -946,6 +946,9 @@ func update_collision_rotation() -> void:
 						var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 						
 						collision_rotation = (right_angle + left_angle) / 2.0
+						
+						#TODO: Ceiling checks
+						
 		
 		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
 		
@@ -1015,16 +1018,6 @@ func update_collision_rotation() -> void:
 			collision_rotation = 0
 		else:
 			collision_rotation = PI #180 degrees, pointing up
-		
-		#Ceiling landing check
-		if space_velocity.y < 0 and in_ground_range:
-			#The player can land on "steep ceilings", but not flat ones
-			printt(collision_rotation, fmod(collision_rotation, PI), floor_max_angle)
-			if fmod(collision_rotation, PI) <= floor_max_angle:
-				is_grounded = true
-			else:
-				#they bonked their head on the ceiling, funne
-				space_velocity.y = 0
 		
 		up_direction = default_up_direction
 		
@@ -1194,9 +1187,19 @@ func _physics_process(delta: float) -> void:
 	velocity = space_velocity * physics_tick_adjust
 	move_and_slide()
 	
-	#TODO: Make this work so the player can have proper interaction with physics,
-	if get_slide_collision_count() == 0:
-		space_velocity = velocity / physics_tick_adjust
+	#Make checks to see if the player should recieve physics engine feedback
+	#We can't have it feed back every time, since otherwise, it breaks slope landing physics.
+	if get_slide_collision_count() > 0:
+		var feedback_physics:bool = false
+		for bodies:int in get_slide_collision_count():
+			var body:KinematicCollision2D = get_slide_collision(bodies)
+			if body.get_collider().get_class() == "RigidBody2D":
+				if not body.get_collider_velocity().is_zero_approx():
+					feedback_physics = true
+				elif not body.get_remainder().is_zero_approx():
+					feedback_physics = true
+		if feedback_physics:
+			space_velocity = velocity / physics_tick_adjust
 	
 	update_animations()
 	

@@ -13,7 +13,10 @@ var previous:float = -1.0
 ##The key of the next (faster) anim
 var next:float = -1.0
 
-func load_dictionary(dict:Dictionary) -> void:
+##The range between this animation and the next animation
+var speed_diff:float 
+
+func load_dictionary(dict:Dictionary[float, StringName]) -> void:
 	#check the anim_run keys for valid values
 	for keys:float in dict.keys():
 		var snapped_key:float = snappedf(keys, 0.001)
@@ -38,6 +41,8 @@ func pos_update(pos:int) -> void:
 		next = sorted_keys[pos + 1]
 	else:
 		next = current + 1.0
+	
+	speed_diff = next - current
 
 func update_anim_key(speed:float) -> float:
 	if sorted_keys.size() == 1:
