@@ -272,10 +272,13 @@ var is_pushing:bool = false:
 	set(now_pushing):
 		if now_pushing and can_be_pushing:
 			if not is_pushing:
-				print("Pushing a wall")
 				contact_wall.emit()
 		is_pushing = now_pushing
-var is_jumping:bool = false
+var is_jumping:bool = false:
+	set(now_jumping):
+		if now_jumping and not can_be_changing_direction:
+			can_be_changing_direction = true
+		is_jumping = now_jumping
 ##If the player is slipping down a slope. When set, this value will silently
 ##set [member slipping_direction] based on the current [member collision_rotation].
 var is_slipping:bool = false:
@@ -715,9 +718,6 @@ func process_ground() -> void:
 		if is_zero_approx(input_direction): #handle input-less deceleration
 			if not is_zero_approx(ground_velocity):
 				ground_velocity = move_toward(ground_velocity, 0.0, physics.ground_deceleration)
-			#snap ground_velocity to the minimum ground speed
-			if not is_moving:
-				ground_velocity = 0.0
 		#If input matches the direction we're going
 		elif is_equal_approx(facing_direction, signf(ground_velocity)):
 			#If we *can* add speed (can't add above the top speed, and can't go the direction we're slipping)
@@ -821,8 +821,6 @@ func roll_checks() -> bool:
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
 	collision_rotation = 0
 	up_direction = default_up_direction
-	if is_jumping:
-		is_slipping = false
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -1051,6 +1049,7 @@ func update_animations() -> void:
 		play_animation(anim_roll, true)
 	elif not is_grounded: #air animations
 		if is_jumping:
+			sprites_flip()
 			play_animation(anim_jump)
 		else:
 			play_animation(anim_free_fall, true)
@@ -1059,7 +1058,7 @@ func update_animations() -> void:
 			play_animation(anim_push)
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		elif is_moving:
+		elif not is_zero_approx(ground_velocity):
 			for speeds:float in anim_run_lib.sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
@@ -1096,9 +1095,10 @@ func update_animations() -> void:
 
 ##Flip the sprites for the player based on the direction the player is facing.
 func sprites_flip() -> void:
+	var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
 	#ensure the character is facing the right direction
-	#run checks, because having the nodes for this is not assumable
-	if not is_zero_approx(ground_velocity):
+	#run checks on the nodes, because having the nodes for this is not assumable
+	if not is_zero_approx(moving_dir):
 		if facing_direction < 0: #left
 			if is_instance_valid(sprite1):
 				sprite1.flip_h = true
