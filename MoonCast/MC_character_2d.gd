@@ -237,6 +237,7 @@ var can_be_changing_direction:bool = true
 var can_be_crouching:bool = true
 var can_be_pushing:bool = true
 var can_be_moving:bool = true
+var can_be_attacking:bool = true
 
 #endregion
 #region state_is
@@ -263,6 +264,7 @@ var is_rolling:bool:
 	set(on):
 		is_rolling = on
 		can_be_changing_direction = not is_rolling
+		is_attacking = on
 ##If true, the player is crouching.
 var is_crouching:bool
 ##If true, the player is balacing on the edge of a platform.
@@ -289,6 +291,8 @@ var is_slipping:bool = false:
 			slipping_direction = -signf(sin(collision_rotation))
 		else:
 			slipping_direction = 0.0
+##If the player is in an attacking state.
+var is_attacking:bool = false
 #endregion
 
 ##The rotation of the sprites. This is seperate than the physics
@@ -547,6 +551,17 @@ func is_going_right() -> bool:
 	else:
 		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x > 0
+
+##Set which collision layers will be considered ground for the player.
+##For changing which layers the player will be detectable in, set [member collision_layer].
+func change_collision_mask(new_mask_bitfield:int) -> void:
+	collision_mask = new_mask_bitfield
+	ray_ground_right.collision_mask = new_mask_bitfield
+	ray_ground_central.collision_mask = new_mask_bitfield
+	ray_ground_left.collision_mask = new_mask_bitfield
+	ray_wall_left.collision_mask = new_mask_bitfield
+	ray_wall_right.collision_mask = new_mask_bitfield
+
 #endregion
 #region Physics calculations
 ##Returns the given angle as an angle (in radians) between -PI and PI
@@ -636,16 +651,16 @@ func process_air() -> void:
 		play_animation(anim_roll)
 		play_sound_effect(sfx_roll_name)
 	
-
 	#Allow the player to change the duration of the jump by releasing the jump
 	#button early
 	if not Input.is_action_pressed(controls.action_jump) and is_jumping:
 		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
 	
-	#Only let the player move in midair if they aren't already at max speed
-	if absf(space_velocity.x) < physics.ground_top_speed and not is_zero_approx(input_direction) and not is_pushing:
-		space_velocity.x += physics.air_acceleration * input_direction
-	
+	#only move if the player does not have the roll lock and is rolling to cause it 
+	if not (physics.control_jump_roll_lock and is_rolling):
+		#Only let the player move in midair if they aren't already at max speed
+		if absf(space_velocity.x) < physics.ground_top_speed and not is_zero_approx(input_direction) and not is_on_wall():
+			space_velocity.x += physics.air_acceleration * input_direction
 	
 	#calculate air drag
 	if space_velocity.y < 0 and space_velocity.y > -physics.jump_short_limit:
@@ -664,7 +679,7 @@ func process_ground() -> void:
 		#Calculate rolling
 		
 		#apply gravity
-		ground_velocity += physics.air_gravity_strength * sine_ground_angle
+		#ground_velocity += physics.air_gravity_strength * sine_ground_angle
 		
 		#apply slope factors
 		if is_zero_approx(collision_rotation): #If we're on level ground
@@ -699,11 +714,12 @@ func process_ground() -> void:
 			const deg_45:float = deg_to_rad(45.0)
 			const deg_135:float = deg_to_rad(135.0)
 			#apply gravity if we're on a slope and not standing still
-			ground_velocity += physics.air_gravity_strength * sine_ground_angle
+			#ground_velocity += physics.air_gravity_strength * sine_ground_angle
 			
 			#Apply the standing/running slope factor if we're not in ceiling mode, or are slipping
-			if not is_zero_approx(collision_rotation) and (collision_rotation > deg_45 and collision_rotation < deg_135):
-				ground_velocity += physics.ground_slope_factor * sine_ground_angle
+			#if not is_zero_approx(collision_rotation) and (collision_rotation > deg_45 and collision_rotation < deg_135):
+			#	ground_velocity += physics.ground_slope_factor * sine_ground_angle
+			ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		else:
 			#prevent standing on a steep slope
 			if absf(limitAngle(global_collision_rotation)) > default_max_angle:
@@ -744,12 +760,12 @@ func process_ground() -> void:
 	
 	#Do rolling or crouching checks
 	
-	#if the player is moving fast enough and can be is_rolling according to external settings
+	#if the player is moving fast enough to roll
 	if absf(ground_velocity) > physics.rolling_min_speed:
 		#We're moving too fast to crouch
 		is_crouching = false
 		
-		#Roll if the player tries to, and is not already is_rolling
+		#Roll if the player tries to, and is not already rolling
 		if roll_checks() and not is_rolling and Input.is_action_pressed(controls.action_roll):
 			is_rolling = true
 			play_sound_effect(sfx_roll_name)
@@ -787,12 +803,12 @@ func process_ground() -> void:
 		play_animation(anim_jump, true)
 		play_sound_effect(sfx_jump_name)
 		
-		#the following does not apply if we are already rolling
-		if not is_rolling:
+		#the following does not apply if we are already attacking
+		if not is_attacking:
 			#rolling is used as a shorthand for if the player is 
 			#"attacking". Therefore, it should not be set if the player
 			#should be vulnerable in midair
-			is_rolling = not  physics.control_is_jump_vulnerable
+			is_attacking = not  physics.control_is_jump_vulnerable
 	else:
 		#apply the ground velocity to the "actual" velocity
 		space_velocity = ground_velocity * rotation_vector
@@ -837,7 +853,10 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 	else:
 		is_rolling = false
 	
-
+	#begin control lock timer
+	if control_lock_timer.has_connections(&"timeout") and control_lock_timer.is_stopped():
+		#ground_velocity += physics.air_gravity_strength * sin(collision_rotation)
+		control_lock_timer.start(physics.ground_slip_time)
 	
 	#if they were landing from a jump, clean up jump stuff
 	if is_jumping:
