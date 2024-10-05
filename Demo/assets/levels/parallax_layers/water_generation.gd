@@ -18,12 +18,17 @@ func generate_water() -> void:
 	
 	var current_speed:float = beginning_ref.scroll_scale.x + speed_bandwidth
 	
+	var rng:RandomNumberGenerator = RandomNumberGenerator.new()
+	
 	for current_row:int in row_count:
 		var current_atlas:AtlasTexture = AtlasTexture.new()
 		current_atlas.atlas = start_atlas
 		
-		current_atlas.region.position = Vector2(0, current_row)
-		current_atlas.region.size = Vector2(atlas_width, 1)
+		
+		rng.randomize()
+		var safe_random_x:int = clampi(current_row + rng.randi_range(-3, 3), 0, row_count)
+		current_atlas.region.position = Vector2(0, safe_random_x)
+		current_atlas.region.size = Vector2(atlas_width, 10)
 		
 		
 		var current_parallax:Parallax2D = Parallax2D.new()
@@ -35,9 +40,9 @@ func generate_water() -> void:
 		
 		current_parallax.add_child(new_sprite)
 		
-		current_parallax.scroll_scale = Vector2(current_speed, vertical_scroll_scale)
-		const half_ref_text_x:int = 25
-		current_parallax.scroll_offset = Vector2(0, y_offset + current_row + half_ref_text_x)
+		current_parallax.scroll_scale = Vector2(current_speed, vertical_scroll_scale + (0.01 * float(current_row)))
+		const half_reference_texture_x:int = 25
+		current_parallax.scroll_offset = Vector2(0, y_offset + current_row + half_reference_texture_x)
 		current_parallax.repeat_size = Vector2(atlas_width, 0)
 		current_parallax.repeat_times = 6
 		current_parallax.autoscroll = Vector2(current_speed * -autoscroll_speed, 0)

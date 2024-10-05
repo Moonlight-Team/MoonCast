@@ -69,9 +69,9 @@ texture = ExtResource("7_vj462")
 [node name="Sunset Fade" type="Parallax2D" parent="Background"]
 z_index = -9
 scroll_scale = Vector2(0.2, 0)
-scroll_offset = Vector2(0, 70)
-repeat_size = Vector2(30, 0)
-repeat_times = 50
+scroll_offset = Vector2(0, 61)
+repeat_size = Vector2(60, 0)
+repeat_times = 30
 
 [node name="Sprite2D" type="Sprite2D" parent="Background/Sunset Fade"]
 texture = ExtResource("8_3fu65")
@@ -89,7 +89,7 @@ texture = ExtResource("9_kidn3")
 
 [node name="Greenery" type="Parallax2D" parent="Background"]
 scroll_scale = Vector2(0.4, 0.02)
-scroll_offset = Vector2(0, 128)
+scroll_offset = Vector2(0, 130)
 repeat_size = Vector2(71, 0)
 repeat_times = 22
 

@@ -342,8 +342,10 @@ signal post_physics(player:MoonCastPlayer2D)
 ##Emitted when the player jumps
 signal jump(player:MoonCastPlayer2D)
 ##Emitted when the player is hurt
+@warning_ignore("unused_signal")
 signal hurt(player:MoonCastPlayer2D)
 ##Emitted when the player collects something, like a shield or ring
+@warning_ignore("unused_signal")
 signal collectible_recieved(player:MoonCastPlayer2D)
 ##Emitted when the player makes contact with the ground
 signal contact_ground(player:MoonCastPlayer2D)
@@ -712,7 +714,7 @@ func process_ground() -> void:
 			ground_velocity -= physics.rolling_flat_factor * facing_direction
 			
 			#Stop the player if they turn around
-			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)) or is_on_wall():
 				ground_velocity = 0.0
 		else: #We're on a hill of some sort
 			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
@@ -740,12 +742,7 @@ func process_ground() -> void:
 		#slope and other "world" speed factors
 		#if is_moving or absf(limitAngle(global_collision_rotation)) > default_max_angle:
 		if is_moving or is_slipping:
-			const deg_45:float = deg_to_rad(45.0)
-			const deg_135:float = deg_to_rad(135.0)
-			
-			#Apply the standing/running slope factor if we're not in ceiling mode, or are slipping
-			#if not is_zero_approx(collision_rotation) and (collision_rotation > deg_45 and collision_rotation < deg_135):
-			#	ground_velocity += physics.ground_slope_factor * sine_ground_angle
+			#Apply the standing/running slope factor
 			ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		else:
 			#prevent standing on a steep slope
@@ -1158,6 +1155,7 @@ func sprites_set_rotation(new_rotation:float) -> void:
 	if is_instance_valid(animated_sprite1):
 		animated_sprite1.global_rotation = new_rotation
 
+@warning_ignore("unused_parameter")
 func move_camera_vertical(dest_offset:float) -> void:
 	#var camera_dest_pos:float = camera_neutral_offset.y + camera_look_up_offset
 	#
