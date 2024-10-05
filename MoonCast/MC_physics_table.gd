@@ -50,7 +50,7 @@ class_name MoonCastPhysicsTable
 
 @export_group("Roll", "rolling_")
 ##The minimum speed the player must be moving in order to initiate a roll.
-@export var rolling_min_speed:float = 0.2
+@export var rolling_min_speed:float = 0.5
 ##How much the player will additionally slow down when actively trying to stop while rolling.
 @export var rolling_active_stop:float = 0.125
 ##How much the player will slow down when rolling on a level surface.

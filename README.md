@@ -31,7 +31,11 @@ Most other information pertaining to specifics of the engine, such as the use of
 
 Copy the `/MoonCast` folder to somewhere in your Godot 4.4+ project. Yep, that's all, you have now added MoonCast to your project. 
 
-Feel free to reference the demo on implementations of the classes. The scripts in the demo are also available for use, and a lot of extra goodies not explicitly included in the demo are included in the `/Demo` folder for you to mess around with if you so choose. The *code* of MoonCast is under the MIT license, so please don't forget to credit MoonCast in your project. The `splash.ogv` video in `/video` is available to use as an optional splash screen for your project, and would count as the aforementioned crediting. 
+If you would like the MoonCast Docs as a tab in your Godot editor, copy the `addons/` folder to your project. There is nothing in the contained plugin except for those docs, so this is optional. These are extra documents about the features of MoonCast itself, and are separate from the in-engine docs for the functions and variables, so you do *not* need this plugin to have the documentation that shows up natively in Godot's documentation system.
+
+Feel free to reference the demo on implementations of the classes in MoonCast. The scripts in the demo are also available for use, and a lot of extra goodies not explicitly included in the demo are included in the `/Demo` folder for you to mess around with if you so choose. The *code* of MoonCast is under the MIT license, so please don't forget to credit MoonCast in your project. 
+
+The `splash.ogv` video in `/video` is available to use as an optional splash screen for your project, and would count as the aforementioned crediting. 
 
 The visual assets in the demo besides the aforementioned splash screen are NOT licensed under the same license as the code; please refrain from using those in your project without getting explicit prior permission from the Moonlight Team. 
 

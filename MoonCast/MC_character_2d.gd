@@ -169,6 +169,8 @@ var ability_data:Dictionary = {}
 ##Custom states for the character. This is a list of Abilities that have registered 
 ##themselves as a state ability, which can implement an entirely new state for the player.
 var state_abilities:Array[StringName]
+##Overlay animations for the player. The key is the overlay name, and the value is the node.
+var overlay_sprites:Dictionary[StringName, AnimatedSprite2D]
 
 ##The current animation
 var current_anim:StringName
@@ -421,13 +423,13 @@ func setup_performance_monitors() -> void:
 	self_perf_state = name + &"/" + perf_state
 	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_rotation"])
 	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
-	Performance.add_custom_monitor(self_perf_state, get, [&"state_is"])
+	#Performance.add_custom_monitor(self_perf_state, get, [&"state_is"])
 
 ##Clean up the custom performance monitors for the player
 func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_ground_angle)
 	Performance.remove_custom_monitor(self_perf_ground_vel)
-	Performance.remove_custom_monitor(self_perf_state)
+	#Performance.remove_custom_monitor(self_perf_state)
 #endregion
 #region Animation API
 ##A wrapper function to play animations, with built in validity checking.
@@ -535,8 +537,33 @@ func check_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> int:
 	
 	return bitfield
 #endregion
+#region Overlay Sprite API
+##Add an overlay sprite library to the player. This is an AnimatedSprite2D
+##that contains a series of animations that can be played by calling 
+##[overlay_play_anim].
+func overlay_add_lib(lib_name:StringName, anims:AnimatedSprite2D) -> void:
+	add_child(anims)
+	overlay_sprites[lib_name] = anims
+
+##Play an animation [code]anim[/code] from overlay library [code]lib[/code].
+##Will do nothing if either [code]lib[/code] is not a valid library, or it does
+##not contain the animation [code]anim[/code].
+func overlay_play_anim(lib:StringName, anim:StringName) -> void:
+	var anim_node:AnimatedSprite2D = overlay_sprites.get(lib, null)
+	if is_instance_valid(anim_node):
+		if anim_node.has_animation(anim):
+			anim_node.play_animation(anim)
+
+##Remove an overlay sprite library from the player.
+func overlay_remove_lib(lib_name:StringName) -> void:
+	var anim_node:AnimatedSprite2D = overlay_sprites.get(lib_name, null)
+	if is_instance_valid(anim_node):
+		remove_child(anim_node)
+		overlay_sprites.erase(lib_name)
+
+#endregion
 #region State API
-##Returns if the player is going left
+##Checks if the player is going left.
 func is_going_left() -> bool:
 	if is_grounded:
 		return is_moving and ground_velocity < 0
@@ -544,7 +571,7 @@ func is_going_left() -> bool:
 		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x < 0
 
-##Returns if the player is going right
+##Checks if the player is going right.
 func is_going_right() -> bool:
 	if is_grounded:
 		return is_moving and ground_velocity > 0
@@ -678,14 +705,15 @@ func process_ground() -> void:
 	if is_rolling:
 		#Calculate rolling
 		
-		#apply gravity
-		#ground_velocity += physics.air_gravity_strength * sine_ground_angle
-		
 		#apply slope factors
 		if is_zero_approx(collision_rotation): #If we're on level ground
+			var prev_ground_vel_sign:float = signf(ground_velocity)
 			#If we're also moving at all
-			if not is_zero_approx(ground_velocity):
-				ground_velocity -= physics.rolling_flat_factor * facing_direction
+			ground_velocity -= physics.rolling_flat_factor * facing_direction
+			
+			#Stop the player if they turn around
+			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+				ground_velocity = 0.0
 		else: #We're on a hill of some sort
 			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
 				#rolling downhill
@@ -703,6 +731,7 @@ func process_ground() -> void:
 			ground_velocity += physics.rolling_active_stop * facing_direction
 			facing_direction = -facing_direction
 			sprites_flip()
+		
 	else: #slope factors for being on foot
 		#This is a little value we need for some slipping logic. The player cannot move in the 
 		#direction they are slipping.
@@ -713,8 +742,6 @@ func process_ground() -> void:
 		if is_moving or is_slipping:
 			const deg_45:float = deg_to_rad(45.0)
 			const deg_135:float = deg_to_rad(135.0)
-			#apply gravity if we're on a slope and not standing still
-			#ground_velocity += physics.air_gravity_strength * sine_ground_angle
 			
 			#Apply the standing/running slope factor if we're not in ceiling mode, or are slipping
 			#if not is_zero_approx(collision_rotation) and (collision_rotation > deg_45 and collision_rotation < deg_135):
@@ -772,7 +799,8 @@ func process_ground() -> void:
 	else: #standing or crouching
 		#Disable rolling
 		can_roll = false
-		is_rolling = false
+		if is_zero_approx(ground_velocity) and is_rolling:
+			is_rolling = false
 		#don't allow crouching when balacing
 		if not is_balancing:
 			#Only crouch while the input is still held down
