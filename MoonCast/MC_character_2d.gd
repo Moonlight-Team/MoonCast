@@ -715,10 +715,6 @@ func process_ground() -> void:
 				#rolling uphill
 				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
 		
-		#Check if the player wants to (and can) jump
-		if Input.is_action_just_pressed(controls.action_jump) and can_jump:
-			is_jumping = true
-		
 		#Allow the player to actively slow down if they try to move in the opposite direction
 		if not is_equal_approx(facing_direction, signf(ground_velocity)):
 			ground_velocity += physics.rolling_active_stop * facing_direction
@@ -739,10 +735,6 @@ func process_ground() -> void:
 			#prevent standing on a steep slope
 			if absf(limitAngle(global_collision_rotation)) > default_max_angle:
 				ground_velocity += physics.ground_slope_factor * sine_ground_angle
-		
-		#Check if the player wants to (and can) jump
-		if Input.is_action_pressed(controls.action_jump) and can_jump:
-			is_jumping = true
 		
 		#input processing
 		
@@ -808,7 +800,9 @@ func process_ground() -> void:
 	#is reset when we do
 	var rotation_vector:Vector2 = Vector2.from_angle(collision_rotation)
 	
-	if is_jumping:
+	#Check if the player wants to (and can) jump
+	if Input.is_action_pressed(controls.action_jump) and can_jump:
+		is_jumping = true
 		jump.emit(self)
 		#Add velocity to the jump
 		space_velocity.x += physics.jump_velocity * rotation_vector.y
