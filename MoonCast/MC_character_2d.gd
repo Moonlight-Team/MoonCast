@@ -179,13 +179,6 @@ var anim_run_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
 var anim_skid_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
 #endregion
 #region physics vars
-##The player's current state.
-##A signal is emitted when certain values are changed, such as emitting the contact state signals.
-var state_is:int
-##The state(s) the player can currently be in.
-##These are just what the player [i]can[/i] do, not what they necessarily [i]are doing[/i].
-var state_can_be:int
-
 ##The direction the player is facing. Either -1 for left or 1 for right.
 var facing_direction:float = 1.0
 ##The direction the player is slipping in. If this value is 1.0, for example, 
@@ -220,7 +213,7 @@ var velocity_direction:Vector2
 var default_max_angle:float
 
 #endregion
-#region state_can_be
+#region state can be
 ##If true, the player can jump.
 var can_jump:bool = true:
 	set(on):
@@ -242,7 +235,7 @@ var can_be_moving:bool = true
 var can_be_attacking:bool = true
 
 #endregion
-#region state_is
+#region state is 
 ##If true, the player is on what the physics consider 
 ##to be the ground.
 ##A signal is emitted whenever this value is changed;
@@ -425,13 +418,11 @@ func setup_performance_monitors() -> void:
 	self_perf_state = name + &"/" + perf_state
 	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_rotation"])
 	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
-	#Performance.add_custom_monitor(self_perf_state, get, [&"state_is"])
 
 ##Clean up the custom performance monitors for the player
 func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_ground_angle)
 	Performance.remove_custom_monitor(self_perf_ground_vel)
-	#Performance.remove_custom_monitor(self_perf_state)
 #endregion
 #region Animation API
 ##A wrapper function to play animations, with built in validity checking.
@@ -1001,7 +992,7 @@ func update_collision_rotation() -> void:
 		#slip checks
 		if is_grounded:
 			
-			if fast_enough:
+			if fast_enough and contact_point_count > 1:
 				#up_direction is set so that floor snapping can be used for walking on walls. 
 				up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 				

@@ -15,7 +15,9 @@ class_name MoonCastPhysicsTable
 @export var control_is_jump_vulnerable:bool = false
 ##If enabled, the player will be unable to control their air movement if rolling in midair.
 @export var control_jump_roll_lock:bool = false
-
+##If enabled, the player can hold jump to repeatedly jump as soon as the jump timer is over.
+##Otherwise, they [i]also[/i] have to let go of jump in order to jump again.
+@export var control_jump_hold_repeat:bool = false
 
 @export_group("Ground", "ground_")
 ##The minimum speed the player needs to be moving to not be considered to be at a standstill.
