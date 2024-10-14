@@ -198,6 +198,9 @@ var input_direction:float = 0:
 ##(before the pre-physics ability signal).
 var animation_set:bool = false
 
+##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
+var hold_jump_lock:bool = false
+
 ## the ground velocity. This is how fast the player is 
 ##travelling on the ground, regardless of angles.
 var ground_velocity:float = 0.0:
@@ -795,6 +798,13 @@ func process_ground() -> void:
 	
 	#jumping logic
 	
+	#if the player can't hold jump to keep jumping, and they can jump (ie. the spam timer ran out)
+	if not physics.control_jump_hold_repeat and can_jump:
+		#the hold jump lock is active so long as it is *still* active, and the jump button is held
+		hold_jump_lock = hold_jump_lock and Input.is_action_pressed(controls.action_jump)
+		#player can jump when the hold jump lock is not active
+		can_jump = not hold_jump_lock
+	
 	#This is a shorthand for Vector2(cos(collision_rotation), sin(collision_rotation))
 	#we need to calculate this before we leave the ground, becuase collision_rotation
 	#is reset when we do
@@ -868,10 +878,14 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		#ground_velocity += physics.air_gravity_strength * sin(collision_rotation)
 		control_lock_timer.start(physics.ground_slip_time)
 	
+	if Input.is_action_pressed(controls.action_jump) and not physics.control_jump_hold_repeat:
+		hold_jump_lock = true
+	
 	#if they were landing from a jump, clean up jump stuff
 	if is_jumping:
 		is_jumping = false
 		can_jump = false
+		
 		#we use a timer to make sure the player can't spam the jump
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
 		jump_timer.start(physics.jump_spam_timer)
