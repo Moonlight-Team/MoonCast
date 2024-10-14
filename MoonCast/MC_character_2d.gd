@@ -893,7 +893,9 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
-	if ray_wall_left.is_colliding() or ray_wall_right.is_colliding():
+	var wall_contact:bool = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
+	
+	if wall_contact:
 		#the direction the player is moving horizontally
 		var movement_dir:float
 		
@@ -916,6 +918,11 @@ func update_collision_rotation() -> void:
 			else:
 				#we're not moving in the direction of the wall, so we're not pushing
 				is_pushing = false
+		else:
+			if is_grounded:
+				ground_velocity = 0.0
+			else:
+				space_velocity.x = 0.0
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
@@ -926,71 +933,72 @@ func update_collision_rotation() -> void:
 	var in_ground_range:bool = bool(contact_point_count)
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
-	var will_actually_land:bool = get_slide_collision_count() > 0 and not is_on_wall_only()
+	#var will_actually_land:bool = get_slide_collision_count() > 0 and not is_on_wall_only()
+	var will_actually_land:bool = get_slide_collision_count() > 0 and not (wall_contact and is_on_wall_only())
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing what the ground angle is/will be, to apply landing speed
 	if in_ground_range:
-		if not is_on_wall():
-			match contact_point_count:
-				1:
-					#player balances when two of the raycasts are over the edge
-					is_balancing = true
+		match contact_point_count:
+			1:
+				#player balances when two of the raycasts are over the edge
+				is_balancing = true
+				
+				if is_grounded:
+					#This bit of code usually only runs when the player runs off an upward
+					#slope but too slowly to actually "launch". If we do nothing in this scenario,
+					#it can cause an odd situation where the player is stuck on the ground but at 
+					#the angle that they launched at, which is not good.
+					collision_rotation = lerp_angle(collision_rotation, 0, 0.01)
+				else:
+					#Don't update rotation if we were already grounded. This allows for 
+					#slope launch physics while retaining slope landing physics, by eliminating
+					#false positives caused by one raycast being the remaining raycast when 
+					#launching off a slope
 					
-					if is_grounded:
-						#This bit of code usually only runs when the player runs off an upward
-						#slope but too slowly to actually "launch". If we do nothing in this scenario,
-						#it can cause an odd situation where the player is stuck on the ground but at 
-						#the angle that they launched at, which is not good.
-						collision_rotation = lerp_angle(collision_rotation, 0, 0.01)
-					else:
-						#Don't update rotation if we were already grounded. This allows for 
-						#slope launch physics while retaining slope landing physics, by eliminating
-						#false positives caused by one raycast being the remaining raycast when 
-						#launching off a slope
-						
-						if ray_ground_left.is_colliding():
-							collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-							facing_direction = 1.0 #slope is to the left, face right
-						elif ray_ground_right.is_colliding():
-							collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-							facing_direction = -1.0 #slope is to the right, face left
-				2:
-					is_balancing = false
+					if ray_ground_left.is_colliding():
+						collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+						facing_direction = 1.0 #slope is to the left, face right
+					elif ray_ground_right.is_colliding():
+						collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+						facing_direction = -1.0 #slope is to the right, face left
+			2:
+				is_balancing = false
+				var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+				var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+				
+				if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
+					collision_rotation = (right_angle + left_angle) / 2.0
+				#in these next two cases, the other contact point is the center
+				elif ray_ground_left.is_colliding():
+					collision_rotation = left_angle
+				elif ray_ground_right.is_colliding():
+					collision_rotation = right_angle
+			3:
+				is_balancing = false
+				
+				if is_grounded:
+					apply_floor_snap()
+					var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+					
+					#make sure the player can't merely run into anything in front of them and 
+					#then walk up it. This check also prevents the player from flying off sudden 
+					#obtuse landscape curves
+					if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle) and not is_on_wall()):
+					#if is_slipping or (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle)):
+						collision_rotation = gnd_angle
+				else:
+					#the CharacterBody2D system has no idea what the ground normal is when its
+					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
+					#we use the raycasts. 
+					
 					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 					
-					if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
-						collision_rotation = (right_angle + left_angle) / 2.0
-					#in these next two cases, the other contact point is the center
-					elif ray_ground_left.is_colliding():
-						collision_rotation = left_angle
-					elif ray_ground_right.is_colliding():
-						collision_rotation = right_angle
-				3:
-					is_balancing = false
+					collision_rotation = (right_angle + left_angle) / 2.0
 					
-					if is_grounded:
-						apply_floor_snap()
-						var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
-						
-						#make sure the player can't merely run into anything in front of them and 
-						#then walk up it. This check also prevents the player from flying off sudden 
-						#obtuse landscape curves
-						if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle) and not is_on_wall()):
-						#if is_slipping or (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle)):
-							collision_rotation = gnd_angle
-					else:
-						#the CharacterBody2D system has no idea what the ground normal is when its
-						#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
-						#we use the raycasts. 
-						
-						var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-						var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-						
-						collision_rotation = (right_angle + left_angle) / 2.0
-						
-						#TODO: Ceiling checks
+					#TODO: Ceiling checks
+					
 						
 		
 		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
