@@ -700,16 +700,14 @@ func process_ground() -> void:
 	#Calculate movement based on the mode
 	if is_rolling:
 		#Calculate rolling
+		var prev_ground_vel_sign:float = signf(ground_velocity)
 		
 		#apply slope factors
 		if is_zero_approx(collision_rotation): #If we're on level ground
-			var prev_ground_vel_sign:float = signf(ground_velocity)
+			
 			#If we're also moving at all
 			ground_velocity -= physics.rolling_flat_factor * facing_direction
 			
-			#Stop the player if they turn around
-			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)) or is_on_wall():
-				ground_velocity = 0.0
 		else: #We're on a hill of some sort
 			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
 				#rolling downhill
@@ -723,6 +721,10 @@ func process_ground() -> void:
 			ground_velocity += physics.rolling_active_stop * facing_direction
 			facing_direction = -facing_direction
 			sprites_flip()
+		
+		#Stop the player if they turn around
+		if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+			ground_velocity = 0.0
 		
 	else: #slope factors for being on foot
 		#This is a little value we need for some slipping logic. The player cannot move in the 
@@ -999,7 +1001,6 @@ func update_collision_rotation() -> void:
 					
 					#TODO: Ceiling checks
 					
-						
 		
 		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
 		
