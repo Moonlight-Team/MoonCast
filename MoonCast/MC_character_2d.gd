@@ -708,6 +708,9 @@ func process_ground() -> void:
 			#If we're also moving at all
 			ground_velocity -= physics.rolling_flat_factor * facing_direction
 			
+			#Stop the player if they turn around
+			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+				ground_velocity = 0.0
 		else: #We're on a hill of some sort
 			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
 				#rolling downhill
@@ -715,6 +718,7 @@ func process_ground() -> void:
 			else:
 				#rolling uphill
 				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
+			
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
 		if not is_equal_approx(facing_direction, signf(ground_velocity)):
