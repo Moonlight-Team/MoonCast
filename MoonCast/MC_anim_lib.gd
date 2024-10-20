@@ -1,6 +1,6 @@
 extends Resource
 
-class_name SpeedVariedAnimLib
+class_name MoonCastAnimLib
 
 ##A sorted (largest to smallest) array of the keys in this anim
 var sorted_keys:PackedFloat32Array

@@ -1,0 +1,8 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://cjh080ac1sbel"]
+
+[ext_resource type="Texture2D" uid="uid://d2180sj85m5wd" path="res://Demo/assets/global_objects/broken_monitor.png" id="1_fdxrh"]
+
+[resource]
+atlas = ExtResource("1_fdxrh")
+region = Rect2(0, -18, 32, 32)
+margin = Rect2(0, 0, -6, -1)

@@ -22,37 +22,36 @@ func _setup_2D(player:MoonCastPlayer2D) -> void:
 	#TODO: Add sfx
 	player
 
-func _pre_physics_2D(player:MoonCastPlayer2D) -> void:
-	if player.is_grounded:
-		if Input.is_action_pressed(player.controls.direction_up):
-			player.is_jumping = false
-			player.can_jump = false
-			if charging:
-				#already charging, increase ground velocity
-				player.ground_velocity = move_toward(player.ground_velocity, launch_speed_direction, charge_per_tick)
-			elif not player.is_moving and Input.is_action_pressed(player.controls.action_jump):
-				#initiate a charge
-				charge_timer.timeout.connect(func(): charge_complete = true, CONNECT_ONE_SHOT)
-				charge_timer.start(charge_time)
-				player.play_sound_effect(SpindashAbility.charge_name)
+func _ground_state_2D(player:MoonCastPlayer2D) -> void:
+	if Input.is_action_pressed(player.controls.direction_up):
+		player.is_jumping = false
+		player.can_jump = false
+		if charging:
+			#already charging, increase ground velocity
+			player.ground_velocity = move_toward(player.ground_velocity, launch_speed_direction, charge_per_tick)
+		elif not player.is_moving and Input.is_action_pressed(player.controls.action_jump):
+			#initiate a charge
+			charge_timer.timeout.connect(func(): charge_complete = true, CONNECT_ONE_SHOT)
+			charge_timer.start(charge_time)
+			player.play_sound_effect(SpindashAbility.charge_name)
 				
-				launch_speed_direction = launch_speed * player.facing_direction
-				charge_per_tick = launch_speed / (ProjectSettings.get(&"physics/common/physics_ticks_per_second") * charge_time)
+			launch_speed_direction = launch_speed * player.facing_direction
+			charge_per_tick = launch_speed / (ProjectSettings.get(&"physics/common/physics_ticks_per_second") * charge_time)
 				
-				charging = true
-				player.can_be_moving = false
+			charging = true
+			player.can_be_moving = false
+	
+	elif charging:
+		#cancel if we were charging but the charge did not complete
+		if not charge_complete:
+			player.ground_velocity = 0.0
 		
-		elif charging:
-			#cancel if we were charging but the charge did not complete
-			if not charge_complete:
-				player.ground_velocity = 0.0
-			
-			#re-enable moving
-			player.can_be_moving = true
-			player.can_jump = true
-			charge_complete = false
-			charging = false
-			charge_complete = false
+		#re-enable moving
+		player.can_be_moving = true
+		player.can_jump = true
+		charge_complete = false
+		charging = false
+		charge_complete = false
 
 func _post_physics_2D(player:MoonCastPlayer2D) -> void:
 	if charging and player.is_grounded:

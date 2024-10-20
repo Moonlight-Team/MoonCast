@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MoonCastPlayerAnim" load_steps=2 format=3 uid="uid://bnir24ssia24e"]
+
+[ext_resource type="Script" path="res://MoonCast/MC_player_anim.gd" id="1_ivw7j"]
+
+[resource]
+script = ExtResource("1_ivw7j")
+name = &""
+can_rotate = false
+rotation_snap = 0.0
+animation_type = 0
+guarunteed_play = false
+speed_varied = false
+speed_range_start = 0.0
+speed_range_end = 0.0
+cascade_animation = false

@@ -1,4 +1,4 @@
-extends Area2D
+extends MoonCastEntity2D
 
 class_name LayerSwitcher
 
@@ -8,22 +8,14 @@ class_name LayerSwitcher
 
 @export_enum("Set Layer A", "Set Layer B", "Toggle") var mode:int
 
-func _ready() -> void:
-	connect(&"on_body_entered", check_switch_player_layer)
-
-
-func check_switch_player_layer(body: Node2D) -> void:
-	#if body is MoonCastPlayer2D: #We can't use this yet
-	if body is CharacterBody2D and body.has_method(&"ground_process"): 
-		var player_body:MoonCastPlayer2D = body as MoonCastPlayer2D
-		
-		match mode:
-			0:
-				player_body.change_collision_mask(layer_a)
-			1:
-				player_body.change_collision_mask(layer_b)
-			2:
-				if player_body.collision_mask == layer_a:
-					player_body.change_collision_mask(layer_b)
-				else:
-					player_body.change_collision_mask(layer_a)
+func _on_player_contact(player:MoonCastPlayer2D) -> void:
+	match mode:
+		0:
+			player.change_collision_mask(layer_a)
+		1:
+			player.change_collision_mask(layer_b)
+		2:
+			if player.collision_mask == layer_a:
+				player.change_collision_mask(layer_b)
+			else:
+				player.change_collision_mask(layer_a)

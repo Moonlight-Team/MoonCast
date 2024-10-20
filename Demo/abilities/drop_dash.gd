@@ -21,8 +21,13 @@ var can_charge:bool = false
 var charging:bool = false
 ##If the drop dash is fully charged
 var charged:bool = false
+##If the charge button has been pressed at all in this fall
+var charge_pressed:bool = false
 ##The chargeup timer for the drop dash
 var charge_timer:Timer = Timer.new()
+##Extra flag to make sure the charge button isn't being held as soon as the player jumps,
+##ie. they have to let go of the charge button, if it is the jump button, before charging.
+var jump_held:bool = false
 
 func _ready() -> void:
 	add_child(charge_timer)
@@ -30,19 +35,29 @@ func _ready() -> void:
 func set_charged() -> void:
 	#drop dash will only be charged both when the player has 
 	#can charge it, and when it has been charging
-	charged = can_charge and charging
-	can_charge = false
+	charged = can_charge and charging and charge_pressed
 	charging = false
-	prints("Drop dash charged:", charged)
 
 func _air_contact_2D(_player:MoonCastPlayer2D) -> void:
-	can_charge = true
+	jump_held = Input.is_action_pressed(charge_button)
 
 func _air_state_2D(player:MoonCastPlayer2D) -> void:
+	jump_held = jump_held and Input.is_action_pressed(charge_button)
+	charge_pressed = (charge_pressed or Input.is_action_pressed(charge_button)) and not jump_held
+	
+	#If the player has charged the drop dash but stopped holding the button
+	if charge_pressed and not Input.is_action_pressed(charge_button):
+		can_charge = false
+		charged = false
+	
 	if can_charge:
 		var charge_held:bool = Input.is_action_pressed(charge_button)
-		if charge_held:
+		
+		#If they pressed the charge button and let go of it when it was the jump button
+		if charge_held and not jump_held:
 			player.play_animation(anim_charge, true)
+			
+			#start the chargeup timer
 			if not charging:
 				charging = true
 				if not charge_timer.is_connected(&"timeout", set_charged):
@@ -53,15 +68,19 @@ func _air_state_2D(player:MoonCastPlayer2D) -> void:
 				charge_timer.stop()
 				can_charge = false
 				charging = false
-				player.play_animation(player.anim_roll)
+				player.play_animation(player.anim_roll, true)
 
-func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
-	charge_timer.stop()
+func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 	if charged:
-		player.is_rolling = true
 		if is_equal_approx(signf(player.facing_direction), signf(player.ground_velocity)):
 			player.ground_velocity = player.facing_direction * forward_speed
 		else:
 			player.ground_velocity = player.facing_direction * neutral_speed
-		player.play_animation(player.anim_roll)
-		charged = false
+		player.is_rolling = true
+		player.play_animation(anim_launch)
+	
+	can_charge = true
+	charge_pressed = false
+	charging = false
+	charged = false
+	charge_timer.stop()

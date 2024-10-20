@@ -36,6 +36,9 @@ func _init() -> void:
 	set_meta(&"Ability_flag", true)
 
 func setup_ability_2D(parent:MoonCastPlayer2D) -> void:
+	if not active:
+		return
+	
 	_pre_physics_2D(parent)
 	if _active_pre_physics:
 		parent.connect(&"pre_physics", _pre_physics_2D)

@@ -3,6 +3,22 @@ extends CharacterBody2D
 ##A 2D player in MoonCast
 class_name MoonCastPlayer2D
 #region Consts & Enums
+##Flags for playing an animation.
+enum AnimationFlags {
+	##Play the animation looped. 
+	##If not set, the animation will play once and not loop.
+	PLAY_LOOP = 1,
+	##If set, the animation's playback speed changes based on the player's [ground_velocity].
+	GROUND_SPEED = 2,
+	##If set, this animation will force-override playback over any other animation possibly
+	##called to play so far in the physics frame.
+	FORCE_PLAY = 4,
+	##If set, the animation will not be rotated to align to the ground.
+	NO_ROTATE = 8,
+	##If set, the animation will not be flipped horizontally to match player direction.
+	NO_MIRROR = 16,
+	
+}
 
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
@@ -90,6 +106,8 @@ const sfx_hurt_name:StringName = &"hurt"
 ##In the air, the player's animation rotation will always be 0, regardless of being in this
 ##list or not.
 @export var anim_rotation_blacklist:Array[StringName]
+##A list of animations that will not be flipped horizontally to match the player's facing direction.
+@export var anim_mirror_blacklist:Array[StringName]
 ##A list of animations that will vary in playback speed based on the value of [member ground_velocity].
 @export var anim_vary_speed_playback:Array[StringName]
 
@@ -175,8 +193,8 @@ var overlay_sprites:Dictionary[StringName, AnimatedSprite2D]
 ##The current animation
 var current_anim:StringName
 
-var anim_run_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
-var anim_skid_lib:SpeedVariedAnimLib = SpeedVariedAnimLib.new()
+var anim_run_lib:MoonCastAnimLib = MoonCastAnimLib.new()
+var anim_skid_lib:MoonCastAnimLib = MoonCastAnimLib.new()
 #endregion
 #region physics vars
 ##The direction the player is facing. Either -1 for left or 1 for right.
@@ -805,11 +823,15 @@ func process_ground() -> void:
 	#jumping logic
 	
 	#if the player can't hold jump to keep jumping, and they can jump (ie. the spam timer ran out)
-	if not physics.control_jump_hold_repeat and can_jump:
+	if not physics.control_jump_hold_repeat:
+		if hold_jump_lock:
+			#make the player wait a frame before being able to jump again
+			#we use the timer for this because setting can_jump directly can interfere
+			#with abilities.
+			jump_timer.start(get_physics_process_delta_time())
 		#the hold jump lock is active so long as it is *still* active, and the jump button is held
 		hold_jump_lock = hold_jump_lock and Input.is_action_pressed(controls.action_jump)
 		#player can jump when the hold jump lock is not active
-		can_jump = not hold_jump_lock
 	
 	#This is a shorthand for Vector2(cos(collision_rotation), sin(collision_rotation))
 	#we need to calculate this before we leave the ground, becuase collision_rotation
@@ -1053,14 +1075,29 @@ func update_collision_rotation() -> void:
 			if anim_rotation_blacklist.has(current_anim):
 				sprite_rotation = 0
 			else:
-				var rotation_snap:float = snappedf(collision_rotation, rotation_snap_interval)
+				var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
+				
+				var half_rot_snap:float = rotation_snap_interval / 2.0 #TODO: cache this
+				#halfway point between the current rotation snap and the next one
+				var halfway_snap_point:float = snappedf(rotation_snap + half_rot_snap, 0.001)
+				
 				if rotation_classic_snap:
-					sprite_rotation = snappedf(collision_rotation, rotation_snap_interval)
+					sprite_rotation = rotation_snap
 				else:
 					var actual_rotation_speed:float = rotation_adjustment_speed
-					if limitAngle(sprite_rotation) > (rotation_snap + rotation_snap):
-						actual_rotation_speed *= 2
-					sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
+					
+					var rotation_difference:float = angle_difference(sprite_rotation, collision_rotation)
+					
+					#multiply the rotation speed so that it rotates faster when it needs to "catch up"
+					#to more extreme changes in angle
+					if rotation_difference > rotation_snap_interval:
+						sprite_rotation = collision_rotation
+					elif rotation_difference > (half_rot_snap):
+						var speed_multiplier:float = remap(rotation_difference, 0.0, PI, rotation_snap_interval, PI)
+						actual_rotation_speed /= speed_multiplier
+					
+					if not is_equal_approx(snappedf(sprite_rotation, 0.001), halfway_snap_point):
+						sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
 		else: #So that the character stands upright on slopes and such
 			sprite_rotation = 0
 	else:
@@ -1144,20 +1181,21 @@ func update_animations() -> void:
 
 ##Flip the sprites for the player based on the direction the player is facing.
 func sprites_flip() -> void:
-	var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
-	#ensure the character is facing the right direction
-	#run checks on the nodes, because having the nodes for this is not assumable
-	if not is_zero_approx(moving_dir):
-		if facing_direction < 0: #left
-			if is_instance_valid(sprite1):
-				sprite1.flip_h = true
-			if is_instance_valid(animated_sprite1):
-				animated_sprite1.flip_h = true
-		elif facing_direction > 0: #right
-			if is_instance_valid(sprite1):
-				sprite1.flip_h = false
-			if is_instance_valid(animated_sprite1):
-				animated_sprite1.flip_h = false
+	if not anim_mirror_blacklist.has(current_anim):
+		var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
+		#ensure the character is facing the right direction
+		#run checks on the nodes, because having the nodes for this is not assumable
+		if not is_zero_approx(moving_dir):
+			if facing_direction < 0: #left
+				if is_instance_valid(sprite1):
+					sprite1.flip_h = true
+				if is_instance_valid(animated_sprite1):
+					animated_sprite1.flip_h = true
+			elif facing_direction > 0: #right
+				if is_instance_valid(sprite1):
+					sprite1.flip_h = false
+				if is_instance_valid(animated_sprite1):
+					animated_sprite1.flip_h = false
 
 ##Set the rotation of the sprites, in radians. This is required in order to preserve
 ##physics behavior while still implementing certain visual rotation features.
@@ -1178,6 +1216,7 @@ func move_camera_vertical(dest_offset:float) -> void:
 #endregion
 
 func _ready() -> void:
+	set_meta(&"is_player", true)
 	#Set up nodes
 	setup_children()
 	#Find collision points. Run this after children

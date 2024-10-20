@@ -67,17 +67,26 @@ text = "MoonCast is built with the MoonCastAbility as a cornerstone feature. The
 
 MoonCastAbility exposes a set of values from its parent MoonCastPlayer locally, so they can be accessed at any point, so long as the ability is valid (not disabled, and properly parented), and do not have to be accessed by accessing the parent node literally. These localized variables are part of the abstractions that take place in order to provide universal functionality between both 2D and 3D.
 
-If you've spent much time with GDScript, you'd be familiar with virtual functions. These are functions that usually start with an underscore, and are typically called by Godot Engine itself in various situations. MoonCastAbility has a set of these functions itself, which are called when the player is setting up, when they enter certain states, and more, as explained in the Class Docs for MoonCastAbility. It is important to note that a MoonCastAbility will disable itself and cannot be re-enabled while it is not a child of a MoonCastPlayer. Calling functions on a MoonCastAbility that is not parented by a MoonCastPlayer, when that function uses any values of MoonCastAbility (besides enabled), is not recommended and will lead to unexpected behavior."
+If you've spent much time with GDScript, you'd be familiar with virtual functions. These are functions that usually start with an underscore, and are typically called by Godot Engine itself in various situations. MoonCastAbility has a set of these functions itself, which are called when the player is setting up, when they enter certain states, and more, as explained in the Class Docs for MoonCastAbility. It is important to note that a MoonCastAbility will disable itself and cannot be re-enabled while it is not a child of a MoonCastPlayer. Calling functions on a MoonCastAbility that is not parented by a MoonCastPlayer, when that function uses any values of MoonCastAbility (besides enabled), is not recommended and will lead to unexpected behavior.
+
+These functions are called by the Player node in a specific order. This order is important to note when you have several abilities working at once that may conflict with each other (eg. animations being overriden on accident). The order is as follows:
+* `pre_physics`
+* `custom_state`
+* `ground_state`/`air_state`
+* `post_physics`"
 editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1
 scroll_smooth = true
+scroll_vertical = 11.0
 metadata/_tab_index = 3
 
 [node name="Animations" type="TextEdit" parent="TabContainer"]
 visible = false
 layout_mode = 2
 text = "MoonCast uses Godot's animation systems to play animations. In 2D, you can have either an AnimatedSprite2D or an AnimationPlayer as the child of your MoonCastPlayer2D node, and MoonCast will automatically find the first of its children of those types and use that for playing animations. You can have both an AnimatedSprite2D and an AnimationPlayer, but it is recommended that you use one or the other, not both. 
+
+The animation system has checks in place so that by default, a playing animation will not be overriden once it is set that frame. This can be overriden with the `force` parameter on MoonCastPlayer2D.play_animation, and may be required if you have different Ability nodes that set animations at different points in the callback cycle (See the Abilities page about the callback cycle).
 
 Animations are played by their StringName identifier. If an animation does not exist on/in a used animation node, no error will occur, but it will not be played. So, if an animation does not play, check that there aren't typos in your StringName for the animation, or that the animation exists in whichever node you are using for animations.
 

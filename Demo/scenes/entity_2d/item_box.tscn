@@ -1,18 +1,18 @@
 [gd_scene load_steps=6 format=3 uid="uid://dhod8w1bksikc"]
 
-[ext_resource type="Script" path="res://MoonCast/MC_entity_2d.gd" id="1_sdeio"]
+[ext_resource type="Script" path="res://Demo/scenes/entity_2d/item_box.gd" id="1_yd0n6"]
 [ext_resource type="Texture2D" uid="uid://vt13hj1j3mjh" path="res://Demo/assets/global_objects/item_monitor.tres" id="2_7qcly"]
-[ext_resource type="Texture2D" uid="uid://2llo8ujfjy7" path="res://Demo/assets/global_objects/overlay_shield.tres" id="3_mhcuj"]
+[ext_resource type="Texture2D" uid="uid://bx74255egkj2g" path="res://Demo/assets/global_objects/overlay_blank.tres" id="3_qwmmx"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cuh63"]
 size = Vector2(32, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jho4s"]
-size = Vector2(26, 26)
+size = Vector2(26, 25)
 
-[node name="Node2D" type="Area2D"]
+[node name="ItemBox" type="Area2D"]
 texture_filter = 1
-script = ExtResource("1_sdeio")
+script = ExtResource("1_yd0n6")
 
 [node name="DetectionArea" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_cuh63")
@@ -20,12 +20,12 @@ shape = SubResource("RectangleShape2D_cuh63")
 [node name="CollisionArea" type="AnimatableBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionArea"]
-position = Vector2(0, 3)
+position = Vector2(0, 3.5)
 shape = SubResource("RectangleShape2D_jho4s")
-debug_color = Color(1, 1, 1, 1)
+debug_color = Color(1, 1, 1, 0.321569)
 
 [node name="Box" type="Sprite2D" parent="."]
 texture = ExtResource("2_7qcly")
 
 [node name="ItemType" type="Sprite2D" parent="."]
-texture = ExtResource("3_mhcuj")
+texture = ExtResource("3_qwmmx")

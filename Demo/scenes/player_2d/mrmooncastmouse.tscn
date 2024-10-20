@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=19 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/mooncast_physics.tres" id="2_rii83"]
@@ -15,6 +15,7 @@
 [ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
 [ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
 [ext_resource type="Script" path="res://Demo/abilities/super_peel_out.gd" id="14_oykrb"]
+[ext_resource type="Script" path="res://Demo/abilities/drop_dash.gd" id="16_7ai3q"]
 
 [sub_resource type="Resource" id="Resource_04jp1"]
 script = ExtResource("3_xc58p")
@@ -41,15 +42,13 @@ floor_snap_length = 15.0
 script = ExtResource("1_x65an")
 physics = ExtResource("2_rii83")
 controls = SubResource("Resource_04jp1")
+rotation_adjustment_speed = 0.25
 rotation_static_collision = true
-camera_look_up_offset = -50
-camera_look_down_offset = 50
-camera_move_speed = 5.0
 anim_stand = &"default"
 anim_look_up = &"look_up"
 anim_balance = &"default"
 anim_crouch = &"default"
-anim_roll = &"jump_ball"
+anim_roll = &"roll_ball"
 anim_run = Dictionary[float, StringName]({
 0.01: &"walk",
 1.0: &"run"
@@ -60,8 +59,9 @@ anim_skid = Dictionary[float, StringName]({
 anim_push = &"default"
 anim_jump = &"jump_ball"
 anim_free_fall = &"falling"
-anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
-anim_vary_speed_playback = Array[StringName]([&"walk", &"run"])
+anim_rotation_blacklist = Array[StringName]([&"jump_ball", &"drop_dash_charge", &"roll_ball"])
+anim_mirror_blacklist = Array[StringName]([&"roll_ball"])
+anim_vary_speed_playback = Array[StringName]([&"walk", &"run", &"roll_ball"])
 sfx_bus = &"SFX"
 sfx_jump = ExtResource("3_o6288")
 sfx_roll = ExtResource("4_rcomx")
@@ -73,9 +73,9 @@ shape = SubResource("RectangleShape2D_x7kbe")
 
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
-position = Vector2(2, 0)
+position = Vector2(2, -1)
 sprite_frames = ExtResource("7_o1ngo")
-frame_progress = 0.295106
+frame_progress = 0.338193
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")
@@ -85,9 +85,19 @@ skins = Array[SpriteFrames]([ExtResource("7_hprdh"), ExtResource("7_o1ngo")])
 
 [node name="Spindash" type="Node" parent="."]
 script = ExtResource("11_jsmc0")
-spindash_inital = 1.25
+spindash_inital = 3.0
+spindash_accumulate = 0.5
+spindash_max_charge = 10.0
 sfx_charge = ExtResource("12_40a6c")
 sfx_release = ExtResource("13_gukst")
+active = false
 
 [node name="SuperPeelOut" type="Node" parent="."]
 script = ExtResource("14_oykrb")
+
+[node name="DropDash" type="Node" parent="."]
+script = ExtResource("16_7ai3q")
+forward_speed = 10.0
+neutral_speed = 5.0
+charge_button = &"jump"
+anim_charge = &"drop_dash_charge"
