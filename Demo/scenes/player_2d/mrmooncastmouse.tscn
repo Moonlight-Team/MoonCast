@@ -90,7 +90,6 @@ spindash_accumulate = 0.5
 spindash_max_charge = 10.0
 sfx_charge = ExtResource("12_40a6c")
 sfx_release = ExtResource("13_gukst")
-active = false
 
 [node name="SuperPeelOut" type="Node" parent="."]
 script = ExtResource("14_oykrb")

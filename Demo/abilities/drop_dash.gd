@@ -83,4 +83,5 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 	charge_pressed = false
 	charging = false
 	charged = false
+	
 	charge_timer.stop()
