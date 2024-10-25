@@ -911,12 +911,13 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 	
 	#if they were landing from a jump, clean up jump stuff
 	if is_jumping:
-		is_jumping = false
+		#is_jumping = false
 		can_jump = false
 		
 		#we use a timer to make sure the player can't spam the jump
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
 		jump_timer.start(physics.jump_spam_timer)
+	is_jumping = false
 
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
@@ -1013,8 +1014,8 @@ func update_collision_rotation() -> void:
 					#then walk up it. This check also prevents the player from flying off sudden 
 					#obtuse landscape curves
 					if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle) and not is_on_wall()):
-					#if is_slipping or (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle)):
 						collision_rotation = gnd_angle
+					
 				else:
 					#the CharacterBody2D system has no idea what the ground normal is when its
 					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
@@ -1023,10 +1024,18 @@ func update_collision_rotation() -> void:
 					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 					
-					collision_rotation = (right_angle + left_angle) / 2.0
+					var abs_col_rot:float = absf(collision_rotation)
 					
-					#TODO: Ceiling checks
-					
+					#Ceiling checks. If we treat the ceiling like the ground, then the player 
+					#should only be able to land on "steep" slopes, so to speak.
+					if abs_col_rot < floor_max_angle or (abs_col_rot > deg_to_rad(91.0) and abs_col_rot < deg_to_rad(135.0)):
+						collision_rotation = (right_angle + left_angle) / 2.0
+					else: #the "floor" (ceiling) is to "shallow"
+						#keep the player from being "glued" to the ceiling by physics
+						if will_actually_land:
+							space_velocity.y = maxf(space_velocity.y, 0.0)
+						#we are NOT on the floor
+						in_ground_range = false
 		
 		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
 		
