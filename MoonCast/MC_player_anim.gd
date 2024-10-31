@@ -29,10 +29,6 @@ var next_animation:StringName
 ##player properties will be exposed natively like they are in MoonCastAbility.
 var player:MoonCastPlayer2D
 
-func _init() -> void:
-	reference()
-
-
 #func _get_property_list() -> Array[Dictionary]:
 func foobar() -> Array[Dictionary]:
 	var property_list:Array[Dictionary] = []
