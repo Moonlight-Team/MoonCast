@@ -1,39 +1,44 @@
-@tool
 extends Resource
 ##Settings for an animation in MoonCast
-class_name MoonCastPlayerAnim
-##The StringName of the animation this wraps
-@export var name:StringName
-##The expected size of the frames in this animation. Necessary for aligning the 
-##sprite properly to solid collisions in certain situations.
+class_name MoonCastAnimation
 
+##The default animation for this MoonCastAnimation to play
+@export var animation:StringName
+##The playback speed of the animation. 
+@export var speed:float = 1.0
 ##If this animation can be rotated, eg. when aligning the player to the ground.
-@export var can_rotate:bool = false
+@export var can_rotate:bool = true
+##If this animation can be flipped horizontally when the player is going left.
+@export var can_flip_h:bool = true
+
+@export_group("Rotation", "rotation_")
+##If set, this animation override's the player's defaults for animation rotation.
+@export var rotation_override:bool = false:
+	set(on):
+		rotation_override = on
+		notify_property_list_changed()
 ##The rotation snap of the animation.
-@export_storage var rotation_snap:float 
+@export_storage var rotation_snap:float = deg_to_rad(30.0)
+##If set, the rotation of the animation will transition smoothly instead of snapping 
+##to the ground.
+@export_storage var rotation_smooth:bool = true
 
-@export_enum("AnimationPlayer", "AnimatedSprite2D") var animation_type:int
-##Guaruntees that the animation will play through once before being overridable.
-##Not recommended unless you REALLY need it, because it will purposefully interfere
-##with how other animations are played.
-@export var guarunteed_play:bool = false
-##If the animation should increase or decrease speed within a certain range of [ground_velocity].
-@export var speed_varied:bool = false
-##When [speed_varied] is enabled, this defines the start of the range where the animation speed will increase.
-@export_storage var speed_range_start:float 
-##When [speed_varied] is enabled, this defines the end of the range where the animation speed will increase.
-@export_storage var speed_range_end:float
+##The next animation expected by the [MoonCastPlayer], if [_branch_animation] returns [true]
+var next_animation:StringName
+##The player node for this MoonCastAnimation. Eventually this will not be a thing, and the 
+##player properties will be exposed natively like they are in MoonCastAbility.
+var player:MoonCastPlayer2D
 
-##If true, this animation should be treated as a cascade animation. This means that
-##when it is changed, _cascade is called and should return the StringName of the next
-##animation that should play.
-@export var cascade_animation:bool = false
+func _init() -> void:
+	reference()
 
-func _get_property_list() -> Array[Dictionary]:
+
+#func _get_property_list() -> Array[Dictionary]:
+func foobar() -> Array[Dictionary]:
 	var property_list:Array[Dictionary] = []
 	
-	if can_rotate:
-		property_list.append(
+	if rotation_override:
+		property_list.append_array([
 			{
 				"name": "rotation_snap",
 				"class_name": &"",
@@ -41,29 +46,25 @@ func _get_property_list() -> Array[Dictionary]:
 				"hint": PROPERTY_HINT_RANGE,
 				"hint_string": "0.0, 90.0, radians_as_degrees",
 				"usage": PROPERTY_USAGE_DEFAULT
-			}
-		)
-	if speed_varied:
-		property_list.append(
+			},
 			{
-				"name": "speed_range_start",
+				"name": "rotation_smooth",
 				"class_name": &"",
-				"type": TYPE_FLOAT,
+				"type": TYPE_BOOL,
 				"hint": PROPERTY_HINT_NONE,
 				"hint_string": "",
 				"usage": PROPERTY_USAGE_DEFAULT
 			}
-		)
+		])
 	return property_list
 
-##Virtual function that allows you to implement custom for when this animation
-##is played. Note: This code should be very light and as optimized as possible, as it 
-##is run every time the animation loops.
-func _customize_playback() -> void:
-	pass
+##This function is called every time the engine plays this animation, before it plays it. 
+##This can be used, for example, to change animation speed variably.
+func _animation_process() -> void:
+	return
 
-##The virtual function for cascading animations. If [cascade_animation] is on, MoonCast
-##will call this function when the animation plays in order to decide what the next animation
-##to play is.
-func _cascade() -> StringName:
-	return &""
+##If this returns true, this animation will expect to branch out, meaning
+##it can override what animation plays after it. By default, it returns 
+##false, meaning the engine has control of what animation plays next.
+func _branch_animation() -> bool:
+	return false

@@ -2,6 +2,8 @@ extends MoonCastAbility
 
 class_name SpindashAbility
 
+@export var spindash_animation:MoonCastAnimation
+
 @export var spindash_inital:float = 0.5
 @export var spindash_accumulate:float = 0.25
 @export var spindash_max_charge:float = 8.0
@@ -24,9 +26,9 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 	if Input.is_action_pressed(player.controls.direction_down) and is_zero_approx(player.ground_velocity):
 		player.can_jump = false
 		if spindashing:
-			player.play_animation(&"spindash", true)
+			player.play_animation(spindash_animation, true)
 		if Input.is_action_pressed(player.controls.action_jump):
-			player.play_animation(&"spindash", true)
+			player.play_animation(spindash_animation, true)
 			if Input.is_action_just_pressed(player.controls.action_jump):
 				player.play_sound_effect(charge_name)
 			if not spindashing:

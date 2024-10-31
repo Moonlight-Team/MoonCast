@@ -11,9 +11,9 @@ class_name DropDash
 ##The button to be held in order to charge the drop dash.
 @export var charge_button:StringName = &"ui_select"
 ##The animation name for charging the drop dash in midair.
-@export var anim_charge:StringName
+@export var anim_charge:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation name for "launching" the drop dash upon landing.
-@export var anim_launch:StringName
+@export var anim_launch:MoonCastAnimation = MoonCastAnimation.new()
 
 ##If the drop dash can be charged
 var can_charge:bool = false

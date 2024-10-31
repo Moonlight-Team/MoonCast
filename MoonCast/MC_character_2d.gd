@@ -3,23 +3,6 @@ extends CharacterBody2D
 ##A 2D player in MoonCast
 class_name MoonCastPlayer2D
 #region Consts & Enums
-##Flags for playing an animation.
-enum AnimationFlags {
-	##Play the animation looped. 
-	##If not set, the animation will play once and not loop.
-	PLAY_LOOP = 1,
-	##If set, the animation's playback speed changes based on the player's [ground_velocity].
-	GROUND_SPEED = 2,
-	##If set, this animation will force-override playback over any other animation possibly
-	##called to play so far in the physics frame.
-	FORCE_PLAY = 4,
-	##If set, the animation will not be rotated to align to the ground.
-	NO_ROTATE = 8,
-	##If set, the animation will not be flipped horizontally to match player direction.
-	NO_MIRROR = 16,
-	
-}
-
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
@@ -43,19 +26,19 @@ const sfx_hurt_name:StringName = &"hurt"
 @export var default_up_direction:Vector2 = Vector2.UP
 
 @export_group("Rotation", "rotation_")
-##If true, classic rotation snapping will be used, for a more "Genesis" feel.
-##Otherwise, rotation operates smoothly, like in Sonic Mania. This is purely aesthetic.
-@export var rotation_classic_snap:bool = false
+##If this is true, collision boxes of the character will not rotate based on 
+##ground angle, mimicking the behavior of RSDK titles.
+@export var rotation_static_collision:bool = false
 ##The value, in radians, that the sprite rotation will snap to when classic snap is active.
 ##The default value is equal to 30 degrees.
 @export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var rotation_snap_interval:float = deg_to_rad(30.0)
+##If true, classic rotation snapping will be used, for a more "Genesis" feel.
+##Otherwise, rotation operates smoothly, like in Sonic Mania. This is purely aesthetic.
+@export var rotation_classic_snap:bool = false
 ##The amount per frame, in radians, at which the player's rotation will adjust to 
 ##new angles, such as how fast it will move back to 0 when airborne or how fast it 
 ##will adjust to slopes.
 @export_range(0.0, 1.0) var rotation_adjustment_speed:float = 0.2
-##If this is true, collision boxes of the character will not rotate based on 
-##ground angle, mimicking the behavior of RSDK titles.
-@export var rotation_static_collision:bool = false
 
 @export_group("Camera", "camera_")
 ##How many pixels above the player the camera will move to when the player holds up at a standstill.
@@ -69,47 +52,38 @@ const sfx_hurt_name:StringName = &"hurt"
 
 @export_group("Animations", "anim_")
 ##The animation to play when standing still.
-@export var anim_stand:StringName
+@export var anim_stand:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for looking up.
-@export var anim_look_up:StringName
+@export var anim_look_up:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for balancing with more ground.
-@export var anim_balance:StringName
+@export var anim_balance:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for crouching.
-@export var anim_crouch:StringName
+@export var anim_crouch:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for rolling.
-@export var anim_roll:StringName
+@export var anim_roll:MoonCastAnimation = MoonCastAnimation.new()
 ##The animations for when the player is walking or running on the ground.
 ##[br]The key is the minimum percentage of [member ground_velocity] in relation
 ##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
-@export var anim_run:Dictionary[float, StringName]
+@export var anim_run:Dictionary[float, MoonCastAnimation] = {}
 ##The animations for when the player is skidding to a halt.
 ##The key is the minimum percentage of [member ground_velocity] in relation
 ##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
-@export var anim_skid:Dictionary[float, StringName]
+@export var anim_skid:Dictionary[float, MoonCastAnimation] = {}
 ##Animation to play when pushing a wall or object.
-@export var anim_push:StringName
+@export var anim_push:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation to play when jumping.
-@export var anim_jump:StringName
+@export var anim_jump:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation to play when falling without being hurt or in a ball.
-@export var anim_free_fall:StringName
+@export var anim_free_fall:MoonCastAnimation = MoonCastAnimation.new()
 ##The default animation to play when the player dies.
-@export var anim_death:StringName
+@export var anim_death:MoonCastAnimation = MoonCastAnimation.new()
 ##A set of custom animations to play when the player dies for various abnormal reasons.
 ##The key is their reason of death, and the value is the animation that will play.
-@export var anim_death_custom:Dictionary[StringName, StringName]
-
-##A list of animations that will not be rotated to align to the ground.
-##In the air, the player's animation rotation will always be 0, regardless of being in this
-##list or not.
-@export var anim_rotation_blacklist:Array[StringName]
-##A list of animations that will not be flipped horizontally to match the player's facing direction.
-@export var anim_mirror_blacklist:Array[StringName]
-##A list of animations that will vary in playback speed based on the value of [member ground_velocity].
-@export var anim_vary_speed_playback:Array[StringName]
+@export var anim_death_custom:Dictionary[StringName, MoonCastAnimation] = {}
 
 @export_group("Sound Effects", "sfx_")
 ##The audio bus to play sound effects on.
@@ -191,10 +165,10 @@ var state_abilities:Array[StringName]
 var overlay_sprites:Dictionary[StringName, AnimatedSprite2D]
 
 ##The current animation
-var current_anim:StringName
+var current_anim:MoonCastAnimation = MoonCastAnimation.new()
 
-var anim_run_lib:MoonCastAnimLib = MoonCastAnimLib.new()
-var anim_skid_lib:MoonCastAnimLib = MoonCastAnimLib.new()
+var anim_run_sorted_keys:PackedFloat32Array = []
+var anim_skid_sorted_keys:PackedFloat32Array = []
 #endregion
 #region physics vars
 ##The direction the player is facing. Either -1 for left or 1 for right.
@@ -452,32 +426,34 @@ func cleanup_performance_monitors() -> void:
 ##[br][br] By defualt, this is set to stop playing animations after one has been played this frame. 
 ##The optional force parameter can be used to force-play an animation, even if one has 
 ##already been set this frame.
-func play_animation(anim_name:StringName, force:bool = false) -> void:
-	if (force or not animation_set):
-		if is_instance_valid(animations) and animations.has_animation(anim_name):
-			animations.play(anim_name)
+func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
+	#only set the animation if it is forced or not set this frame
+	if (force or not animation_set) and is_instance_valid(anim):
+		anim.player = self
+		#process the animation before it actually is played
+		anim._animation_process()
+		if is_instance_valid(animations) and animations.has_animation(anim.animation):
+			animations.play(anim.animation, -1, anim.speed)
 			animation_set = true
-		if is_instance_valid(animated_sprite1.sprite_frames) and animated_sprite1.sprite_frames.has_animation(anim_name):
-			animated_sprite1.play(anim_name)
+		if is_instance_valid(animated_sprite1.sprite_frames) and animated_sprite1.sprite_frames.has_animation(anim.animation):
+			animated_sprite1.play(anim.animation, anim.speed)
 			animation_set = true
-		current_anim = anim_name
-
-##A special function for sequencing several animations in a chain. The array this takes in as a 
-##parameter is assumed to be in the order that you want the animations to play.
-func sequence_animations(animation_array:Array[StringName]) -> void:
-	for anims:StringName in animation_array:
-		pass
+		if current_anim != anim:
+			if current_anim._branch_animation():
+				pass
+		current_anim = anim
 
 ##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
 ##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will 
 ##return true if the former has an animation even if the latter does not.
-func has_animation(anim_name:StringName) -> bool:
+func has_animation(anim:MoonCastAnimation) -> bool:
 	if is_instance_valid(animations):
-		return animations.has_animation(anim_name)
+		return animations.has_animation(anim.animation)
 	elif is_instance_valid(animated_sprite1):
-		return animated_sprite1.sprite_frames.has_animation(anim_name)
+		return animated_sprite1.sprite_frames.has_animation(anim.animation)
 	else:
 		return false
+
 #endregion
 #region Ability API
 ##Find out if a character has a given ability.
@@ -689,7 +665,7 @@ func process_air() -> void:
 	#allow midair rolling if it's enabled
 	if not is_rolling and roll_checks() and Input.is_action_pressed(controls.action_roll):
 		is_rolling = true
-		play_animation(anim_roll)
+		#play_animation(anim_roll)
 		play_sound_effect(sfx_roll_name)
 	
 	#Allow the player to change the duration of the jump by releasing the jump
@@ -776,7 +752,7 @@ func process_ground() -> void:
 		elif not is_slipping: #We're going opposite to the facing direction, so apply skid mechanic
 			ground_velocity += physics.ground_skid_speed * facing_direction
 			
-			for speeds:float in anim_skid_lib.sorted_keys:
+			for speeds:float in anim_skid_sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					
 					#correct the direction of the sprite
@@ -848,7 +824,7 @@ func process_ground() -> void:
 		
 		is_grounded = false
 		
-		play_animation(anim_jump, true)
+		#play_animation(anim_jump, true)
 		play_sound_effect(sfx_jump_name)
 		
 		#the following does not apply if we are already attacking
@@ -1081,9 +1057,7 @@ func update_collision_rotation() -> void:
 		
 		#set sprite rotations
 		if is_moving and in_ground_range:
-			if anim_rotation_blacklist.has(current_anim):
-				sprite_rotation = 0
-			else:
+			if current_anim.can_rotate:
 				var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
 				
 				var half_rot_snap:float = rotation_snap_interval / 2.0 #TODO: cache this
@@ -1107,8 +1081,10 @@ func update_collision_rotation() -> void:
 					
 					if not is_equal_approx(snappedf(sprite_rotation, 0.001), halfway_snap_point):
 						sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
+			else:
+				sprite_rotation = 0.0
 		else: #So that the character stands upright on slopes and such
-			sprite_rotation = 0
+			sprite_rotation = 0.0
 	else:
 		#it's important to set this here so that slope launching is calculated 
 		#before reseting collision rotation
@@ -1124,7 +1100,7 @@ func update_collision_rotation() -> void:
 		up_direction = default_up_direction
 		
 		#set sprite rotation
-		if not anim_rotation_blacklist.has(current_anim):
+		if current_anim.can_rotate:
 			if rotation_classic_snap:
 				sprite_rotation = 0
 			else:
@@ -1154,7 +1130,7 @@ func update_animations() -> void:
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
 		elif not is_zero_approx(ground_velocity):
-			for speeds:float in anim_run_lib.sorted_keys:
+			for speeds:float in anim_run_sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
@@ -1190,7 +1166,7 @@ func update_animations() -> void:
 
 ##Flip the sprites for the player based on the direction the player is facing.
 func sprites_flip() -> void:
-	if not anim_mirror_blacklist.has(current_anim):
+	if current_anim.can_flip_h:
 		var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
 		#ensure the character is facing the right direction
 		#run checks on the nodes, because having the nodes for this is not assumable
@@ -1238,8 +1214,22 @@ func _ready() -> void:
 	connect(&"contact_air", enter_air)
 	connect(&"contact_ground", land_on_ground)
 	
-	anim_run_lib.load_dictionary(anim_run)
-	anim_skid_lib.load_dictionary(anim_skid)
+	var load_dictionary:Callable = func(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
+		var sorted_keys:PackedFloat32Array
+		#check the anim_run keys for valid values
+		for keys:float in dict.keys():
+			var snapped_key:float = snappedf(keys, 0.001)
+			if not is_equal_approx(keys, snapped_key):
+				push_warning("Key ", keys, " is more precise than the precision cutoff")
+			sorted_keys.append(snapped_key)
+		#sort the keys (from least to greatest)
+		sorted_keys.sort()
+		
+		sorted_keys.reverse()
+		return sorted_keys
+	
+	anim_run_sorted_keys = load_dictionary.call(anim_run)
+	anim_skid_sorted_keys = load_dictionary.call(anim_skid)
 	
 	default_max_angle = floor_max_angle
 	
@@ -1249,6 +1239,9 @@ func _exit_tree() -> void:
 	cleanup_performance_monitors()
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	
 	#reset this flag specifically
 	animation_set = false
 	pre_physics.emit(self)

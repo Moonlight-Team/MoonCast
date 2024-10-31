@@ -2,7 +2,6 @@ extends MoonCastAbility
 
 class_name SuperPeelOutAbility
 
-
 ##The speed that the player will be launched at when the super peel out is charge_complete.
 @export var launch_speed:float = 12.0
 ##The time it takes for the peel out to charge, in seconds
@@ -20,7 +19,7 @@ func _ready() -> void:
 
 func _setup_2D(player:MoonCastPlayer2D) -> void:
 	#TODO: Add sfx
-	player
+	pass
 
 func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 	if Input.is_action_pressed(player.controls.direction_up):
