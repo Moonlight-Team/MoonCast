@@ -189,6 +189,9 @@ var input_direction:float = 0:
 ##Automatically resets to false at the start of each physics frame
 ##(before the pre-physics ability signal).
 var animation_set:bool = false
+##Set if the actual current playing animation is a custom one decided by the 
+##code of the animation.
+var animation_custom:bool = false
 
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
@@ -431,28 +434,34 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 	if (force or not animation_set) and is_instance_valid(anim):
 		anim.player = self
 		#process the animation before it actually is played
-		anim._animation_process()
-		if is_instance_valid(animations) and animations.has_animation(anim.animation):
-			animations.play(anim.animation, -1, anim.speed)
+		if anim != current_anim:
+			current_anim._animation_cease()
+			anim._animation_start()
+			anim._animation_process()
+			current_anim = anim
+		else:
+			current_anim._animation_process()
+		
+		#check if the animation wants to branch
+		animation_custom = anim._branch_animation()
+		#set the actual animation to play based on if the animation wants to branch
+		var played_anim:StringName = anim.next_animation if animation_custom else anim.animation
+		
+		if is_instance_valid(animations) and animations.has_animation(played_anim):
+			animations.play(played_anim, -1, anim.speed)
 			animation_set = true
-		if is_instance_valid(animated_sprite1.sprite_frames) and animated_sprite1.sprite_frames.has_animation(anim.animation):
-			animated_sprite1.play(anim.animation, anim.speed)
+		if is_instance_valid(animated_sprite1.sprite_frames) and animated_sprite1.sprite_frames.has_animation(played_anim):
+			animated_sprite1.play(played_anim, anim.speed)
 			animation_set = true
-		if current_anim != anim:
-			if current_anim._branch_animation():
-				pass
-		current_anim = anim
 
 ##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
-##This will check for a valid AnimationPlayer [i]before[/i] a valid AnimatedSprite2D, and will 
-##return true if the former has an animation even if the latter does not.
 func has_animation(anim:MoonCastAnimation) -> bool:
+	var has_anim:bool
 	if is_instance_valid(animations):
-		return animations.has_animation(anim.animation)
-	elif is_instance_valid(animated_sprite1):
-		return animated_sprite1.sprite_frames.has_animation(anim.animation)
-	else:
-		return false
+		has_anim = animations.has_animation(anim.animation)
+	if is_instance_valid(animated_sprite1):
+		has_anim = has_anim or animated_sprite1.sprite_frames.has_animation(anim.animation)
+	return has_anim
 
 #endregion
 #region Ability API
@@ -859,7 +868,7 @@ func roll_checks() -> bool:
 ##A function that is called when the player enters the air from
 ##previously being on the ground.
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
-	collision_rotation = 0
+	#collision_rotation = 0
 	up_direction = default_up_direction
 
 ##A function that is called when the player lands on the ground
@@ -1051,6 +1060,8 @@ func update_collision_rotation() -> void:
 		else:
 			up_direction = default_up_direction
 			
+			
+			
 			#the raycasts will find the ground before the CharacterBody hitbox does, 
 			#so only become grounded when both are "on the ground"
 			is_grounded = in_ground_range and will_actually_land
@@ -1123,7 +1134,8 @@ func update_animations() -> void:
 			sprites_flip()
 			play_animation(anim_jump)
 		else:
-			play_animation(anim_free_fall, true)
+			#play_animation(anim_free_fall, true)
+			play_animation(anim_free_fall)
 	elif is_grounded:
 		if is_pushing:
 			play_animation(anim_push)

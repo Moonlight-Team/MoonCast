@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=37 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/mooncast_physics.tres" id="2_rii83"]
@@ -9,6 +9,7 @@
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_fe7cx"]
 [ext_resource type="Script" path="res://Demo/scenes/player_2d/speed_varied_anim.gd" id="5_onlsf"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
+[ext_resource type="Script" path="res://Demo/scenes/player_2d/flip_anim.gd" id="6_l0jkf"]
 [ext_resource type="SpriteFrames" uid="uid://dm67r4cqj7ud5" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_ice.tres" id="7_hprdh"]
 [ext_resource type="SpriteFrames" uid="uid://bpvjns0vskghr" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.tres" id="7_o1ngo"]
 [ext_resource type="Script" path="res://Demo/abilities/switch_skin.gd" id="8_ax5uv"]
@@ -75,9 +76,11 @@ rotation_override = false
 rotation_snap = 0.523599
 rotation_smooth = true
 
-[sub_resource type="Resource" id="Resource_7g42m"]
+[sub_resource type="Resource" id="Resource_rbxmi"]
 resource_name = "roll_ball"
-script = ExtResource("4_j5cv3")
+script = ExtResource("5_onlsf")
+walk_min_speed = 0.3
+speed_scale = 2.0
 animation = &"roll_ball"
 speed = 1.0
 can_rotate = false
@@ -89,6 +92,8 @@ rotation_smooth = true
 [sub_resource type="Resource" id="Resource_xe3mx"]
 resource_name = "walk"
 script = ExtResource("5_onlsf")
+walk_min_speed = 0.3
+speed_scale = 2.5
 animation = &"walk"
 speed = 1.0
 can_rotate = true
@@ -139,9 +144,9 @@ rotation_override = false
 rotation_snap = 0.523599
 rotation_smooth = true
 
-[sub_resource type="Resource" id="Resource_3ugxg"]
-resource_name = "falling"
-script = ExtResource("4_j5cv3")
+[sub_resource type="Resource" id="Resource_d7m6u"]
+script = ExtResource("6_l0jkf")
+flip_animation = &"flip_fall"
 animation = &"falling"
 speed = 1.0
 can_rotate = true
@@ -178,7 +183,7 @@ rotation_smooth = true
 script = ExtResource("4_j5cv3")
 animation = &"drop_dash_charge"
 speed = 1.0
-can_rotate = true
+can_rotate = false
 can_flip_h = false
 rotation_override = false
 rotation_snap = 0.523599
@@ -186,10 +191,10 @@ rotation_smooth = true
 
 [sub_resource type="Resource" id="Resource_0fsb0"]
 script = ExtResource("4_j5cv3")
-animation = &""
-speed = 1.0
-can_rotate = true
-can_flip_h = true
+animation = &"drop_dash_charge"
+speed = 2.0
+can_rotate = false
+can_flip_h = false
 rotation_override = false
 rotation_snap = 0.523599
 rotation_smooth = true
@@ -208,7 +213,7 @@ anim_stand = SubResource("Resource_ipwss")
 anim_look_up = SubResource("Resource_de70c")
 anim_balance = SubResource("Resource_12qc5")
 anim_crouch = SubResource("Resource_24foh")
-anim_roll = SubResource("Resource_7g42m")
+anim_roll = SubResource("Resource_rbxmi")
 anim_run = Dictionary[float, ExtResource("4_j5cv3")]({
 0.01: SubResource("Resource_xe3mx"),
 1.0: SubResource("Resource_4miyg")
@@ -218,7 +223,7 @@ anim_skid = Dictionary[float, ExtResource("4_j5cv3")]({
 })
 anim_push = SubResource("Resource_xm0aj")
 anim_jump = SubResource("Resource_fdrhr")
-anim_free_fall = SubResource("Resource_3ugxg")
+anim_free_fall = SubResource("Resource_d7m6u")
 anim_death = SubResource("Resource_liap4")
 sfx_bus = &"SFX"
 sfx_jump = ExtResource("3_o6288")
@@ -234,7 +239,7 @@ shape = SubResource("RectangleShape2D_x7kbe")
 texture_filter = 1
 position = Vector2(2, -1)
 sprite_frames = ExtResource("7_o1ngo")
-animation = &"spindash"
+animation = &"flip_fall"
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")

@@ -54,10 +54,18 @@ func foobar() -> Array[Dictionary]:
 		])
 	return property_list
 
+##This function is called when the animation is started. (Note: [b]not[/b] when it loops.)
+func _animation_start() -> void:
+	pass
+
 ##This function is called every time the engine plays this animation, before it plays it. 
 ##This can be used, for example, to change animation speed variably.
 func _animation_process() -> void:
 	return
+
+##Called when this animation's playback is about to be overwritten by another animation.
+func _animation_cease() -> void:
+	pass
 
 ##If this returns true, this animation will expect to branch out, meaning
 ##it can override what animation plays after it. By default, it returns 
