@@ -892,7 +892,7 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		is_rolling = false
 	
 	#begin control lock timer
-	if control_lock_timer.timeout.has_connections() and control_lock_timer.is_stopped():
+	if not control_lock_timer.timeout.get_connections().is_empty() and control_lock_timer.is_stopped():
 		#ground_velocity += physics.air_gravity_strength * sin(collision_rotation)
 		control_lock_timer.start(physics.ground_slip_time)
 	
