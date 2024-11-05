@@ -5,14 +5,17 @@ extends Resource
 class_name MoonCastPhysicsTable
 
 @export_group("Control Options", "control_")
+
+@export_subgroup("Rolling Options", "control_roll_")
 ##If enabled, the player must release all directional input before being able to roll while moving.
-@export var control_move_roll_lock:bool = true
+@export var control_roll_move_lock:bool = true
 ##If this is disabled, the character cannot roll. 
-@export var control_rolling_enabled:bool = true
+@export var control_roll_enabled:bool = true
 ##If enabled, the character can initiate a roll in midair while falling.
-@export var control_can_midair_roll:bool = false
+@export var control_roll_midair_activate:bool = false
+@export_subgroup("Jumping Options", "control_jump_")
 ##If enabled, the player is vulnerable when jumping.
-@export var control_is_jump_vulnerable:bool = false
+@export var control_jump_is_vulnerable:bool = false
 ##If enabled, the player will be unable to control their air movement if rolling in midair.
 @export var control_jump_roll_lock:bool = false
 ##If enabled, the player can hold jump to repeatedly jump as soon as the jump timer is over.

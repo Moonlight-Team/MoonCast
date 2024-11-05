@@ -4,15 +4,15 @@
 
 [resource]
 script = ExtResource("1_ainab")
-control_move_roll_lock = false
-control_rolling_enabled = true
-control_can_midair_roll = true
-control_is_jump_vulnerable = false
+control_roll_move_lock = true
+control_roll_enabled = true
+control_roll_midair_activate = true
+control_jump_is_vulnerable = false
 control_jump_roll_lock = false
 control_jump_hold_repeat = false
 ground_min_speed = 0.2
 ground_stick_speed = 1.0
-ground_slip_time = 0.6
+ground_slip_time = 0.5
 ground_top_speed = 6.5
 ground_acceleration = 0.07
 ground_deceleration = 0.046875

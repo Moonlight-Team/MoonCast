@@ -219,8 +219,8 @@ var can_jump:bool = true:
 ##If true, the player can move. 
 var can_roll:bool = true:
 	set(on):
-		if physics.control_rolling_enabled:
-			if physics.control_move_roll_lock:
+		if physics.control_roll_enabled:
+			if physics.control_roll_move_lock:
 				can_roll = on and is_zero_approx(input_direction)
 			else:
 				can_roll = on
@@ -366,10 +366,16 @@ func setup_children() -> void:
 			nodes.call(&"setup_ability_2D", self)
 	
 	jump_timer.name = "JumpTimer"
+	jump_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	jump_timer.one_shot = true
 	add_child(jump_timer)
 	control_lock_timer.name = "ControlLockTimer"
+	control_lock_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	jump_timer.one_shot = true
 	add_child(control_lock_timer)
 	ground_snap_timer.name = "GroundSnapTimer"
+	ground_snap_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	ground_snap_timer.one_shot = true
 	add_child(ground_snap_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
@@ -578,6 +584,8 @@ func is_going_right() -> bool:
 		#TODO: Make this properly check relative to default_up_direction
 		return space_velocity.x > 0
 
+#Note: In C++, I would overwrite set_collision_layer in order to automatically 
+#update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 ##Set which collision layers will be considered ground for the player.
 ##For changing which layers the player will be detectable in, set [member collision_layer].
 func change_collision_mask(new_mask_bitfield:int) -> void:
@@ -599,8 +607,6 @@ func limitAngle(input_angle:float) -> float:
 		return_angle = -return_angle
 	return return_angle
 
-#Note: In C++, I would overwrite set_collision_layer in order to automatically 
-#update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 
 ##Assess the CollisionShape children (hitboxes of the character) and accordingly
 ##set some internal sensors to their proper positions, among other things.
@@ -739,7 +745,6 @@ func process_ground() -> void:
 		var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
 		
 		#slope and other "world" speed factors
-		#if is_moving or absf(limitAngle(global_collision_rotation)) > default_max_angle:
 		if is_moving or is_slipping:
 			#Apply the standing/running slope factor
 			ground_velocity += physics.ground_slope_factor * sine_ground_angle
@@ -841,7 +846,7 @@ func process_ground() -> void:
 			#rolling is used as a shorthand for if the player is 
 			#"attacking". Therefore, it should not be set if the player
 			#should be vulnerable in midair
-			is_attacking = not  physics.control_is_jump_vulnerable
+			is_attacking = not  physics.control_jump_is_vulnerable
 	else:
 		#apply the ground velocity to the "actual" velocity
 		space_velocity = ground_velocity * rotation_vector
@@ -850,15 +855,15 @@ func process_ground() -> void:
 func roll_checks() -> bool:
 	#check this first, cause if we aren't allowed to roll externally, we don't
 	#need the more nitty gritty checks
-	if  physics.control_rolling_enabled:
+	if  physics.control_roll_enabled:
 		#If the player is is_grounded, they can roll, since the previous check for
 		#it being enabled is true. If they're in the air though, they can only 
 		#roll if they can midair roll
-		can_roll = true if is_grounded else physics.control_can_midair_roll
+		can_roll = true if is_grounded else physics.control_roll_midair_activate
 		
 		#we only care about this check if the player isn't already rolling, so that
 		#external influences on rolling, such as tubes, are not affected
-		if not is_rolling and physics.control_move_roll_lock:
+		if not is_rolling and physics.control_roll_move_lock:
 			#only allow rolling if we aren't going left or right actively
 			can_roll = can_roll and is_zero_approx(input_direction)
 	else:
@@ -868,7 +873,7 @@ func roll_checks() -> bool:
 ##A function that is called when the player enters the air from
 ##previously being on the ground.
 func enter_air(_player:MoonCastPlayer2D = null) -> void:
-	#collision_rotation = 0
+	collision_rotation = 0.0
 	up_direction = default_up_direction
 
 ##A function that is called when the player lands on the ground
@@ -904,6 +909,7 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		jump_timer.start(physics.jump_spam_timer)
 	is_jumping = false
 
+#this is likely the most complicated part of this whole codebase LOL
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
@@ -1000,7 +1006,7 @@ func update_collision_rotation() -> void:
 					#obtuse landscape curves
 					if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle) and not is_on_wall()):
 						collision_rotation = gnd_angle
-					
+				
 				else:
 					#the CharacterBody2D system has no idea what the ground normal is when its
 					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
@@ -1009,26 +1015,24 @@ func update_collision_rotation() -> void:
 					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
 					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 					
-					var abs_col_rot:float = absf(collision_rotation)
-					
-					#Ceiling checks. If we treat the ceiling like the ground, then the player 
-					#should only be able to land on "steep" slopes, so to speak.
-					if abs_col_rot < floor_max_angle or (abs_col_rot > deg_to_rad(91.0) and abs_col_rot < deg_to_rad(135.0)):
-						collision_rotation = (right_angle + left_angle) / 2.0
-					else: #the "floor" (ceiling) is to "shallow"
-						#keep the player from being "glued" to the ceiling by physics
-						if will_actually_land:
-							space_velocity.y = maxf(space_velocity.y, 0.0)
-						#we are NOT on the floor
-						in_ground_range = false
+					collision_rotation = (right_angle + left_angle) / 2.0
 		
-		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
+		#ceiling checks
 		
-		var floor_is_too_steep:bool = absf(limitAngle(collision_rotation)) >= absf(minf(physics.ground_slip_angle, default_max_angle))
+		var abs_collision_rotation:float = absf(collision_rotation)
+		#if the player is on what would be considered the ceiling
+		var ground_is_ceiling:bool = abs_collision_rotation > deg_to_rad(91.0) and collision_rotation < deg_to_rad(269.0)
+		#floor is too steep to be on at all
+		var floor_is_fall_angle:bool = abs_collision_rotation >= absf(default_max_angle) and abs_collision_rotation <= absf(default_max_angle + PI)
+		#for is too steep to keep grip at low speeds
+		var floor_is_slip_angle:bool = floor_is_fall_angle or abs_collision_rotation >= absf(physics.ground_slip_angle)
 		
 		#slip checks
+		
+		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
+		var should_lose_grip:bool = true if ground_is_ceiling else floor_is_slip_angle
+		
 		if is_grounded:
-			
 			if fast_enough and contact_point_count > 1:
 				#up_direction is set so that floor snapping can be used for walking on walls. 
 				up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
@@ -1045,29 +1049,63 @@ func update_collision_rotation() -> void:
 				#the player from any walls they were on
 				up_direction = default_up_direction
 				
-				#if the floor is too steep and the player walked onto the slope, 
-				#they need to slip down by temporarily losing control
-				if floor_is_too_steep and not is_slipping:
-					is_slipping = true
-					ground_velocity = 0.0
+				if floor_is_fall_angle:
+					if not (ground_is_ceiling and is_slipping):
+						is_slipping = true
+						#set up the connection for the control lock timer.
+						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+						control_lock_timer.start(physics.ground_slip_time)
 					is_grounded = false
-					#set up the connection for the control lock timer.
-					#It actually starts when the player lands.
-					control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
-					control_lock_timer.start(physics.ground_slip_time)
+				
+				elif floor_is_slip_angle:
+					#unstick from any ceilings we're on
+					if ground_is_ceiling:
+						is_grounded = false
+					#if we're not slipping, start slipping
+					if not is_slipping:
+						is_slipping = true
+						#set up the connection for the control lock timer.
+						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+						control_lock_timer.start(physics.ground_slip_time)
+						#prevent immedeate "oh we're moving fast enough" upon landing
+						if slipping_direction == signf(ground_velocity):
+							ground_velocity = 0.0
 				
 				floor_max_angle = default_max_angle
-		else:
+		else: #not grounded
 			up_direction = default_up_direction
 			
+			#player can land on a ground slope if it's not too steep, and only on a ceiling slope
+			#when it *is* too steep
+			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
 			
+			#if we can't land on the slope and are not slipping
+			if not can_land_on_slope and not is_slipping:
+				is_slipping = true
+				
+				#set up the connection for the control lock timer.
+				control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+				control_lock_timer.start(physics.ground_slip_time)
 			
 			#the raycasts will find the ground before the CharacterBody hitbox does, 
 			#so only become grounded when both are "on the ground"
-			is_grounded = in_ground_range and will_actually_land
+			
+			if can_land_on_slope:
+				if ground_is_ceiling:
+					#TODO: Functional ceiling checks
+					is_grounded = in_ground_range and floor_is_fall_angle
+				is_grounded = in_ground_range and will_actually_land
+			else:
+				
+				if not is_slipping:
+					is_slipping = true
+					#set up the connection for the control lock timer.
+					control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+					control_lock_timer.start(physics.ground_slip_time)
+				is_grounded = will_actually_land and not ground_is_ceiling
 		
 		#set sprite rotations
-		if is_moving and in_ground_range:
+		if is_moving and (is_grounded or is_slipping):
 			if current_anim.can_rotate:
 				var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
 				
@@ -1100,6 +1138,7 @@ func update_collision_rotation() -> void:
 		#it's important to set this here so that slope launching is calculated 
 		#before reseting collision rotation
 		is_grounded = false
+		is_slipping = false
 		
 		#ground sensors point whichever direction the player is traveling vertically
 		#this is so that landing on the ceiling is made possible
@@ -1129,19 +1168,15 @@ func update_animations() -> void:
 	#rolling is rolling, whether the player is in the air or on the ground
 	if is_rolling:
 		play_animation(anim_roll, true)
-	elif not is_grounded: #air animations
-		if is_jumping:
-			sprites_flip()
-			play_animation(anim_jump)
-		else:
-			#play_animation(anim_free_fall, true)
-			play_animation(anim_free_fall)
+	elif not is_grounded and is_jumping: #air animations
+		sprites_flip()
+		play_animation(anim_jump)
 	elif is_grounded:
 		if is_pushing:
 			play_animation(anim_push)
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		elif not is_zero_approx(ground_velocity):
+		elif not is_zero_approx(ground_velocity) or is_slipping:
 			for speeds:float in anim_run_sorted_keys:
 				if absf(ground_velocity) > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
@@ -1175,6 +1210,8 @@ func update_animations() -> void:
 				else:
 					play_animation(anim_stand, true)
 					move_camera_vertical(0)
+	elif not is_slipping:
+		play_animation(anim_free_fall)
 
 ##Flip the sprites for the player based on the direction the player is facing.
 func sprites_flip() -> void:

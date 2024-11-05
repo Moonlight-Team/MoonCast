@@ -16,7 +16,6 @@ func _animation_start() -> void:
 
 func _animation_process() -> void:
 	can_flip = player.collision_rotation > flip_range_start and player.collision_rotation < flip_range_end
-	printt("Can flip:", can_flip, player.collision_rotation)
 
 func _animation_cease() -> void:
 	flip_played = false
@@ -24,7 +23,6 @@ func _animation_cease() -> void:
 
 func _branch_animation() -> bool:
 	if not flip_played and can_flip:
-		print("What the flip")
 		player.animated_sprite1.connect(&"animation_finished", func(): flip_played = true, CONNECT_ONE_SHOT)
 		return true
 	else:
