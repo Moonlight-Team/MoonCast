@@ -77,7 +77,7 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 		else:
 			player.ground_velocity = player.facing_direction * neutral_speed
 		player.is_rolling = true
-		player.play_animation(anim_launch)
+		player.play_animation(anim_launch, true)
 	
 	can_charge = true
 	charge_pressed = false

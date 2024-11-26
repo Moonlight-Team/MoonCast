@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ##Settings for an animation in MoonCast
 class_name MoonCastAnimation
@@ -6,17 +7,30 @@ class_name MoonCastAnimation
 @export var animation:StringName
 ##The playback speed of the animation. 
 @export var speed:float = 1.0
+##The size that this animation takes up. This is used for ground alignment.
+@export var size:Rect2i = Rect2i()
 ##If this animation can be rotated, eg. when aligning the player to the ground.
 @export var can_rotate:bool = true
 ##If this animation can be flipped horizontally when the player is going left.
 @export var can_flip_h:bool = true
-
-@export_group("Rotation", "rotation_")
 ##If set, this animation override's the player's defaults for animation rotation.
-@export var rotation_override:bool = false:
+@export var override_rotation:bool = false:
 	set(on):
-		rotation_override = on
+		override_rotation = on
 		notify_property_list_changed()
+##If set, this animation override's the player's default collision shapes while active.
+@export var override_collision:bool = false:
+	set(on):
+		override_collision = on
+		notify_property_list_changed()
+
+@export_group("Collision", "collision_")
+##The center for the collision shape.
+@export_storage var collision_center:Vector2
+##The custom collision shape to use when this animation is active.
+@export_storage var collision_shape:Shape2D = null
+@export_group("")
+@export_group("Rotation", "rotation_")
 ##The rotation snap of the animation.
 @export_storage var rotation_snap:float = deg_to_rad(30.0)
 ##If set, the rotation of the animation will transition smoothly instead of snapping 
@@ -29,11 +43,10 @@ var next_animation:StringName
 ##player properties will be exposed natively like they are in MoonCastAbility.
 var player:MoonCastPlayer2D
 
-#func _get_property_list() -> Array[Dictionary]:
-func foobar() -> Array[Dictionary]:
+func _get_property_list() -> Array[Dictionary]:
 	var property_list:Array[Dictionary] = []
 	
-	if rotation_override:
+	if override_rotation:
 		property_list.append_array([
 			{
 				"name": "rotation_snap",
@@ -45,6 +58,25 @@ func foobar() -> Array[Dictionary]:
 			},
 			{
 				"name": "rotation_smooth",
+				"class_name": &"",
+				"type": TYPE_BOOL,
+				"hint": PROPERTY_HINT_NONE,
+				"hint_string": "",
+				"usage": PROPERTY_USAGE_DEFAULT
+			}
+		])
+	if override_collision:
+		property_list.append_array([
+			{
+				"name": "collision_center",
+				"class_name": &"",
+				"type": TYPE_VECTOR2I,
+				"hint": PROPERTY_HINT_NONE,
+				"hint_string": "",
+				"usage": PROPERTY_USAGE_DEFAULT
+			},
+			{
+				"name": "collision_shape",
 				"class_name": &"",
 				"type": TYPE_BOOL,
 				"hint": PROPERTY_HINT_NONE,

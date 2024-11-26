@@ -12,7 +12,7 @@ config_version=5
 
 config/name="MoonCast Engine"
 config/description="A 2D and 3D Sonic physics engine for Godot 4"
-config/version="0.3"
+config/version="0.4"
 run/main_scene="res://Demo/scenes/gui/main_menu.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.4", "GL Compatibility")

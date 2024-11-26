@@ -9,7 +9,6 @@ enum BoxMode {
 	BasicShield,
 	SpeedShoes,
 	
-	
 	Shuffle = 0xFF
 }
 
@@ -33,17 +32,11 @@ func _ready() -> void:
 	if popped:
 		pop_monitor()
 	else:
-		match mode:
-			BoxMode.Blank:
-				item_sprite.texture = sprite_blank
-			BoxMode.OneUp:
-				item_sprite.texture = sprite_1up
-			BoxMode.TenRings:
-				item_sprite.texture = sprite_10ring
-			BoxMode.BasicShield:
-				item_sprite.texture = sprite_shield
-			BoxMode.SpeedShoes:
-				item_sprite.texture = sprite_speedshoes
+		un_pop_monitor()
+
+#func _process(delta: float) -> void:
+	#if Engine.is_editor_hint():
+		#_ready()
 
 func _on_vertical_player_contact(player:MoonCastPlayer2D) -> void:
 	if not popped and player.is_attacking:
@@ -54,8 +47,31 @@ func _on_horizontal_player_contact(player:MoonCastPlayer2D) -> void:
 	if not popped and player.is_attacking:
 		pop_monitor()
 
+func _on_collision_area_body_entered(body:Node2D) -> void:
+	if not popped:
+		if body.is_class("CollisionObject2D"):
+			#force the object out
+			pass
+
 func pop_monitor() -> void:
 	popped = true
 	box_sprite.texture = sprite_box_broken
 	item_sprite.hide()
 	set_deferred(&"process_mode", Node.PROCESS_MODE_DISABLED)
+
+func un_pop_monitor() -> void:
+	popped = false
+	box_sprite.texture = sprite_box_norm
+	match mode:
+		BoxMode.Blank:
+			item_sprite.texture = sprite_blank
+		BoxMode.OneUp:
+			item_sprite.texture = sprite_1up
+		BoxMode.TenRings:
+			item_sprite.texture = sprite_10ring
+		BoxMode.BasicShield:
+			item_sprite.texture = sprite_shield
+		BoxMode.SpeedShoes:
+			item_sprite.texture = sprite_speedshoes
+	item_sprite.show()
+	set_deferred(&"process_mode", Node.PROCESS_MODE_PAUSABLE)

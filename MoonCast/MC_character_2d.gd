@@ -181,7 +181,7 @@ var slipping_direction:float = 0.0
 var input_direction:float = 0:
 	set(new_dir):
 		input_direction = new_dir
-		if can_be_changing_direction and not is_zero_approx(new_dir):
+		if current_anim.can_flip_h and not is_zero_approx(new_dir):
 			facing_direction = signf(new_dir)
 
 ##Set to true when an animation is set in the physics frame 
@@ -226,8 +226,6 @@ var can_roll:bool = true:
 				can_roll = on
 		else:
 			can_roll = false
-var can_be_changing_direction:bool = true
-var can_be_crouching:bool = true
 var can_be_pushing:bool = true
 var can_be_moving:bool = true
 var can_be_attacking:bool = true
@@ -251,12 +249,10 @@ var is_grounded:bool:
 var is_moving:bool:
 	set(on):
 		is_moving = on
-		can_be_crouching = not is_moving
 ##If true, the player is rolling.
 var is_rolling:bool:
 	set(on):
 		is_rolling = on
-		can_be_changing_direction = not is_rolling
 		is_attacking = on
 ##If true, the player is crouching.
 var is_crouching:bool
@@ -269,11 +265,7 @@ var is_pushing:bool = false:
 			if not is_pushing:
 				contact_wall.emit()
 		is_pushing = now_pushing
-var is_jumping:bool = false:
-	set(now_jumping):
-		if now_jumping and not can_be_changing_direction:
-			can_be_changing_direction = true
-		is_jumping = now_jumping
+var is_jumping:bool = false
 ##If the player is slipping down a slope. When set, this value will silently
 ##set [member slipping_direction] based on the current [member collision_rotation].
 var is_slipping:bool = false:
@@ -914,8 +906,12 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
 	var wall_contact:bool = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
+	var wall_stop:bool = false
 	
 	if wall_contact:
+		#keep the player from sliding up the wall
+		space_velocity.y = maxf(space_velocity.y, 0.0)
+		
 		#the direction the player is moving horizontally
 		var movement_dir:float
 		
@@ -926,27 +922,29 @@ func update_collision_rotation() -> void:
 		
 		#if the player is moving and moving in the direction they're facing
 		if not is_zero_approx(movement_dir) and is_equal_approx(movement_dir, facing_direction):
-			#if the player is moving in the direction of the contacted wall
-			if (ray_wall_left.is_colliding() and movement_dir < 0) or (ray_wall_right.is_colliding() and movement_dir > 0):
-				#All of those checks succeeded, the player is indeed pushing against a wall.
-				#Null horizontal speed.
-				if is_grounded:
-					ground_velocity = 0.0
-				else:
-					space_velocity.x = 0.0
-				is_pushing = true
-			else:
-				#we're not moving in the direction of the wall, so we're not pushing
-				is_pushing = false
+			#We allow this tag as a means of setting aside bodies (eg. RigidBody) that should
+			#be treated like objects heavier than the player
+			const static_movable_id:StringName = &"strong_movable"
+			
+			if (ray_wall_left.is_colliding() and movement_dir < 0):
+				wall_stop = not ray_wall_left.get_collider().has_meta(static_movable_id)
+			elif (ray_wall_right.is_colliding() and movement_dir > 0):
+				wall_stop = not ray_wall_right.get_collider().has_meta(static_movable_id)
+			
+			is_pushing = wall_stop
 		else:
-			if is_grounded:
-				ground_velocity = 0.0
-			else:
-				space_velocity.x = 0.0
+			wall_stop = true
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
-
+	
+	#stop the player from moving if they're on a wall
+	if wall_stop:
+		if is_grounded:
+			ground_velocity = 0.0
+		else:
+			space_velocity.x = 0.0
+	
 	var contact_point_count:int = int(ray_ground_left.is_colliding()) + int(ray_ground_central.is_colliding()) + int(ray_ground_right.is_colliding())
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
@@ -1164,12 +1162,11 @@ func update_collision_rotation() -> void:
 ##Update the rotation of the character when they are in the air
 func update_animations() -> void:
 	sprites_flip()
-	
 	#rolling is rolling, whether the player is in the air or on the ground
 	if is_rolling:
-		play_animation(anim_roll, true)
-	elif not is_grounded and is_jumping: #air animations
-		sprites_flip()
+		play_animation(anim_roll)
+	elif is_jumping: #air animations
+		sprites_flip(false)
 		play_animation(anim_jump)
 	elif is_grounded:
 		if is_pushing:
@@ -1192,7 +1189,7 @@ func update_animations() -> void:
 				elif not ray_ground_right.is_colliding():
 					#face the ledge
 					facing_direction = 1.0
-				sprites_flip()
+				sprites_flip(false)
 				if has_animation(anim_balance):
 					play_animation(anim_balance)
 				else:
@@ -1210,16 +1207,23 @@ func update_animations() -> void:
 				else:
 					play_animation(anim_stand, true)
 					move_camera_vertical(0)
-	elif not is_slipping:
+	elif not is_grounded and not is_slipping:
 		play_animation(anim_free_fall)
 
 ##Flip the sprites for the player based on the direction the player is facing.
-func sprites_flip() -> void:
+##If [check_speed] is set to true, it will also check that the player is moving.
+func sprites_flip(check_speed:bool = true) -> void:
 	if current_anim.can_flip_h:
-		var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
+		var does_flip:bool = false
+		if check_speed:
+			var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
+			does_flip = not is_zero_approx(moving_dir)
+		else:
+			does_flip = true
+		
 		#ensure the character is facing the right direction
 		#run checks on the nodes, because having the nodes for this is not assumable
-		if not is_zero_approx(moving_dir):
+		if does_flip:
 			if facing_direction < 0: #left
 				if is_instance_valid(sprite1):
 					sprite1.flip_h = true

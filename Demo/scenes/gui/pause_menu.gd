@@ -20,12 +20,20 @@ var scene:SceneTree
 func _ready() -> void:
 	self.process_mode = Node.PROCESS_MODE_ALWAYS
 	scene = get_tree()
+	scene.quit_on_go_back = false
 	custom_viewport = get_window().get_viewport()
 	$Panel/Margins/Sections/Main/Info/Version.text += ProjectSettings.get_setting("application/config/version")
 	$"AudioStreamPlayer".play()
 	audio = $"AudioStreamPlayer".get_stream_playback()
 
-func _input(event: InputEvent) -> void:
+func _notification(what:int) -> void:
+	#react to Android back button
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		pause_active = not pause_active
+		toggle_pause(pause_active)
+	
+
+func _input(event:InputEvent) -> void:
 	if event.is_action_pressed(pause_button):
 		pause_active = not pause_active
 		toggle_pause(pause_active)
