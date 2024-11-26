@@ -36,11 +36,14 @@ visible = false
 layout_mode = 2
 text = "The main backbone of MoonCast is, of course, the MoonCastPlayer2D and MoonCastPlayer3D nodes, extending from CharacterBody2D and CharacterBody3D respectively. These two nodes provide momentum based physics movement to 2D and 3D, and are designed to work very similarly to one another to create near-seamless transitioning between 2D and 3D. Henceforth in the documentation, these will be referred to in-group as \"MoonCastPlayer\". 
 
-The MoonCastPlayer features APIs to play sound effects from a local library of sounds, play animations of child nodes, initiate basic universal gameplay interactions, and more. It uses a Resource called \"MoonCastPhysicsTable\" for values it should reference for physics behavior. Because this table is an attachable Resource and is shared between 2D and 3D, on-the-fly physics reconfigurations are possible, both manually and in a drag-and-drop way, and physics between 2D and 3D should behave identically (with some leeway in regards to fundamental dimensional differences). In addition, MoonCastAbility nodes can be added as children of a MoonCastPlayer to extend the player in any regard. The API of MoonCastAbility focuses mainly on adding abilities to the player, but as can be seen in the demo, can be used for various other things extending beyond the scope of the player, like adding a debug mode or a camera with dynamic zooming based on player speed."
+The MoonCastPlayer features APIs to play sound effects from a local library of sounds, play animations of child nodes, initiate basic universal gameplay interactions, and more. It uses a Resource called \"MoonCastPhysicsTable\" for values it should reference for physics behavior. Because this table is an attachable Resource and is shared between 2D and 3D, on-the-fly physics reconfigurations are possible, both by setting individual values and replacing the entire table, and physics between 2D and 3D should behave identically (with some leeway in regards to fundamental dimensional differences). In addition, MoonCastAbility nodes can be added as children of a MoonCastPlayer to extend the player in any regard. The API of MoonCastAbility focuses mainly on adding abilities to the player, but as can be seen in the demo, can be used for various other things extending beyond the scope of the player, like adding a debug mode or a camera with dynamic zooming based on player speed.
+
+The setup of a player node is designed to be pretty seamless, and familiar to Godot's existing workflow for the CharacterBody classes. To create a functional MoonCastPlayer2D, instance the MoonCastPlayer2D node, give it at least one CollisionShape2D child with a valid shape, and then add either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D node. The MoonCastPlayer2D will auto-detect these nodes as well as the size of all child collision shapes and configure itself accordingly. MoonCastAbility nodes can also be optionally added as children of the player to dynamically append code to the player, such as new abilities and states. Those are discussed in the Abilities tab of these documents."
 editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1
 scroll_smooth = true
+scroll_vertical = 5.0
 metadata/_tab_index = 1
 
 [node name="Physics & Rotation" type="TextEdit" parent="TabContainer"]
@@ -49,21 +52,22 @@ layout_mode = 2
 text = "As mentioned earlier, MoonCastPlayer uses a MoonCastPhysicsTable to store all the physics values of the player, such as how fast they accelerate, how quickly they slow down on slopes, how high they can jump, and how rolling behaves on different kinds of slopes. A lot of ground values in MoonCast are percentages, that all revolve around ground_max_speed.
 This table also contains information on how buttons are mapped to the player, which are all StringName values corresponding to ActionNames in your project.
 
-Collision in MoonCast is handled with Godot's collision systems, meaning you can have any amount of CollisionShape children as children of a MoonCastPlayer, and they will all count as collision hitboxes for the player. Furthermore, in MoonCast, you have the option to align the player's collision with the ground, or keep its rotation at 0 at all times. This is up to programmer preference and whichever works well for your project. 
+Collision in MoonCast is handled with Godot's collision systems, meaning you can have any amount of CollisionShape children as children of a MoonCastPlayer, and they will all count as collision hitboxes for the player. Furthermore, in MoonCast, you have the option to align the player's collision rotation with the ground, or keep its rotation at 0 at all times. This is up to programmer preference and whichever works well for your project. 
 
-Collision rotation of the ground is is derived from a mixture of the CharacterBody2D systems, and RayCasts. The RayCasts are how the player determines if it will stick to terrain, as well as the angle of the ground underneath them before they land, which is essential to getting an angle for the player's landing speed (ie. when they land on a steep slope and get a speed boost from it). Each MoonCastPlayer on startup will scan its child CollisionShape nodes in order to place these RayCasts point at/beyond the player's \"feet\" as decided by the sorting algorithm for it, which in practice is going to be the lowest and closest-to-center CollisionShape edges. These RayCasts are entirely managed by MoonCast and are not important to the programmer except for ground snapping. That being said, the reach of these RayCasts beyond the player's collision shape limits is derived from the floor_snap_length value on the MoonCastPlayer (inherited from CharacterBody2D). If you find that your player is having a difficult time sticking to oddly shaped terrain, or flies off of terrain when they should be sticking to it, try to increase this value. 
+Collision rotation of the ground is is derived from a mixture of the CharacterBody2D systems, and RayCasts. The RayCasts are how the player determines if it will stick to terrain, as well as the angle of the ground underneath them before they land, which is essential to getting an angle for the player's landing speed (ie. when they land on a steep slope and get a speed boost from it). Each MoonCastPlayer on startup will scan its child CollisionShape nodes in order to place these RayCasts point at/beyond the player's \"feet\" as decided by the sorting algorithm for the collision shapes, which in practice is going to be the lowest and closest-to-center CollisionShape edges. These RayCasts are entirely managed by MoonCast and are not important to the programmer except for ground snapping. That being said, the reach of these RayCasts beyond the player's collision shape limits is derived from the floor_snap_length value on the MoonCastPlayer (inherited from CharacterBody2D). If you find that your player is having a difficult time sticking to oddly shaped terrain, or flies off of terrain when they should be sticking to it, try to increase this value. 
 
-Mesh/Sprite rotation is seperate to, but based on, collision rotation. This is merely how the mesh/sprite rotates around to align to the ground when grounded, or 0 when in the air or when the animation is included in the anim_rotation_blacklist of the MoonCastPlayer, and is not always reflective of the collision_rotation. "
+Mesh/Sprite (\"visual\") rotation is seperate to, but based on, collision rotation. This is merely how the mesh/sprite rotates around to align to the ground when grounded, or 0 when in the air or when the animation is included in the anim_rotation_blacklist of the MoonCastPlayer, and is not always reflective of the collision_rotation. Visual rotation can also be snapped to certain intervals of angles, so that the player only rotates on \"significantly different\" angle edges instead of rotating to align to every little change in ground angle."
 editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1
 scroll_smooth = true
+scroll_vertical = 8.0
 metadata/_tab_index = 2
 
 [node name="Abilities" type="TextEdit" parent="TabContainer"]
 visible = false
 layout_mode = 2
-text = "MoonCast is built with the MoonCastAbility as a cornerstone feature. These Nodes can be added to any MoonCastPlayer and provide APIs to easily script additional player code based on the need of your project. Part of the core design of MoonCast is to give a near identical API for both 2D and 3D MoonCastPlayers, to the point where the API of MoonCastAbility is (mostly) universal to both 2D and 3D; you can typically use an ability designed for a MoonCastPlayer2D on a MoonCastPlayer3D and vice versa. 
+text = "MoonCast is built with the MoonCastAbility as a cornerstone feature. These Nodes can be added as child nodes to any MoonCastPlayer and provide APIs to easily script additional player code based on the need of your project. Part of the core design of MoonCast is to give a near identical API for both 2D and 3D MoonCastPlayers, to the point where the API of MoonCastAbility is (mostly) universal to both 2D and 3D; you can typically use an ability designed for a MoonCastPlayer2D on a MoonCastPlayer3D and vice versa. 
 
 MoonCastAbility exposes a set of values from its parent MoonCastPlayer locally, so they can be accessed at any point, so long as the ability is valid (not disabled, and properly parented), and do not have to be accessed by accessing the parent node literally. These localized variables are part of the abstractions that take place in order to provide universal functionality between both 2D and 3D.
 
@@ -84,24 +88,28 @@ metadata/_tab_index = 3
 [node name="Animations" type="TextEdit" parent="TabContainer"]
 visible = false
 layout_mode = 2
-text = "MoonCast uses Godot's animation systems to play animations. In 2D, you can have either an AnimatedSprite2D or an AnimationPlayer as the child of your MoonCastPlayer2D node, and MoonCast will automatically find the first of its children of those types and use that for playing animations. You can have both an AnimatedSprite2D and an AnimationPlayer, but it is recommended that you use one or the other, not both. 
+text = "MoonCast uses a custom wrapper, MoonCastAnimation, over Godot's animation systems to play animations. In 2D, you can have either an AnimatedSprite2D or an AnimationPlayer as the child of your MoonCastPlayer2D node, and MoonCast will automatically find the first of its children of those types and use that for playing animations. You can have both an AnimatedSprite2D and an AnimationPlayer, but it is recommended that you use one or the other, not both. 
+
+The MoonCastAnimation type is a resource that is defined for every animation of the character. It offers optional APIs for custom animation behavior, such as conditionally deciding to play one animation or another, but basic animations are also configurable without any additional code.
 
 The animation system has checks in place so that by default, a playing animation will not be overriden once it is set that frame. This can be overriden with the `force` parameter on MoonCastPlayer2D.play_animation, and may be required if you have different Ability nodes that set animations at different points in the callback cycle (See the Abilities page about the callback cycle).
 
-Animations are played by their StringName identifier. If an animation does not exist on/in a used animation node, no error will occur, but it will not be played. So, if an animation does not play, check that there aren't typos in your StringName for the animation, or that the animation exists in whichever node you are using for animations.
+The animation of a MoonCastANimation is played by its StringName identifier. If an animation does not exist on/in a child animation node, no error will occur, but it will not be played. So, if an animation does not play, check that there aren't typos in your StringName for the animation, or that the animation exists in whichever node you are using for animations.
 
-Some animations, specifically the skid and run/walk animations, are not stored as a singular StringName, but instead a typed Dictionary, with float keys and StringName values. These are specially designed around the player's ground_velocity and physics.ground_max_speed values; the float key is the percentage of their ground_max_speed that their ground_velocity must exceed for the animation to play, and the value is the StringName of the animation that will play. For example, if you have the values {0.5: &\"run\", 1.0: &\"run_fast}, &\"run\" will play when the player's ground_velocity is at or above 50% of their ground_max_speed, and &\"run_fast\" will play when they are at or exceed their ground_max_speed (100%).
+Some animations, specifically the skid and run/walk animations, are not stored as a singular StringName, but instead a typed Dictionary, with float keys and StringName values. These are specially designed around the player's ground_velocity and physics.ground_max_speed values; the float key is the percentage of their ground_max_speed that their ground_velocity must exceed for the animation to play, and the value is the StringName of the animation that will play. For example, if you have the values {0.5: &\"run\", 1.0: &\"run_fast\"}, &\"run\" will play when the player's ground_velocity is at or above 50% of their ground_max_speed, and &\"run_fast\" will play when they are at or exceed their ground_max_speed (100%).
 
 The death animation specifically has a default animation (anim_death), but also a custom typed Dictionary for extra deaths, that has StringName keys and StringName values. When kill_player is called on the MoonCastPlayer, it will take an optional StringName argument. If you call the function with no argument, it will play the default death animation, but if you fill out that argument, it will search the typed Dictionary using your argument for a key that matches it. If it finds a key, it will use the corresponding value of that key to play an animation. For example, if you called kill_player(&\"drown\") and the typed Dictionary had the value {&\"drown\": \"&\"anim_drown\"}, it would play the animation &\"anim_drown\" when the player is killed. If a key is not found with a provided argument, the default death animation will play."
 editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1
 scroll_smooth = true
+scroll_vertical = 11.0
 metadata/_tab_index = 4
 
 [node name="Camera" type="TextEdit" parent="TabContainer"]
 visible = false
 layout_mode = 2
+text = "The camera systems in MoonCast have not been specifically planned out nor implemented as of this time."
 editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1
