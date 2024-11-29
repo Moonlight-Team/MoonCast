@@ -1,6 +1,6 @@
 [gd_scene load_steps=11 format=3 uid="uid://dgbkwdyscsahk"]
 
-[ext_resource type="Script" path="res://Demo/scenes/gui/pause_menu.gd" id="1_opu2g"]
+[ext_resource type="Script" uid="uid://bs65vxrvd54pr" path="res://Demo/scenes/gui/pause_menu.gd" id="1_opu2g"]
 [ext_resource type="FontFile" uid="uid://dj7adu3cf3vuc" path="res://Demo/assets/gui/Rodin-Bold.ttf" id="2_67olp"]
 [ext_resource type="Theme" uid="uid://cc45jjppij0nc" path="res://Demo/assets/gui/pause_menu_buttons.tres" id="2_j3bkn"]
 [ext_resource type="AudioStream" uid="uid://brx6w374bgcc2" path="res://Demo/assets/audio/gui/Dreamcast Sounds/SELECT.wav" id="2_xqvs1"]

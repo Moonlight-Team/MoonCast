@@ -1017,13 +1017,21 @@ func update_collision_rotation() -> void:
 		
 		#ceiling checks
 		
-		var abs_collision_rotation:float = absf(collision_rotation)
+		const deg_90_rad:float = PI / 2.0
+		
+		assert(collision_rotation > -PI * 2 and collision_rotation < PI * 2)
+		
 		#if the player is on what would be considered the ceiling
-		var ground_is_ceiling:bool = abs_collision_rotation > deg_to_rad(91.0) and collision_rotation < deg_to_rad(269.0)
+		var ground_is_ceiling:bool = collision_rotation > deg_90_rad or collision_rotation < -(deg_90_rad)
 		#floor is too steep to be on at all
-		var floor_is_fall_angle:bool = abs_collision_rotation >= absf(default_max_angle) and abs_collision_rotation <= absf(default_max_angle + PI)
+		var floor_is_fall_angle:bool
 		#for is too steep to keep grip at low speeds
-		var floor_is_slip_angle:bool = floor_is_fall_angle or abs_collision_rotation >= absf(physics.ground_slip_angle)
+		var floor_is_slip_angle:bool
+		if ground_is_ceiling:
+			pass
+		else:
+			floor_is_fall_angle = collision_rotation > default_max_angle or collision_rotation < -default_max_angle
+			floor_is_slip_angle = floor_is_fall_angle or (collision_rotation > physics.ground_slip_angle or collision_rotation < -physics.ground_slip_angle)
 		
 		#slip checks
 		
@@ -1077,6 +1085,8 @@ func update_collision_rotation() -> void:
 			#when it *is* too steep
 			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
 			
+			printt("Landing: ", ground_is_ceiling, floor_is_fall_angle, floor_is_slip_angle)
+			
 			#if we can't land on the slope and are not slipping
 			if not can_land_on_slope and not is_slipping:
 				is_slipping = true
@@ -1103,35 +1113,7 @@ func update_collision_rotation() -> void:
 				is_grounded = will_actually_land and not ground_is_ceiling
 		
 		#set sprite rotations
-		if is_moving and (is_grounded or is_slipping):
-			if current_anim.can_rotate:
-				var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
-				
-				var half_rot_snap:float = rotation_snap_interval / 2.0 #TODO: cache this
-				#halfway point between the current rotation snap and the next one
-				var halfway_snap_point:float = snappedf(rotation_snap + half_rot_snap, 0.001)
-				
-				if rotation_classic_snap:
-					sprite_rotation = rotation_snap
-				else:
-					var actual_rotation_speed:float = rotation_adjustment_speed
-					
-					var rotation_difference:float = angle_difference(sprite_rotation, collision_rotation)
-					
-					#multiply the rotation speed so that it rotates faster when it needs to "catch up"
-					#to more extreme changes in angle
-					if rotation_difference > rotation_snap_interval:
-						sprite_rotation = collision_rotation
-					elif rotation_difference > (half_rot_snap):
-						var speed_multiplier:float = remap(rotation_difference, 0.0, PI, rotation_snap_interval, PI)
-						actual_rotation_speed /= speed_multiplier
-					
-					if not is_equal_approx(snappedf(sprite_rotation, 0.001), halfway_snap_point):
-						sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
-			else:
-				sprite_rotation = 0.0
-		else: #So that the character stands upright on slopes and such
-			sprite_rotation = 0.0
+		update_ground_visual_rotation()
 	else:
 		#it's important to set this here so that slope launching is calculated 
 		#before reseting collision rotation
@@ -1148,15 +1130,16 @@ func update_collision_rotation() -> void:
 		up_direction = default_up_direction
 		
 		#set sprite rotation
-		if current_anim.can_rotate:
-			if rotation_classic_snap:
-				sprite_rotation = 0
-			else:
-				sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
-		else:
-			sprite_rotation = 0
+		update_air_visual_rotation()
 	
 	sprites_set_rotation(sprite_rotation)
+
+func update_ground_collision_rotation() -> void:
+	pass
+
+func update_air_collision_rotation() -> void:
+	pass
+
 #endregion
 #region Sprite/Animation processing
 ##Update the rotation of the character when they are in the air
@@ -1242,6 +1225,46 @@ func sprites_set_rotation(new_rotation:float) -> void:
 		sprite1.global_rotation = new_rotation
 	if is_instance_valid(animated_sprite1):
 		animated_sprite1.global_rotation = new_rotation
+
+func update_ground_visual_rotation() -> void:
+	if is_moving and (is_grounded or is_slipping):
+		if current_anim.can_rotate:
+			var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
+				
+			var half_rot_snap:float = rotation_snap_interval / 2.0 #TODO: cache this
+				#halfway point between the current rotation snap and the next one
+			var halfway_snap_point:float = snappedf(rotation_snap + half_rot_snap, 0.001)
+				
+			if rotation_classic_snap:
+				sprite_rotation = rotation_snap
+			else:
+				var actual_rotation_speed:float = rotation_adjustment_speed
+					
+				var rotation_difference:float = angle_difference(sprite_rotation, collision_rotation)
+					
+					#multiply the rotation speed so that it rotates faster when it needs to "catch up"
+					#to more extreme changes in angle
+				if rotation_difference > rotation_snap_interval:
+					sprite_rotation = collision_rotation
+				elif rotation_difference > (half_rot_snap):
+					var speed_multiplier:float = remap(rotation_difference, 0.0, PI, rotation_snap_interval, PI)
+					actual_rotation_speed /= speed_multiplier
+					
+				if not is_equal_approx(snappedf(sprite_rotation, 0.001), halfway_snap_point):
+					sprite_rotation = lerp_angle(sprite_rotation, rotation_snap, actual_rotation_speed)
+		else:
+			sprite_rotation = 0.0
+	else: #So that the character stands upright on slopes and such
+		sprite_rotation = 0.0
+
+func update_air_visual_rotation() -> void:
+	if current_anim.can_rotate:
+		if rotation_classic_snap:
+			sprite_rotation = 0
+		else:
+			sprite_rotation = move_toward(sprite_rotation, 0.0, rotation_adjustment_speed)
+	else:
+		sprite_rotation = 0
 
 @warning_ignore("unused_parameter")
 func move_camera_vertical(dest_offset:float) -> void:
