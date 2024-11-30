@@ -7,7 +7,7 @@ class_name SpeedVariedAnimation
 @export var speed_scale:float = 2.0
 
 func _animation_process() -> void:
-	var speed_percent:float = absf(player.ground_velocity) / player.physics.ground_top_speed
+	var speed_percent:float = player.abs_ground_velocity / player.physics.ground_top_speed
 	
 	if speed_percent > walk_min_speed:
 		speed = remap(speed_percent, 0.0, 1.0, 0.0, speed_scale)

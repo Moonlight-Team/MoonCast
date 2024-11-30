@@ -2,10 +2,18 @@ extends MoonCastAbility
 
 class_name SuperPeelOutAbility
 
+const charge_up_sfx_name:StringName = &"super_peel_out_charge"
+const release_sfx_name:StringName = &"super_peel_out_release"
+
 ##The speed that the player will be launched at when the super peel out is charge_complete.
 @export var launch_speed:float = 12.0
-##The time it takes for the peel out to charge, in seconds
+##The time it takes for the peel out to charge, in seconds.
 @export var charge_time:float = 0.5
+##The sound effect for the super peel out being charged up.
+@export var sfx_charge_up:AudioStream = AudioStream.new()
+##The sound effect for the super peel out being released.
+@export var sfx_release:AudioStream = AudioStream.new()
+
 
 var charging:bool = false
 var charge_complete:bool = false
@@ -18,8 +26,8 @@ func _ready() -> void:
 	add_child(charge_timer)
 
 func _setup_2D(player:MoonCastPlayer2D) -> void:
-	#TODO: Add sfx
-	pass
+	player.sfx_custom[charge_up_sfx_name] = sfx_charge_up
+	player.sfx_custom[release_sfx_name] = sfx_release
 
 func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 	if Input.is_action_pressed(player.controls.direction_up):
@@ -32,17 +40,17 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 			#initiate a charge
 			charge_timer.timeout.connect(func(): charge_complete = true, CONNECT_ONE_SHOT)
 			charge_timer.start(charge_time)
-			player.play_sound_effect(SpindashAbility.charge_name)
+			player.play_sound_effect(charge_up_sfx_name)
 				
 			launch_speed_direction = launch_speed * player.facing_direction
 			charge_per_tick = launch_speed / (ProjectSettings.get(&"physics/common/physics_ticks_per_second") * charge_time)
-				
+			
 			charging = true
 			player.can_be_moving = false
-	
-	elif charging:
-		#cancel if we were charging but the charge did not complete
-		if not charge_complete:
+	elif charging: #charge button is no longer held
+		if charge_complete:
+			player.play_sound_effect(release_sfx_name)
+		else: #cancel if we were charging but the charge did not complete
 			player.ground_velocity = 0.0
 		
 		#re-enable moving

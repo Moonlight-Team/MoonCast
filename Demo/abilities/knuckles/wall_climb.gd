@@ -1,0 +1,3 @@
+extends MoonCastAbility
+
+class_name KnucklesWallClimb

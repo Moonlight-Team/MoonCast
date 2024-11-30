@@ -8,13 +8,13 @@ const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
 
 ##The sfx name for [member sfx_jump].
-const sfx_jump_name:StringName = &"jump"
+const sfx_jump_name:StringName = &"player_base_jump"
 ##The sfx name for [member sfx_roll].
-const sfx_roll_name:StringName = &"roll"
+const sfx_roll_name:StringName = &"player_base_roll"
 ##The sfx name for [sfx_skid].
-const sfx_skid_name:StringName = &"skid"
+const sfx_skid_name:StringName = &"player_base_skid"
 ##The sfx name for [sfx_hurt].
-const sfx_hurt_name:StringName = &"hurt"
+const sfx_hurt_name:StringName = &"player_base_hurt"
 #endregion
 #region Exported Vars
 @export_group("Physics & Controls")
@@ -196,12 +196,16 @@ var animation_custom:bool = false
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
 
-## the ground velocity. This is how fast the player is 
+##The ground velocity. This is how fast the player is 
 ##travelling on the ground, regardless of angles.
 var ground_velocity:float = 0.0:
 	set(new_gvel):
 		ground_velocity = new_gvel
-		is_moving = absf(ground_velocity) > physics.ground_min_speed
+		abs_ground_velocity = absf(ground_velocity)
+		is_moving = abs_ground_velocity > physics.ground_min_speed
+##Easy-access variable for the absolute value of [ground_velocity], because it's 
+##often needed for general checks regarding speed.
+var abs_ground_velocity:float
 ##The character's current velocity in space.
 var space_velocity:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
@@ -753,13 +757,13 @@ func process_ground() -> void:
 		#If input matches the direction we're going
 		elif is_equal_approx(facing_direction, signf(ground_velocity)):
 			#If we *can* add speed (can't add above the top speed, and can't go the direction we're slipping)
-			if absf(ground_velocity) < physics.ground_top_speed and not slip_lock:
+			if abs_ground_velocity < physics.ground_top_speed and not slip_lock:
 				ground_velocity += physics.ground_acceleration * facing_direction
 		elif not is_slipping: #We're going opposite to the facing direction, so apply skid mechanic
 			ground_velocity += physics.ground_skid_speed * facing_direction
 			
 			for speeds:float in anim_skid_sorted_keys:
-				if absf(ground_velocity) > physics.ground_top_speed * speeds:
+				if abs_ground_velocity > physics.ground_top_speed * speeds:
 					
 					#correct the direction of the sprite
 					facing_direction = -facing_direction
@@ -777,7 +781,7 @@ func process_ground() -> void:
 	#Do rolling or crouching checks
 	
 	#if the player is moving fast enough to roll
-	if absf(ground_velocity) > physics.rolling_min_speed:
+	if abs_ground_velocity > physics.rolling_min_speed:
 		#We're moving too fast to crouch
 		is_crouching = false
 		
@@ -910,7 +914,7 @@ func update_collision_rotation() -> void:
 	
 	if wall_contact:
 		#keep the player from sliding up the wall
-		space_velocity.y = maxf(space_velocity.y, 0.0)
+		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
 		
 		#the direction the player is moving horizontally
 		var movement_dir:float
@@ -1028,14 +1032,19 @@ func update_collision_rotation() -> void:
 		#for is too steep to keep grip at low speeds
 		var floor_is_slip_angle:bool
 		if ground_is_ceiling:
-			pass
+			var adjusted_col_rot:float = fmod(collision_rotation, deg_90_rad)
+			printt("Ceiling stuffs", rad_to_deg(collision_rotation), rad_to_deg(adjusted_col_rot), rad_to_deg(deg_90_rad - default_max_angle))
+			
+			##TODO: Make this work mirrored (it works but only one one side rn)
+			floor_is_fall_angle = adjusted_col_rot < (deg_90_rad - default_max_angle)
+			floor_is_slip_angle = floor_is_fall_angle or adjusted_col_rot < (deg_90_rad - physics.ground_slip_angle)
 		else:
 			floor_is_fall_angle = collision_rotation > default_max_angle or collision_rotation < -default_max_angle
 			floor_is_slip_angle = floor_is_fall_angle or (collision_rotation > physics.ground_slip_angle or collision_rotation < -physics.ground_slip_angle)
 		
 		#slip checks
 		
-		var fast_enough:bool = absf(ground_velocity) > physics.ground_stick_speed
+		var fast_enough:bool = abs_ground_velocity > physics.ground_stick_speed
 		var should_lose_grip:bool = true if ground_is_ceiling else floor_is_slip_angle
 		
 		if is_grounded:
@@ -1063,7 +1072,7 @@ func update_collision_rotation() -> void:
 						control_lock_timer.start(physics.ground_slip_time)
 					is_grounded = false
 				
-				elif floor_is_slip_angle:
+				elif should_lose_grip:
 					#unstick from any ceilings we're on
 					if ground_is_ceiling:
 						is_grounded = false
@@ -1087,14 +1096,6 @@ func update_collision_rotation() -> void:
 			
 			printt("Landing: ", ground_is_ceiling, floor_is_fall_angle, floor_is_slip_angle)
 			
-			#if we can't land on the slope and are not slipping
-			if not can_land_on_slope and not is_slipping:
-				is_slipping = true
-				
-				#set up the connection for the control lock timer.
-				control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
-				control_lock_timer.start(physics.ground_slip_time)
-			
 			#the raycasts will find the ground before the CharacterBody hitbox does, 
 			#so only become grounded when both are "on the ground"
 			
@@ -1104,6 +1105,11 @@ func update_collision_rotation() -> void:
 					is_grounded = in_ground_range and floor_is_fall_angle
 				is_grounded = in_ground_range and will_actually_land
 			else:
+				#slip if we're not on the ceiling
+				
+				if ground_is_ceiling:
+					#stop moving vertically if we're on the ceiling
+					space_velocity.y = maxf(space_velocity.y, 0.0)
 				
 				if not is_slipping:
 					is_slipping = true
@@ -1158,7 +1164,7 @@ func update_animations() -> void:
 		#These use percents to scale to the stats
 		elif not is_zero_approx(ground_velocity) or is_slipping:
 			for speeds:float in anim_run_sorted_keys:
-				if absf(ground_velocity) > physics.ground_top_speed * speeds:
+				if abs_ground_velocity > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
 					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
