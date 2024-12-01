@@ -29,6 +29,14 @@ class_name MoonCastAnimation
 @export_storage var collision_center:Vector2
 ##The custom collision shape to use when this animation is active.
 @export_storage var collision_shape:Shape2D = null
+##Internal: The position of the left ground raycast based on the collision shape
+@export_storage var collision_left_raycast_pos:Vector2
+##Internal: The position of the left ground raycast based on the collision shape
+@export_storage var collision_center_raycast_pos:Vector2
+##Internal: The position of the left ground raycast based on the collision shape
+@export_storage var collision_right_raycast_pos:Vector2
+##Internal:The shape ID of this animation's collision object
+@export_storage var collision_shape_id:int = -1
 @export_group("")
 @export_group("Rotation", "rotation_")
 ##The rotation snap of the animation.
@@ -67,6 +75,7 @@ func _get_property_list() -> Array[Dictionary]:
 		])
 	if override_collision:
 		property_list.append_array([
+			#TODO: Add group declaration here
 			{
 				"name": "collision_center",
 				"class_name": &"",
@@ -77,14 +86,18 @@ func _get_property_list() -> Array[Dictionary]:
 			},
 			{
 				"name": "collision_shape",
-				"class_name": &"",
-				"type": TYPE_BOOL,
-				"hint": PROPERTY_HINT_NONE,
-				"hint_string": "",
+				"class_name": &"Shape2D",
+				"type": TYPE_OBJECT,
+				"hint": PROPERTY_HINT_RESOURCE_TYPE,
+				"hint_string": "Shape2D",
 				"usage": PROPERTY_USAGE_DEFAULT
 			}
 		])
 	return property_list
+
+##Internal:Set up the animation
+func _init_animation() -> void:
+	pass
 
 ##This function is called when the animation is started. (Note: [b]not[/b] when it loops.)
 func _animation_start() -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=39 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/sonic_standard/mooncast_physics.tres" id="2_rii83"]
@@ -45,6 +45,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -59,6 +63,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -72,8 +80,14 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_td25q"]
 
 [sub_resource type="Resource" id="Resource_24foh"]
 script = ExtResource("4_j5cv3")
@@ -83,10 +97,20 @@ size = Rect2i(0, 0, 0, 0)
 can_rotate = true
 can_flip_h = true
 override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
+override_collision = true
+collision_center = Vector2(0, 9)
+collision_shape = SubResource("RectangleShape2D_td25q")
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
+collision_center = Vector2(0, 9)
+collision_shape = SubResource("RectangleShape2D_td25q")
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_td25q"]
+radius = 14.0
 
 [sub_resource type="Resource" id="Resource_rbxmi"]
 resource_name = "roll_ball"
@@ -99,10 +123,17 @@ size = Rect2i(0, 0, 0, 0)
 can_rotate = false
 can_flip_h = false
 override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
+override_collision = true
+collision_center = Vector2(0, 5)
+collision_shape = SubResource("CircleShape2D_td25q")
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
+collision_center = Vector2(0, 5)
+collision_shape = SubResource("CircleShape2D_td25q")
 
 [sub_resource type="Resource" id="Resource_xe3mx"]
 resource_name = "walk"
@@ -117,6 +148,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -131,6 +166,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -144,6 +183,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -157,6 +200,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -169,10 +216,17 @@ size = Rect2i(0, 0, 0, 0)
 can_rotate = false
 can_flip_h = true
 override_rotation = false
-override_collision = false
+override_collision = true
 collision_center = Vector2(0, 0)
+collision_shape = SubResource("CircleShape2D_td25q")
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
+collision_center = Vector2(0, 0)
+collision_shape = SubResource("CircleShape2D_td25q")
 
 [sub_resource type="Resource" id="Resource_d7m6u"]
 script = ExtResource("6_l0jkf")
@@ -185,6 +239,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -198,6 +256,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -215,6 +277,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -228,6 +294,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -241,6 +311,10 @@ can_flip_h = true
 override_rotation = false
 override_collision = false
 collision_center = Vector2(0, 0)
+collision_left_raycast_pos = Vector2(0, 0)
+collision_center_raycast_pos = Vector2(0, 0)
+collision_right_raycast_pos = Vector2(0, 0)
+collision_shape_id = -1
 rotation_snap = 0.523599
 rotation_smooth = true
 
@@ -284,7 +358,6 @@ shape = SubResource("RectangleShape2D_x7kbe")
 texture_filter = 1
 position = Vector2(2, -1)
 sprite_frames = ExtResource("7_o1ngo")
-animation = &"falling"
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")

@@ -134,6 +134,7 @@ var ray_wall_left:RayCast2D = RayCast2D.new()
 ##The right wall raycast. Used for detecting running into a "wall" relative to the 
 ##player's rotation
 var ray_wall_right:RayCast2D = RayCast2D.new()
+
 ##The sfx player node
 var sfx_player:AudioStreamPlayer = AudioStreamPlayer.new()
 ##The sfx player node's AudioStreamPolyphonic
@@ -218,6 +219,13 @@ var default_max_angle:float
 var floor_is_fall_angle:bool
 ##Floor is too steep to keep grip at low speeds
 var floor_is_slip_angle:bool
+
+##The shape owner IDs of all the collision shapes provided by the user
+##via children in the scene tree.
+var user_collision_owners:PackedInt32Array
+##The shape owner ID of the custom collision shapes of animations.
+var anim_col_owner_id:int
+
 
 #endregion
 #region state can be
@@ -354,7 +362,7 @@ signal state_air(player:MoonCastPlayer2D)
 ##internal node references and automatically setting up abilties.
 func setup_children() -> void:
 	#find the animationPlayer and other nodes
-	for nodes in get_children():
+	for nodes:Node in get_children():
 		if not is_instance_valid(animations) and nodes is AnimationPlayer:
 			animations = nodes
 		if not is_instance_valid(sprite1) and nodes is Sprite2D:
@@ -440,8 +448,20 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 	#only set the animation if it is forced or not set this frame
 	if (force or not animation_set) and is_instance_valid(anim):
 		anim.player = self
-		#process the animation before it actually is played
 		if anim != current_anim:
+			#setup custom collision
+			for default_owners:int in user_collision_owners:
+				shape_owner_set_disabled(default_owners, anim.override_collision)
+			shape_owner_set_disabled(anim_col_owner_id, not anim.override_collision)
+			if anim.override_collision:
+				#clear shapes
+				shape_owner_clear_shapes(anim_col_owner_id)
+				#set the transform so that the custom collision shape is properly offset
+				shape_owner_set_transform(anim_col_owner_id, Transform2D(transform.x, transform.y, anim.collision_center))
+				#actually add the shape now
+				shape_owner_add_shape(anim_col_owner_id, anim.collision_shape)
+			
+			#process the animation before it actually is played
 			current_anim._animation_cease()
 			anim._animation_start()
 			anim._animation_process()
@@ -542,6 +562,7 @@ func check_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> int:
 		bitfield |= 0b0000_0100
 	
 	return bitfield
+
 #endregion
 #region Overlay Sprite API
 ##Add an overlay sprite library to the player. This is an AnimatedSprite2D
@@ -608,7 +629,6 @@ func limitAngle(input_angle:float) -> float:
 		return_angle = -return_angle
 	return return_angle
 
-
 ##Assess the CollisionShape children (hitboxes of the character) and accordingly
 ##set some internal sensors to their proper positions, among other things.
 func setup_collision() -> void:
@@ -623,7 +643,10 @@ func setup_collision() -> void:
 	#The lowest right point for collision among the player's hitboxes
 	var ground_right_corner:Vector2
 	
-	for collision_shapes:int in get_shape_owners():
+	user_collision_owners = get_shape_owners().duplicate()
+	
+	for collision_shapes:int in user_collision_owners:
+		printt("Shape owner:", shape_owner_get_owner(collision_shapes))
 		for shapes:int in shape_owner_get_shape_count(collision_shapes):
 			#Get the shape itself
 			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
@@ -648,8 +671,9 @@ func setup_collision() -> void:
 					if collision_outmost_right.x > ground_right_corner.x:
 						ground_right_corner = collision_outmost_right
 	
-	#place the raycasts based on the above derived values
+	anim_col_owner_id = create_shape_owner(self)
 	
+	#place the raycasts based on the above derived values
 	var ground_safe_margin:int = int(floor_snap_length)
 	
 	ray_ground_left.position.x = ground_left_corner.x

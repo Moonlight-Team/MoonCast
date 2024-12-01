@@ -1,3 +1,4 @@
+@tool
 extends MoonCastAnimation
 
 class_name CoolFlipAnimation
