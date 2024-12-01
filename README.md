@@ -46,11 +46,13 @@ The visual assets in the demo besides the aforementioned splash screen are NOT l
 * [Sonic Worlds Next](https://github.com/Techokami/SonicWorldsNext): Inspiration for the creation of this engine, and the derivation of some ideas/concepts (such as the physics tables)
 * [Godot Engine](https://github.com/godotengine/godot): Being an excellent basis for projects like this 
 * Sonic Moonlight: The fangame that served as a catalyst for this engine to come into fruition.
-* [KlashiCola](https://github.com/Klashicola): Original assets, programming.
+* [KlashiCola](https://github.com/Klashicola): Engine assets, programming.
 * [c08oprkiua](https://github.com/c08oprkiua): Main programmer.
 * CyberFog: Editor icons.
+* [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting.
 ### Demo:
 * [KlashiCola](https://github.com/Klashicola): 3D modeling.
-* SS: Sonic sprites, level art.
+* [SS](https://github.com/SS-SoStupid): Sonic sprites, level art.
 * CyberFog: Level art.
+* [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting, level design.
 * [c08oprkiua](https://github.com/c08oprkiua): Level design, ability programmer.

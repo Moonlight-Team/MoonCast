@@ -214,6 +214,11 @@ var velocity_direction:Vector2
 ##The original value of floor_max_angle
 var default_max_angle:float
 
+##Floor is too steep to be on at all
+var floor_is_fall_angle:bool
+##Floor is too steep to keep grip at low speeds
+var floor_is_slip_angle:bool
+
 #endregion
 #region state can be
 ##If true, the player can jump.
@@ -723,7 +728,6 @@ func process_ground() -> void:
 			else:
 				#rolling uphill
 				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
-			
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
 		if not is_equal_approx(facing_direction, signf(ground_velocity)):
@@ -734,10 +738,12 @@ func process_ground() -> void:
 		#Stop the player if they turn around
 		if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
 			ground_velocity = 0.0
+			is_rolling = false
 		
 	else: #slope factors for being on foot
 		#This is a little value we need for some slipping logic. The player cannot move in the 
-		#direction they are slipping.
+		#direction they are slipping. They can however, run in the opposite direction, since that 
+		#would be "downhill"
 		var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
 		
 		#slope and other "world" speed factors
@@ -746,7 +752,7 @@ func process_ground() -> void:
 			ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		else:
 			#prevent standing on a steep slope
-			if absf(limitAngle(global_collision_rotation)) > default_max_angle:
+			if floor_is_fall_angle:
 				ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		
 		#input processing
@@ -914,7 +920,8 @@ func update_collision_rotation() -> void:
 	
 	if wall_contact:
 		#keep the player from sliding up the wall
-		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
+		if space_velocity.y > -physics.jump_short_limit:
+			space_velocity.y = maxf(0.0, space_velocity.y)
 		
 		#the direction the player is moving horizontally
 		var movement_dir:float
@@ -1027,25 +1034,20 @@ func update_collision_rotation() -> void:
 		
 		#if the player is on what would be considered the ceiling
 		var ground_is_ceiling:bool = collision_rotation > deg_90_rad or collision_rotation < -(deg_90_rad)
-		#floor is too steep to be on at all
-		var floor_is_fall_angle:bool
-		#for is too steep to keep grip at low speeds
-		var floor_is_slip_angle:bool
+		
 		if ground_is_ceiling:
 			#TODO: Optimize this section
 			
 			var adjusted_col_rot:float = fmod(collision_rotation, deg_90_rad)
-			#true on angles going up and right
+			#false on shallow angles going up and right. Otherwise true.
 			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + default_max_angle)
-			#true on angles going up and left
+			#false on shallow angles going up and left. Otherwise true.
 			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - default_max_angle)
 			
-			##TODO: Make this work on absolutely flat ceilings (works on angles)
+			#We make sure the angle is steep. We also check for it being near 0 because otherwise,
+			#nearly/entirely flat ceilings will pass the check.
 			floor_is_fall_angle = leftward_steep_check and rightward_steep_check and not is_zero_approx(adjusted_col_rot)
-			floor_is_slip_angle = floor_is_fall_angle or adjusted_col_rot < (deg_90_rad - physics.ground_slip_angle)
-			
-			if floor_is_fall_angle:
-				printt("Check passed:", rad_to_deg(collision_rotation), rad_to_deg(adjusted_col_rot))
+			floor_is_slip_angle = floor_is_fall_angle or (adjusted_col_rot < (deg_90_rad - physics.ground_slip_angle) and adjusted_col_rot > (-deg_90_rad + physics.ground_slip_angle))
 		else:
 			floor_is_fall_angle = collision_rotation > default_max_angle or collision_rotation < -default_max_angle
 			floor_is_slip_angle = floor_is_fall_angle or (collision_rotation > physics.ground_slip_angle or collision_rotation < -physics.ground_slip_angle)
@@ -1113,7 +1115,7 @@ func update_collision_rotation() -> void:
 			else:
 				#slip if we're not on the ceiling
 				
-				if ground_is_ceiling:
+				if ground_is_ceiling and get_slide_collision_count() > 0:
 					#stop moving vertically if we're on the ceiling
 					space_velocity.y = maxf(space_velocity.y, 0.0)
 				
