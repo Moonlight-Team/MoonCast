@@ -1032,12 +1032,20 @@ func update_collision_rotation() -> void:
 		#for is too steep to keep grip at low speeds
 		var floor_is_slip_angle:bool
 		if ground_is_ceiling:
-			var adjusted_col_rot:float = fmod(collision_rotation, deg_90_rad)
-			printt("Ceiling stuffs", rad_to_deg(collision_rotation), rad_to_deg(adjusted_col_rot), rad_to_deg(deg_90_rad - default_max_angle))
+			#TODO: Optimize this section
 			
-			##TODO: Make this work mirrored (it works but only one one side rn)
-			floor_is_fall_angle = adjusted_col_rot < (deg_90_rad - default_max_angle)
+			var adjusted_col_rot:float = fmod(collision_rotation, deg_90_rad)
+			#true on angles going up and right
+			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + default_max_angle)
+			#true on angles going up and left
+			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - default_max_angle)
+			
+			##TODO: Make this work on absolutely flat ceilings (works on angles)
+			floor_is_fall_angle = leftward_steep_check and rightward_steep_check and not is_zero_approx(adjusted_col_rot)
 			floor_is_slip_angle = floor_is_fall_angle or adjusted_col_rot < (deg_90_rad - physics.ground_slip_angle)
+			
+			if floor_is_fall_angle:
+				printt("Check passed:", rad_to_deg(collision_rotation), rad_to_deg(adjusted_col_rot))
 		else:
 			floor_is_fall_angle = collision_rotation > default_max_angle or collision_rotation < -default_max_angle
 			floor_is_slip_angle = floor_is_fall_angle or (collision_rotation > physics.ground_slip_angle or collision_rotation < -physics.ground_slip_angle)
@@ -1093,8 +1101,6 @@ func update_collision_rotation() -> void:
 			#player can land on a ground slope if it's not too steep, and only on a ceiling slope
 			#when it *is* too steep
 			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
-			
-			printt("Landing: ", ground_is_ceiling, floor_is_fall_angle, floor_is_slip_angle)
 			
 			#the raycasts will find the ground before the CharacterBody hitbox does, 
 			#so only become grounded when both are "on the ground"
