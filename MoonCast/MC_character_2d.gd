@@ -225,7 +225,12 @@ var floor_is_slip_angle:bool
 var user_collision_owners:PackedInt32Array
 ##The shape owner ID of the custom collision shapes of animations.
 var anim_col_owner_id:int
-
+##Default corner for the left ground raycast
+var def_ray_left_corner:Vector2
+##Default corner for the right ground raycast
+var def_ray_right_corner:Vector2
+##Default position for the center ground raycast
+var def_ray_gnd_center:Vector2
 
 #endregion
 #region state can be
@@ -460,6 +465,12 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 				shape_owner_set_transform(anim_col_owner_id, Transform2D(transform.x, transform.y, anim.collision_center))
 				#actually add the shape now
 				shape_owner_add_shape(anim_col_owner_id, anim.collision_shape)
+				
+				anim.compute_raycast_positions()
+				#TODO: change the position of the raycasts to match the new animation
+				reposition_raycasts(anim.col_bottom_left_corner, anim.col_bottom_right_corner, anim.col_bottom_center)
+			else:
+				reposition_raycasts(def_ray_left_corner, def_ray_right_corner, def_ray_gnd_center)
 			
 			#process the animation before it actually is played
 			current_anim._animation_cease()
@@ -629,6 +640,26 @@ func limitAngle(input_angle:float) -> float:
 		return_angle = -return_angle
 	return return_angle
 
+##Reposition ground raycasts to to new corners.
+func reposition_raycasts(left_corner:Vector2, right_corner:Vector2, center:Vector2 = (left_corner + right_corner) / 2.0) -> void:
+	var ground_safe_margin:int = int(floor_snap_length)
+	
+	#move the raycast horizontally to point down to the corner
+	ray_ground_left.position.x = left_corner.x
+	#point the raycast down to the corner, and then beyond that by the margin
+	ray_ground_left.target_position.y = left_corner.y + ground_safe_margin
+	
+	ray_ground_right.position.x = right_corner.x
+	ray_ground_right.target_position.y = right_corner.y + ground_safe_margin
+	
+	ray_ground_central.position.x = center.x
+	ray_ground_central.target_position.y = center.y + ground_safe_margin
+	
+	#TODO: Place these better; they should be targeting the x pos of the absolute
+	#farthest horizontal collision boxes, not only the ground-valid boxes
+	ray_wall_left.target_position = Vector2(left_corner.x - 1, 0)
+	ray_wall_right.target_position = Vector2(right_corner.x + 1, 0)
+
 ##Assess the CollisionShape children (hitboxes of the character) and accordingly
 ##set some internal sensors to their proper positions, among other things.
 func setup_collision() -> void:
@@ -646,7 +677,6 @@ func setup_collision() -> void:
 	user_collision_owners = get_shape_owners().duplicate()
 	
 	for collision_shapes:int in user_collision_owners:
-		printt("Shape owner:", shape_owner_get_owner(collision_shapes))
 		for shapes:int in shape_owner_get_shape_count(collision_shapes):
 			#Get the shape itself
 			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
@@ -673,32 +703,23 @@ func setup_collision() -> void:
 	
 	anim_col_owner_id = create_shape_owner(self)
 	
-	#place the raycasts based on the above derived values
-	var ground_safe_margin:int = int(floor_snap_length)
-	
-	ray_ground_left.position.x = ground_left_corner.x
-	ray_ground_left.target_position.y = ground_left_corner.y + ground_safe_margin
+	def_ray_left_corner = ground_left_corner
 	ray_ground_left.collision_mask = collision_mask
 	ray_ground_left.add_exception(self)
 	
-	ray_ground_right.position.x = ground_right_corner.x
-	ray_ground_right.target_position.y = ground_right_corner.y + ground_safe_margin
+	def_ray_right_corner = ground_right_corner
 	ray_ground_right.collision_mask = collision_mask
 	ray_ground_right.add_exception(self)
 	
-	ray_ground_central.position.x = (ground_left_corner.x + ground_right_corner.x) / 2.0
-	ray_ground_central.target_position.y = ((ground_left_corner.y + ground_right_corner.y) / 2.0) + ground_safe_margin
+	def_ray_gnd_center = (ground_left_corner + ground_right_corner) / 2.0
 	ray_ground_central.collision_mask = collision_mask
 	ray_ground_central.add_exception(self)
 	
-	
-	#TODO: Place these better; they should be targeting the x pos of the absolute
-	#farthest horizontal collision boxes, not only the ground-valid boxes
-	ray_wall_left.target_position = Vector2(ground_left_corner.x - 1, 0)
 	ray_wall_left.add_exception(self)
-	
-	ray_wall_right.target_position = Vector2(ground_right_corner.x + 1, 0)
 	ray_wall_right.add_exception(self)
+	
+	#place the raycasts based on the above derived values
+	reposition_raycasts(ground_left_corner, ground_left_corner, def_ray_gnd_center)
 
 ##Process the player's air physics
 func process_air() -> void:
@@ -1268,11 +1289,11 @@ func update_ground_visual_rotation() -> void:
 	if is_moving and (is_grounded or is_slipping):
 		if current_anim.can_rotate:
 			var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
-				
+			
 			var half_rot_snap:float = rotation_snap_interval / 2.0 #TODO: cache this
 				#halfway point between the current rotation snap and the next one
 			var halfway_snap_point:float = snappedf(rotation_snap + half_rot_snap, 0.001)
-				
+			
 			if rotation_classic_snap:
 				sprite_rotation = rotation_snap
 			else:

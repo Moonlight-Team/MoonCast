@@ -30,11 +30,11 @@ class_name MoonCastAnimation
 ##The custom collision shape to use when this animation is active.
 @export_storage var collision_shape:Shape2D = null
 ##Internal: The position of the left ground raycast based on the collision shape
-@export_storage var collision_left_raycast_pos:Vector2
+@export_storage var col_bottom_left_corner:Vector2
 ##Internal: The position of the left ground raycast based on the collision shape
-@export_storage var collision_center_raycast_pos:Vector2
+@export_storage var col_bottom_center:Vector2
 ##Internal: The position of the left ground raycast based on the collision shape
-@export_storage var collision_right_raycast_pos:Vector2
+@export_storage var col_bottom_right_corner:Vector2
 ##Internal:The shape ID of this animation's collision object
 @export_storage var collision_shape_id:int = -1
 @export_group("")
@@ -95,9 +95,18 @@ func _get_property_list() -> Array[Dictionary]:
 		])
 	return property_list
 
-##Internal:Set up the animation
-func _init_animation() -> void:
-	pass
+func _init() -> void:
+	if collision_shape != null:
+		compute_raycast_positions()
+
+func compute_raycast_positions() -> void:
+	var shape_outmost_point:Vector2 = collision_shape.get_rect().end
+	#the lower right corner of the shape
+	col_bottom_right_corner = collision_center + shape_outmost_point
+	#The lower left corner of the shape
+	col_bottom_left_corner = collision_center + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
+	
+	col_bottom_center = (col_bottom_left_corner + col_bottom_right_corner) / 2.0
 
 ##This function is called when the animation is started. (Note: [b]not[/b] when it loops.)
 func _animation_start() -> void:
