@@ -51,6 +51,8 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var camera_move_speed:float
 
 @export_group("Animations", "anim_")
+##The color of animation collision when in the editor.
+@export var anim_collision_debug_color:Color = Color.AQUA
 ##The animation to play when standing still.
 @export var anim_stand:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for looking up.
@@ -212,8 +214,6 @@ var space_velocity:Vector2 = Vector2.ZERO
 ##The character's direction of travel.
 ##Equivalent to get_position_delta().normalized().sign()
 var velocity_direction:Vector2
-##The original value of floor_max_angle
-var default_max_angle:float
 
 ##Floor is too steep to be on at all
 var floor_is_fall_angle:bool
@@ -283,10 +283,8 @@ var is_crouching:bool
 var is_balancing:bool = false
 var is_pushing:bool = false:
 	set(now_pushing):
-		if now_pushing and can_be_pushing:
-			if not is_pushing:
-				contact_wall.emit()
-		is_pushing = now_pushing
+		if can_be_pushing:
+			is_pushing = now_pushing
 var is_jumping:bool = false
 ##If the player is slipping down a slope. When set, this value will silently
 ##set [member slipping_direction] based on the current [member collision_rotation].
@@ -435,7 +433,7 @@ func setup_performance_monitors() -> void:
 	self_perf_ground_vel = name + &"/" + perf_ground_velocity
 	self_perf_state = name + &"/" + perf_state
 	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_rotation"])
-	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"ground_velocity"])
+	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"abs_ground_velocity"])
 
 ##Clean up the custom performance monitors for the player
 func cleanup_performance_monitors() -> void:
@@ -737,7 +735,7 @@ func process_air() -> void:
 	#only move if the player does not have the roll lock and is rolling to cause it 
 	if not physics.control_jump_roll_lock or (physics.control_jump_roll_lock and is_rolling):
 		#Only let the player move in midair if they aren't already at max speed
-		if absf(space_velocity.x) < physics.ground_top_speed and not is_zero_approx(input_direction) and not is_on_wall():
+		if signf(space_velocity.x) != signf(input_direction) or absf(space_velocity.x) < physics.ground_top_speed:
 			space_velocity.x += physics.air_acceleration * input_direction
 	
 	#calculate air drag
@@ -961,45 +959,39 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
 	var wall_contact:bool = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
-	var wall_stop:bool = false
 	
 	if wall_contact:
-		#keep the player from sliding up the wall
-		if space_velocity.y > -physics.jump_short_limit:
-			space_velocity.y = maxf(0.0, space_velocity.y)
-		
 		#the direction the player is moving horizontally
 		var movement_dir:float
 		
 		if is_grounded:
-			movement_dir = signf(ground_velocity)
+			movement_dir = ground_velocity
 		else:
-			movement_dir = signf(space_velocity.x)
+			movement_dir = space_velocity.x
 		
-		#if the player is moving and moving in the direction they're facing
-		if not is_zero_approx(movement_dir) and is_equal_approx(movement_dir, facing_direction):
-			#We allow this tag as a means of setting aside bodies (eg. RigidBody) that should
-			#be treated like objects heavier than the player
-			const static_movable_id:StringName = &"strong_movable"
+		if ray_wall_left.is_colliding():
+			#they are pushing if they're pressing left
+			is_pushing = input_direction < 0.0
 			
-			if (ray_wall_left.is_colliding() and movement_dir < 0):
-				wall_stop = not ray_wall_left.get_collider().has_meta(static_movable_id)
-			elif (ray_wall_right.is_colliding() and movement_dir > 0):
-				wall_stop = not ray_wall_right.get_collider().has_meta(static_movable_id)
+			#The player can only go right from here
+			movement_dir = maxf(movement_dir, 0.0)
+		
+		if ray_wall_right.is_colliding():
+			#they are pushing if they're pressing right
+			is_pushing = input_direction > 0.0
 			
-			is_pushing = wall_stop
+			#the player can only go left from here
+			movement_dir = minf(movement_dir, 0.0)
+		
+		if is_grounded:
+			ground_velocity = movement_dir
 		else:
-			wall_stop = true
+			space_velocity.x = movement_dir
+		
+		contact_wall.emit()
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
-	
-	#stop the player from moving if they're on a wall
-	if wall_stop:
-		if is_grounded:
-			ground_velocity = 0.0
-		else:
-			space_velocity.x = 0.0
 	
 	var contact_point_count:int = int(ray_ground_left.is_colliding()) + int(ray_ground_central.is_colliding()) + int(ray_ground_right.is_colliding())
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
@@ -1007,7 +999,6 @@ func update_collision_rotation() -> void:
 	var in_ground_range:bool = bool(contact_point_count)
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
-	#var will_actually_land:bool = get_slide_collision_count() > 0 and not is_on_wall_only()
 	var will_actually_land:bool = get_slide_collision_count() > 0 and not (wall_contact and is_on_wall_only())
 	
 	#calculate ground angles. This happens even in the air, because we need to 
@@ -1058,7 +1049,7 @@ func update_collision_rotation() -> void:
 					#make sure the player can't merely run into anything in front of them and 
 					#then walk up it. This check also prevents the player from flying off sudden 
 					#obtuse landscape curves
-					if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(default_max_angle) and not is_on_wall()):
+					if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(floor_max_angle) and not is_on_wall()):
 						collision_rotation = gnd_angle
 				
 				else:
@@ -1085,16 +1076,16 @@ func update_collision_rotation() -> void:
 			
 			var adjusted_col_rot:float = fmod(collision_rotation, deg_90_rad)
 			#false on shallow angles going up and right. Otherwise true.
-			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + default_max_angle)
+			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + floor_max_angle)
 			#false on shallow angles going up and left. Otherwise true.
-			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - default_max_angle)
+			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - floor_max_angle)
 			
 			#We make sure the angle is steep. We also check for it being near 0 because otherwise,
 			#nearly/entirely flat ceilings will pass the check.
 			floor_is_fall_angle = leftward_steep_check and rightward_steep_check and not is_zero_approx(adjusted_col_rot)
 			floor_is_slip_angle = floor_is_fall_angle or (adjusted_col_rot < (deg_90_rad - physics.ground_slip_angle) and adjusted_col_rot > (-deg_90_rad + physics.ground_slip_angle))
 		else:
-			floor_is_fall_angle = collision_rotation > default_max_angle or collision_rotation < -default_max_angle
+			floor_is_fall_angle = collision_rotation > floor_max_angle or collision_rotation < -floor_max_angle
 			floor_is_slip_angle = floor_is_fall_angle or (collision_rotation > physics.ground_slip_angle or collision_rotation < -physics.ground_slip_angle)
 		
 		#slip checks
@@ -1107,8 +1098,6 @@ func update_collision_rotation() -> void:
 				#up_direction is set so that floor snapping can be used for walking on walls. 
 				up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 				
-				#floor angle is PI, so that the player can run on basically anything
-				floor_max_angle = PI
 				#in this situation, they only need to be in range of the ground to be grounded
 				is_grounded = in_ground_range
 				
@@ -1140,8 +1129,6 @@ func update_collision_rotation() -> void:
 						#prevent immedeate "oh we're moving fast enough" upon landing
 						if slipping_direction == signf(ground_velocity):
 							ground_velocity = 0.0
-				
-				floor_max_angle = default_max_angle
 		else: #not grounded
 			up_direction = default_up_direction
 			
@@ -1366,8 +1353,6 @@ func _ready() -> void:
 	anim_run_sorted_keys = load_dictionary.call(anim_run)
 	anim_skid_sorted_keys = load_dictionary.call(anim_skid)
 	
-	default_max_angle = floor_max_angle
-	
 	camera = get_window().get_camera_2d()
 
 func _exit_tree() -> void:
@@ -1431,6 +1416,7 @@ func _physics_process(delta: float) -> void:
 					feedback_physics = true
 				elif not body.get_remainder().is_zero_approx():
 					feedback_physics = true
+		
 		if feedback_physics:
 			space_velocity = velocity / physics_tick_adjust
 	

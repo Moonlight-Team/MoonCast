@@ -6,7 +6,7 @@
 script = ExtResource("1_ainab")
 control_roll_move_lock = true
 control_roll_enabled = true
-control_roll_midair_activate = false
+control_roll_midair_activate = true
 control_jump_is_vulnerable = false
 control_jump_roll_lock = false
 control_jump_hold_repeat = false

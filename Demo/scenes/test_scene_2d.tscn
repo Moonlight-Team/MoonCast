@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=30 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="2_43wwi"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]
@@ -76,6 +76,12 @@ bounce = 1.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_320si"]
 radius = 15.0
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_ao618"]
+friction = 0.5
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ao618"]
+size = Vector2(40, 40)
 
 [node name="TestScene" type="Node2D"]
 metadata/movie_file = "res://test_scene_2d.avi"
@@ -249,6 +255,13 @@ physics_material_override = SubResource("PhysicsMaterial_aalw2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/BouncyBall"]
 shape = SubResource("CircleShape2D_320si")
+
+[node name="RigidBody2D" type="RigidBody2D" parent="Movable Objects"]
+position = Vector2(1536, 200)
+physics_material_override = SubResource("PhysicsMaterial_ao618")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/RigidBody2D"]
+shape = SubResource("RectangleShape2D_ao618")
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
 modulate = Color(0.369107, 0.369107, 0.369107, 1)
