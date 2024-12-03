@@ -53,6 +53,8 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export_group("Animations", "anim_")
 ##The color of animation collision when in the editor.
 @export var anim_collision_debug_color:Color = Color.AQUA
+##If true, then all sprites are mirrored by default
+@export var anim_sprites_left_default:bool = false
 ##The animation to play when standing still.
 @export var anim_stand:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for looking up.
@@ -136,7 +138,8 @@ var ray_wall_left:RayCast2D = RayCast2D.new()
 ##The right wall raycast. Used for detecting running into a "wall" relative to the 
 ##player's rotation
 var ray_wall_right:RayCast2D = RayCast2D.new()
-
+##The [VisibleOnScreenNotifier2D] node for this player.
+var onscreen_checker:VisibleOnScreenNotifier2D = VisibleOnScreenNotifier2D.new()
 ##The sfx player node
 var sfx_player:AudioStreamPlayer = AudioStreamPlayer.new()
 ##The sfx player node's AudioStreamPolyphonic
@@ -231,6 +234,8 @@ var def_ray_left_corner:Vector2
 var def_ray_right_corner:Vector2
 ##Default position for the center ground raycast
 var def_ray_gnd_center:Vector2
+##The default shape of the visiblity notifier.
+var def_vis_notif_shape:Rect2
 
 #endregion
 #region state can be
@@ -465,9 +470,11 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 				shape_owner_add_shape(anim_col_owner_id, anim.collision_shape)
 				
 				anim.compute_raycast_positions()
-				#TODO: change the position of the raycasts to match the new animation
+				
+				onscreen_checker.rect = anim.collision_shape.get_rect()
 				reposition_raycasts(anim.col_bottom_left_corner, anim.col_bottom_right_corner, anim.col_bottom_center)
 			else:
+				onscreen_checker.rect = def_vis_notif_shape
 				reposition_raycasts(def_ray_left_corner, def_ray_right_corner, def_ray_gnd_center)
 			
 			#process the animation before it actually is played
@@ -674,6 +681,7 @@ func setup_collision() -> void:
 	
 	user_collision_owners = get_shape_owners().duplicate()
 	
+	
 	for collision_shapes:int in user_collision_owners:
 		for shapes:int in shape_owner_get_shape_count(collision_shapes):
 			#Get the shape itself
@@ -685,6 +693,7 @@ func setup_collision() -> void:
 			#(ie. it's on the player's lower half)
 			if this_shape_node.position.y >= 0:
 				var shape_outmost_point:Vector2 = this_shape.get_rect().end
+				def_vis_notif_shape = def_vis_notif_shape.merge(this_shape.get_rect())
 				#the lower right corner of the shape
 				var collision_outmost_right:Vector2 = this_shape_node.position + shape_outmost_point
 				#The lower left corner of the shape
@@ -716,6 +725,10 @@ func setup_collision() -> void:
 	ray_wall_left.add_exception(self)
 	ray_wall_right.add_exception(self)
 	
+	add_child(onscreen_checker)
+	onscreen_checker.name = "VisiblityChecker"
+	onscreen_checker.rect = def_vis_notif_shape
+	
 	#place the raycasts based on the above derived values
 	reposition_raycasts(ground_left_corner, ground_left_corner, def_ray_gnd_center)
 
@@ -738,9 +751,11 @@ func process_air() -> void:
 		if signf(space_velocity.x) != signf(input_direction) or absf(space_velocity.x) < physics.ground_top_speed:
 			space_velocity.x += physics.air_acceleration * input_direction
 	
-	#calculate air drag
+	#calculate air drag. This makes it so that the player moves at a slightly 
+	#slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 	if space_velocity.y < 0 and space_velocity.y > -physics.jump_short_limit:
 		space_velocity.x -= (space_velocity.x * 0.125) / 256
+		pass
 	
 	# apply gravity
 	space_velocity.y += physics.air_gravity_strength
@@ -1255,14 +1270,14 @@ func sprites_flip(check_speed:bool = true) -> void:
 		if does_flip:
 			if facing_direction < 0: #left
 				if is_instance_valid(sprite1):
-					sprite1.flip_h = true
+					sprite1.flip_h = not anim_sprites_left_default
 				if is_instance_valid(animated_sprite1):
-					animated_sprite1.flip_h = true
+					animated_sprite1.flip_h = not anim_sprites_left_default
 			elif facing_direction > 0: #right
 				if is_instance_valid(sprite1):
-					sprite1.flip_h = false
+					sprite1.flip_h = anim_sprites_left_default
 				if is_instance_valid(animated_sprite1):
-					animated_sprite1.flip_h = false
+					animated_sprite1.flip_h = anim_sprites_left_default
 
 ##Set the rotation of the sprites, in radians. This is required in order to preserve
 ##physics behavior while still implementing certain visual rotation features.
