@@ -41,14 +41,8 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export_range(0.0, 1.0) var rotation_adjustment_speed:float = 0.2
 
 @export_group("Camera", "camera_")
-##How many pixels above the player the camera will move to when the player holds up at a standstill.
-@export var camera_look_up_offset:int
-##How many pixels below the player the camera will move to when the player holds down at a standstill.
-@export var camera_look_down_offset:int
-##The offset from the player's position (center on screen) the camera will sit at.
-@export var camera_neutral_offset:Vector2
-##How fast the camera will move around.
-@export var camera_move_speed:float
+##The bounds of the camera when moved by the player.
+@export var camera_max_bounds:Rect2i = Rect2i(0, 0, 20, 20)
 
 @export_group("Animations", "anim_")
 ##The color of animation collision when in the editor.
@@ -596,7 +590,7 @@ func overlay_play_anim(lib:StringName, anim:StringName) -> void:
 	var anim_node:AnimatedSprite2D = overlay_sprites.get(lib, null)
 	if is_instance_valid(anim_node):
 		if anim_node.sprite_frames.has_animation(anim):
-			anim_node.play_animation(anim)
+			anim_node.play(anim)
 
 ##Remove an overlay sprite library from the player.
 ##If [free_lib] is true, the library's node will also be freed.
@@ -1248,13 +1242,10 @@ func update_animations() -> void:
 					if current_anim != anim_look_up:
 						play_animation(anim_look_up)
 					
-					move_camera_vertical(camera_look_up_offset)
 				elif is_crouching:
 					play_animation(anim_crouch)
-					move_camera_vertical(camera_look_down_offset)
 				else:
 					play_animation(anim_stand, true)
-					move_camera_vertical(0)
 	elif not is_grounded and not is_slipping:
 		play_animation(anim_free_fall)
 
@@ -1331,8 +1322,9 @@ func update_air_visual_rotation() -> void:
 	else:
 		sprite_rotation = 0
 
-@warning_ignore("unused_parameter")
-func move_camera_vertical(dest_offset:float) -> void:
+##Move the player's camera to [target], which will be clamped by the bounds set by
+##[camera_max_bounds], at [speed] speed.
+func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
 	#var camera_dest_pos:float = camera_neutral_offset.y + camera_look_up_offset
 	#
 	#if not is_equal_approx(camera.offset.y, camera_dest_pos):
