@@ -585,7 +585,8 @@ func check_sound_effect(sfx_name:StringName, sfx_stream:AudioStream) -> int:
 ##that contains a series of animations that can be played by calling 
 ##[overlay_play_anim].
 func overlay_add_lib(lib_name:StringName, anims:AnimatedSprite2D) -> void:
-	add_child(anims)
+	if not anims.is_inside_tree():
+		add_child(anims)
 	overlay_sprites[lib_name] = anims
 
 ##Play an animation [code]anim[/code] from overlay library [code]lib[/code].
@@ -594,14 +595,17 @@ func overlay_add_lib(lib_name:StringName, anims:AnimatedSprite2D) -> void:
 func overlay_play_anim(lib:StringName, anim:StringName) -> void:
 	var anim_node:AnimatedSprite2D = overlay_sprites.get(lib, null)
 	if is_instance_valid(anim_node):
-		if anim_node.has_animation(anim):
+		if anim_node.sprite_frames.has_animation(anim):
 			anim_node.play_animation(anim)
 
 ##Remove an overlay sprite library from the player.
-func overlay_remove_lib(lib_name:StringName) -> void:
+##If [free_lib] is true, the library's node will also be freed.
+func overlay_remove_lib(lib_name:StringName, free_lib:bool = true) -> void:
 	var anim_node:AnimatedSprite2D = overlay_sprites.get(lib_name, null)
 	if is_instance_valid(anim_node):
 		remove_child(anim_node)
+		if free_lib: 
+			anim_node.queue_free()
 		overlay_sprites.erase(lib_name)
 
 #endregion

@@ -384,5 +384,3 @@ neutral_speed = 5.0
 charge_button = &"jump"
 anim_charge = SubResource("Resource_snjwk")
 anim_launch = SubResource("Resource_dt87g")
-
-[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
