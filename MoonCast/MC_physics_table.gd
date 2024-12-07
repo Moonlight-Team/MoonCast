@@ -4,6 +4,35 @@ extends Resource
 ##but dimensionally agnostic, values, for both 3D and 2D physics in MoonCast.
 class_name MoonCastPhysicsTable
 
+##Animation types returned by [process_animations].
+enum AnimationTypes {
+	##Default animation
+	DEFAULT,
+	##Standing animation
+	STAND,
+	##Looking up animation
+	LOOK_UP,
+	##Balancing animation
+	BALANCE,
+	##Crouching animation
+	CROUCH,
+	##Rolling animation
+	ROLL,
+	##Pushing animation
+	PUSH,
+	##Jumping animation
+	JUMP,
+	##Free falling animation
+	FREE_FALL,
+	##Death animation
+	DEATH,
+	
+	##Running animation
+	RUN,
+	##Skidding animation
+	SKID,
+}
+
 @export_group("Control Options", "control_")
 @export_subgroup("3D Options", "control_3d_")
 ##3D only: The threshold of how far off from 180 degrees a joystick input has to be in 
@@ -84,12 +113,8 @@ var control_lock_timer:Timer = Timer.new()
 ##The timer for the player to be able to stick to the floor.
 var ground_snap_timer:Timer = Timer.new()
 
-
-
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
-
-
 
 ##How how fast the player is travelling on the ground, regardless of angles.
 var ground_velocity:float:
@@ -103,11 +128,11 @@ var abs_ground_velocity:float
 ##The character's current velocity in 2D space.
 ##When translated from 3D, x is whichever axis is larger between x and z, ie.
 ##the "forward" axis.
-var space_velocity_2d:Vector2 = Vector2.ZERO
-##The direction the player is facing horizontally.
-var facing_direction:Vector2 = Vector2.ZERO
-##The direction of the player's controller movement input.
-var input_direction:Vector2 = Vector2.ZERO
+var space_velocity:Vector2 = Vector2.ZERO
+##The forwards/backwards  direction the player is facing horizontally.
+var facing_direction:float = 0.0
+##The forwards/backwards direction of the player's controller movement input.
+var input_direction:float = 0.0
 ##The direction of the slope that the player is slipping down.
 var slipping_direction:float
 ##The rotation of the collision. when is_grounded, this is the ground angle.
@@ -127,7 +152,7 @@ var can_roll:bool = true:
 	set(on):
 		if control_roll_enabled:
 			if control_roll_move_lock:
-				can_roll = on and input_direction.is_zero_approx()
+				can_roll = on and is_zero_approx(input_direction)
 			else:
 				can_roll = on
 		else:
@@ -193,22 +218,6 @@ signal state_ground(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
 
-##Translates [space_vector] to [space_vector_h] so that horizontal value evaluation
-##can occur.
-func flatten_3d_vector(vec_3d:Vector3) -> Vector2:
-	#use the bigger axis between x and z, since we can assume this is forward for 
-	#the player
-	return Vector2(maxf(vec_3d.z, vec_3d.x), vec_3d.y)
-
-
-##"Unflattens" the [Vector2] [unflatten] based on the [Vector3] [based_on], and 
-##returns the result
-func unflatten_2d_vector(unflatten:Vector2, based_on:Vector3) -> Vector3:
-	if based_on.z >= based_on.x:
-		return Vector3(based_on.x, unflatten.y, unflatten.x)
-	else:
-		return Vector3(unflatten.x, unflatten.y, based_on.z)
-
 ##Runs checks on being able to roll and returns the new value of [member can_roll].
 func roll_checks() -> bool:
 	#check this first, cause if we aren't allowed to roll externally, we don't
@@ -223,31 +232,27 @@ func roll_checks() -> bool:
 		#external influences on rolling, such as tubes, are not affected
 		if not is_rolling and control_roll_move_lock:
 			#only allow rolling if we aren't going left or right actively
-			can_roll = can_roll and input_direction.is_zero_approx()
+			can_roll = can_roll and is_zero_approx(input_direction)
 	else:
 		can_roll = false
 	return can_roll
 
 func process_air() -> void:
-	#horizontal_space_vector()
-	
 	#only move if the player does not have the roll lock and is rolling to cause it 
 	if not control_jump_roll_lock or (control_jump_roll_lock and is_rolling):
 		#Only let the player move in midair if they aren't already at max speed
-		#if or absf(space_velocity_3d.x) < ground_top_speed or signf(space_velocity_3d.x) != signf(input_direction):
-		if space_velocity_2d.x < ground_top_speed or space_velocity_2d.dot(input_direction) > 0:
-			space_velocity_2d += air_acceleration * input_direction.normalized()
+		if absf(space_velocity.x) < ground_top_speed or signf(space_velocity.x) != signf(input_direction):
+		#if space_velocity.x < ground_top_speed or space_velocity.dot(input_direction) > 0:
+			space_velocity.x += air_acceleration * input_direction
 	
 	#calculate air drag. This makes it so that the player moves at a slightly 
 	#slower horizontal speed when jumping up, before hitting the [jump_short_limit].
-	if space_velocity_2d.y < 0 and space_velocity_2d.y > -jump_short_limit:
+	if space_velocity.y < 0 and space_velocity.y > -jump_short_limit:
 		#space_velocity_3d.x -= (space_velocity_3d.x * 0.125) / 256
-		space_velocity_2d -= (space_velocity_2d * 0.125) / 256
+		space_velocity -= (space_velocity * 0.125) / 256
 	
 	# apply gravity
-	space_velocity_2d.y += air_gravity_strength
-	
-	#vertical_space_vector()
+	space_velocity.y += air_gravity_strength
 
 ##Process the player's ground physics
 func process_ground() -> void:
@@ -276,8 +281,7 @@ func process_ground() -> void:
 				ground_velocity += rolling_uphill_factor * sine_ground_angle
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
-		#if not is_equal_approx(facing_direction, signf(ground_velocity)):
-		if not input_direction.sign().is_equal_approx(Vector2(ground_velocity, ground_velocity).sign()):
+		if not is_equal_approx(facing_direction, signf(ground_velocity)):
 			ground_velocity -= rolling_active_stop * signf(ground_velocity)
 			#facing_direction = -facing_direction
 			#sprites_flip()
@@ -288,13 +292,13 @@ func process_ground() -> void:
 			is_rolling = false
 	
 	else: #slope factors for being on foot
-		var slipping_direction_v:Vector2
+		#var slipping_direction_v:Vector2
 		
 		#This is a little value we need for some slipping logic. The player cannot move in the 
 		#direction they are slipping. They can however, run in the opposite direction, since that 
 		#would be "downhill"
-		#var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
-		var slip_lock:bool = is_slipping and input_direction.sign().is_equal_approx(slipping_direction_v)
+		var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
+		#var slip_lock:bool = is_slipping and input_direction.sign().is_equal_approx(slipping_direction_v)
 		
 		#slope and other "world" speed factors
 		if is_moving or is_slipping:
@@ -306,3 +310,33 @@ func process_ground() -> void:
 				ground_velocity += ground_slope_factor * sine_ground_angle
 		
 		#input processing
+
+##Determine which animation should be playing for the player based on their physics state. 
+##This does not include custom animations. This returns a value from [AnimationTypes].
+func assess_animations() -> int:
+	#rolling is rolling, whether the player is in the air or on the ground
+	if is_rolling:
+		return AnimationTypes.ROLL
+	elif is_jumping: #air animations
+		return AnimationTypes.JUMP
+	elif is_grounded:
+		if is_pushing:
+			return AnimationTypes.PUSH
+		# set player animations based on ground velocity
+		#These use percents to scale to the stats
+		elif not is_zero_approx(ground_velocity) or is_slipping:
+			return AnimationTypes.RUN
+		else: #standing still
+			#not balancing on a ledge
+			if is_balancing:
+				return AnimationTypes.BALANCE
+			else:
+				#TODO: Move looking up to animation
+				if is_crouching:
+					return AnimationTypes.CROUCH
+				else:
+					return AnimationTypes.STAND
+	elif not is_grounded and not is_slipping:
+		return AnimationTypes.FREE_FALL
+	else:
+		return AnimationTypes.DEFAULT

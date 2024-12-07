@@ -1079,8 +1079,6 @@ func update_collision_rotation() -> void:
 		
 		const deg_90_rad:float = PI / 2.0
 		
-		assert(collision_rotation > -PI * 2 and collision_rotation < PI * 2)
-		
 		#if the player is on what would be considered the ceiling
 		var ground_is_ceiling:bool = collision_rotation > deg_90_rad or collision_rotation < -(deg_90_rad)
 		
@@ -1193,16 +1191,14 @@ func update_collision_rotation() -> void:
 	
 	sprites_set_rotation(sprite_rotation)
 
-func update_ground_collision_rotation() -> void:
-	pass
-
-func update_air_collision_rotation() -> void:
-	pass
-
 #endregion
 #region Sprite/Animation processing
 ##Update the rotation of the character when they are in the air
 func update_animations() -> void:
+	old_update_animations()
+	#new_update_animations()
+
+func old_update_animations() -> void:
 	sprites_flip()
 	#rolling is rolling, whether the player is in the air or on the ground
 	if is_rolling:
@@ -1238,7 +1234,7 @@ func update_animations() -> void:
 					play_animation(anim_stand)
 			else:
 				if Input.is_action_pressed(controls.direction_up):
-					#TODO: Add some API stuff to make this usable for stuff like camera repositioning
+					#TODO: Change this to be used by moving the camera up.
 					if current_anim != anim_look_up:
 						play_animation(anim_look_up)
 					
@@ -1248,6 +1244,57 @@ func update_animations() -> void:
 					play_animation(anim_stand, true)
 	elif not is_grounded and not is_slipping:
 		play_animation(anim_free_fall)
+
+func new_update_animations() -> void:
+	sprites_flip()
+	var anim:int = physics.assess_animations()
+	print("Animation: ", anim)
+	match anim:
+		MoonCastPhysicsTable.AnimationTypes.RUN:
+			for speeds:float in anim_run_sorted_keys:
+				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+					#They were snapped earlier, but I find that it still won't work
+					#unless I snap them here
+					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
+					break
+		MoonCastPhysicsTable.AnimationTypes.SKID:
+			for speeds:float in anim_skid_sorted_keys:
+				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+					
+					#correct the direction of the sprite
+					facing_direction = -facing_direction
+					sprites_flip()
+					
+					#They were snapped earlier, but I find that it still won't work
+					#unless I snap them here
+					play_animation(anim_skid.get(snappedf(speeds, 0.001), &"RESET"), true)
+					
+					#only play skid anim once while skidding
+					if not anim_skid.values().has(current_anim):
+						play_sound_effect(sfx_skid_name)
+					break
+		MoonCastPhysicsTable.AnimationTypes.BALANCE:
+			if not ray_ground_left.is_colliding():
+				#face the ledge
+				facing_direction = -1.0
+			elif not ray_ground_right.is_colliding():
+				#face the ledge
+				facing_direction = 1.0
+			
+			sprites_flip(false)
+			if has_animation(anim_balance):
+				play_animation(anim_balance)
+			else:
+				play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.STAND:
+			if Input.is_action_pressed(controls.direction_up):
+				#TODO: Change this to be used by moving the camera up.
+				if current_anim != anim_look_up:
+					play_animation(anim_look_up)
+			else:
+				play_animation(anim_stand)
+		_:
+			pass
 
 ##Flip the sprites for the player based on the direction the player is facing.
 ##If [check_speed] is set to true, it will also check that the player is moving.
@@ -1325,12 +1372,13 @@ func update_air_visual_rotation() -> void:
 ##Move the player's camera to [target], which will be clamped by the bounds set by
 ##[camera_max_bounds], at [speed] speed.
 func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
+	if not is_moving and target.y < 0:
+		play_animation(anim_look_up)
 	#var camera_dest_pos:float = camera_neutral_offset.y + camera_look_up_offset
 	#
 	#if not is_equal_approx(camera.offset.y, camera_dest_pos):
 		#camera.offset.y = move_toward(camera.offset.y, camera_dest_pos, camera_move_speed)
-	
-	pass
+
 #endregion
 
 func _ready() -> void:
