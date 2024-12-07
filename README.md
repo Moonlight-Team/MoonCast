@@ -48,11 +48,11 @@ The visual assets in the demo besides the aforementioned splash screen are NOT l
 * Sonic Moonlight: The fangame that served as a catalyst for this engine to come into fruition.
 * [KlashiCola](https://github.com/Klashicola): Engine assets, programming.
 * [c08oprkiua](https://github.com/c08oprkiua): Main programmer.
-* CyberFog: Editor icons.
+* .[GhoulX](https://github.com/Ghoul-webp).: Editor icons, tweaked spindash speeds.
 * [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting.
 ### Demo:
 * [KlashiCola](https://github.com/Klashicola): 3D modeling.
 * [SS](https://github.com/SS-SoStupid): Sonic sprites, level art.
-* CyberFog: Level art.
+* .[GhoulX](https://github.com/Ghoul-webp) Concept Art, promotional art.
 * [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting, level design.
 * [c08oprkiua](https://github.com/c08oprkiua): Level design, ability programmer.
