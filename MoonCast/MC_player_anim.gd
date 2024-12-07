@@ -7,12 +7,13 @@ class_name MoonCastAnimation
 @export var animation:StringName
 ##The playback speed of the animation. 
 @export var speed:float = 1.0
-##The size that this animation takes up. This is used for ground alignment.
-@export var size:Rect2i = Rect2i()
-##If this animation can be rotated, eg. when aligning the player to the ground.
-@export var can_rotate:bool = true
-##If this animation can be flipped horizontally when the player is going left.
-@export var can_flip_h:bool = true
+##If this animation can be rotated to align to the ground.
+##In 2D, this controls the animation's ability to rotate, and in 3D, this 
+##controls the ability to change it's tilt angle.
+@export var can_turn_vertically:bool = true
+##If this animation can be turned horizontally to match the direction of the player.
+##In 3D, this is a rotation, and in 2D, this is flipping the sprite in the other direction.
+@export var can_turn_horizontal:bool = true
 ##If set, this animation override's the player's defaults for animation rotation.
 @export var override_rotation:bool = false:
 	set(on):

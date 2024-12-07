@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_ainab")
+control_3d_turn_around_threshold = 0.392699
 control_roll_move_lock = true
 control_roll_enabled = true
 control_roll_midair_activate = true

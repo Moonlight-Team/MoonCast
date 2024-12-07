@@ -46,8 +46,8 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 
 @export_group("Animations", "anim_")
 ##The color of animation collision when in the editor.
-@export var anim_collision_debug_color:Color = Color.AQUA
-##If true, then all sprites are mirrored by default
+@export var anim_collision_debug_color:Color = ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.AQUA)
+##If true, then all sprites are mirrored by default.
 @export var anim_sprites_left_default:bool = false
 ##The animation to play when standing still.
 @export var anim_stand:MoonCastAnimation = MoonCastAnimation.new()
@@ -181,7 +181,7 @@ var slipping_direction:float = 0.0
 var input_direction:float = 0:
 	set(new_dir):
 		input_direction = new_dir
-		if current_anim.can_flip_h and not is_zero_approx(new_dir):
+		if current_anim.can_turn_horizontal and not is_zero_approx(new_dir):
 			facing_direction = signf(new_dir)
 
 ##Set to true when an animation is set in the physics frame 
@@ -1252,7 +1252,7 @@ func update_animations() -> void:
 ##Flip the sprites for the player based on the direction the player is facing.
 ##If [check_speed] is set to true, it will also check that the player is moving.
 func sprites_flip(check_speed:bool = true) -> void:
-	if current_anim.can_flip_h:
+	if current_anim.can_turn_horizontal:
 		var does_flip:bool = false
 		if check_speed:
 			var moving_dir:float = ground_velocity if is_grounded else space_velocity.x
@@ -1284,7 +1284,7 @@ func sprites_set_rotation(new_rotation:float) -> void:
 
 func update_ground_visual_rotation() -> void:
 	if is_moving and (is_grounded or is_slipping):
-		if current_anim.can_rotate:
+		if current_anim.can_turn_vertically:
 			var rotation_snap:float = snappedf(snappedf(collision_rotation, 0.01), rotation_snap_interval)
 			
 			var half_rot_snap:float = rotation_snap_interval / 2.0 #TODO: cache this
@@ -1314,7 +1314,7 @@ func update_ground_visual_rotation() -> void:
 		sprite_rotation = 0.0
 
 func update_air_visual_rotation() -> void:
-	if current_anim.can_rotate:
+	if current_anim.can_turn_vertically:
 		if rotation_classic_snap:
 			sprite_rotation = 0
 		else:
