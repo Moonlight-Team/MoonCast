@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3 uid="uid://81vx8lyybmm7"]
 
-[ext_resource type="Texture2D" uid="uid://ddgdl5td13ano" path="res://Demo/assets/gui/VirtualDPad.png" id="1_lonqo"]
+[ext_resource type="Texture2D" uid="uid://bs04kr56qp7ia" path="res://Demo/assets/gui/VirtualDPad.png" id="1_lonqo"]
 
 [sub_resource type="GDScript" id="GDScript_3wfac"]
 resource_name = "touch_controls"
@@ -71,7 +71,6 @@ action = "down"
 
 [node name="Right" type="TouchScreenButton" parent="TouchControls/D-pad"]
 position = Vector2(240, 125.714)
-scale = Vector2(1, 1)
 shape = SubResource("RectangleShape2D_b1w8b")
 passby_press = true
 action = "right"

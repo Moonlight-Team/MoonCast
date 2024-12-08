@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://cevdou1y8kc5k"]
 
 [ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d/player_3d.tscn" id="1_73jpb"]
-[ext_resource type="PackedScene" uid="uid://dbb36glfmcd34" path="res://Demo/assets/levels/3DtestLevel/TestLevel.glb" id="2_kqoc6"]
+[ext_resource type="PackedScene" uid="uid://bi0yy5hqpck3v" path="res://Demo/assets/levels/3DtestLevel/TestLevel.glb" id="2_kqoc6"]
 
 [sub_resource type="Sky" id="Sky_0hq6w"]
 

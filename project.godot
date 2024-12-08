@@ -16,11 +16,11 @@ config/version="0.4"
 run/main_scene="res://Demo/scenes/gui/main_menu.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.4", "GL Compatibility")
-boot_splash/bg_color=Color(1, 0.457673, 0, 1)
-boot_splash/image="res://splash.png"
+boot_splash/bg_color=Color(0, 0.734321, 0.70697, 1)
+boot_splash/image="uid://bfu7a4kbkc0up"
 boot_splash/fullsize=false
 boot_splash/use_filter=false
-config/icon="res://icon.svg"
+config/icon="uid://rjo8bqqupdua"
 
 [display]
 
