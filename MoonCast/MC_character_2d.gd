@@ -679,7 +679,6 @@ func setup_collision() -> void:
 	
 	user_collision_owners = get_shape_owners().duplicate()
 	
-	
 	for collision_shapes:int in user_collision_owners:
 		for shapes:int in shape_owner_get_shape_count(collision_shapes):
 			#Get the shape itself

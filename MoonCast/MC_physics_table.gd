@@ -170,10 +170,10 @@ var is_grounded:bool:
 	set(now_grounded):
 		if now_grounded:
 			if not is_grounded:
-				contact_ground.emit(self)
+				land_on_ground()
 		else:
 			if is_grounded:
-				contact_air.emit(self)
+				enter_air()
 		is_grounded = now_grounded
 ##If true, the player is moving.
 var is_moving:bool:
@@ -218,6 +218,19 @@ signal state_ground(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
 
+func _init() -> void:
+	jump_timer.name = "JumpTimer"
+	jump_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	jump_timer.one_shot = true
+	
+	control_lock_timer.name = "ControlLockTimer"
+	control_lock_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	control_lock_timer.one_shot = true
+	
+	ground_snap_timer.name = "GroundSnapTimer"
+	ground_snap_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	ground_snap_timer.one_shot = true
+
 ##Runs checks on being able to roll and returns the new value of [member can_roll].
 func roll_checks() -> bool:
 	#check this first, cause if we aren't allowed to roll externally, we don't
@@ -253,6 +266,12 @@ func process_air() -> void:
 	
 	# apply gravity
 	space_velocity.y += air_gravity_strength
+
+func enter_air() -> void:
+	#collision_rotation = 0.0
+	#up_direction = default_up_direction
+	
+	contact_air.emit(self)
 
 ##Process the player's ground physics
 func process_ground() -> void:
@@ -310,6 +329,40 @@ func process_ground() -> void:
 				ground_velocity += ground_slope_factor * sine_ground_angle
 		
 		#input processing
+
+func land_on_ground() -> void:
+	#Transfer space_velocity to ground_velocity
+	var applied_ground_speed:Vector2 #= Vector2.from_angle(collision_rotation) 
+	applied_ground_speed *= (space_velocity)
+	ground_velocity = applied_ground_speed.x + applied_ground_speed.y
+	
+	#land in a roll if the player can
+	if roll_checks(): #and Input.is_action_pressed(controls.action_roll):
+		is_rolling = true
+		#play_sound_effect(sfx_roll_name)
+	else:
+		is_rolling = false
+	
+	#begin control lock timer
+	if not control_lock_timer.timeout.get_connections().is_empty() and control_lock_timer.is_stopped():
+		#ground_velocity += physics.air_gravity_strength * sin(collision_rotation)
+		control_lock_timer.start(ground_slip_time)
+	
+	#if Input.is_action_pressed(controls.action_jump) and not control_jump_hold_repeat:
+	#	hold_jump_lock = true
+	
+	#if they were landing from a jump, clean up jump stuff
+	if is_jumping:
+		#is_jumping = false
+		can_jump = false
+		
+		#we use a timer to make sure the player can't spam the jump
+		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
+		jump_timer.start(jump_spam_timer)
+	is_jumping = false
+	
+	
+	contact_ground.emit(self)
 
 ##Determine which animation should be playing for the player based on their physics state. 
 ##This does not include custom animations. This returns a value from [AnimationTypes].
