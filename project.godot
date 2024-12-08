@@ -24,11 +24,10 @@ config/icon="uid://rjo8bqqupdua"
 
 [display]
 
-window/size/viewport_width=420
+window/size/viewport_width=424
 window/size/viewport_height=240
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
-window/stretch/scale_mode="integer"
+window/stretch/aspect="keep_width"
 display_server/driver.linuxbsd="x11"
 
 [editor]
