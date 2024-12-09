@@ -838,8 +838,8 @@ shader = ExtResource("7_frwh0")
 shader_parameter/sky_texture = ExtResource("23_1pam8")
 shader_parameter/lock_aspect = false
 shader_parameter/aspect_ratio = 1.33333
-shader_parameter/fov = Vector2(128, 233.105)
-shader_parameter/tiling = Vector2i(1, 1)
+shader_parameter/fov = Vector2(180, 90)
+shader_parameter/tiling = Vector2i(10, 10)
 shader_parameter/offset = Vector2(0, 0)
 
 [node name="test_scene_3d" type="Node3D"]

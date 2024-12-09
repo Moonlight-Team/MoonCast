@@ -1,7 +1,7 @@
 [gd_scene load_steps=18 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_ntp3g"]
-[ext_resource type="AudioStream" uid="uid://dmhsm1jwb3lps" path="res://Demo/assets/audio/Music/April City.ogg" id="2_fhvme"]
+[ext_resource type="AudioStream" uid="uid://gl2oxl251i1t" path="res://Demo/assets/Audio/Music/2DStage.ogg" id="2_8djix"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="3_p8adb"]
 [ext_resource type="Script" path="res://MoonCast/debug_mode.gd" id="4_vamuc"]
 [ext_resource type="Script" path="res://Demo/assets/levels/parallax_layers/water_generation.gd" id="5_2xi77"]
@@ -33,7 +33,8 @@ texture_filter = 1
 visible = false
 
 [node name="StageMusic" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("2_fhvme")
+stream = ExtResource("2_8djix")
+volume_db = -7.72
 autoplay = true
 bus = &"Music"
 
