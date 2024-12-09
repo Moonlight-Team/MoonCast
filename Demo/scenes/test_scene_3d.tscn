@@ -1,26 +1,27 @@
-[gd_scene load_steps=56 format=4 uid="uid://cevdou1y8kc5k"]
+[gd_scene load_steps=57 format=4 uid="uid://cevdou1y8kc5k"]
 
+[ext_resource type="AudioStream" uid="uid://ck045d2hb6qed" path="res://Demo/assets/Audio/Music/3Dstage.ogg" id="1_3m87s"]
 [ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_7yqcc"]
 [ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d/player_3d.tscn" id="1_73jpb"]
-[ext_resource type="Texture2D" uid="uid://cf286iyb8ufeh" path="res://Demo/assets/levels/3DtestLevel/TestLevel_4435f9ba.png" id="5_3m87s"]
-[ext_resource type="Texture2D" uid="uid://m8l1rbpuheg4" path="res://Demo/assets/levels/3DtestLevel/TestLevel_5a67bd19.png" id="6_1pam8"]
+[ext_resource type="Texture2D" uid="uid://dpq8qa1w8ybw8" path="res://Demo/assets/levels/3DtestLevel/TestLevel_4435f9ba.png" id="5_3m87s"]
+[ext_resource type="Texture2D" uid="uid://cbaqkng4axu28" path="res://Demo/assets/levels/3DtestLevel/TestLevel_5a67bd19.png" id="6_1pam8"]
 [ext_resource type="Shader" uid="uid://c5tbcwf8ixnu4" path="res://Demo/scenes/skybox.gdshader" id="7_frwh0"]
-[ext_resource type="Texture2D" uid="uid://bb0ttpxj1c2li" path="res://Demo/assets/levels/3DtestLevel/TestLevel_da0bee91.png" id="7_yv7s5"]
+[ext_resource type="Texture2D" uid="uid://csaghtm1y51dm" path="res://Demo/assets/levels/3DtestLevel/TestLevel_da0bee91.png" id="7_yv7s5"]
 [ext_resource type="ArrayMesh" uid="uid://dolqrmex1a0oh" path="res://Demo/assets/levels/3DtestLevel/Skyboxstuff/Skyboxmesh.res" id="8_3vjrc"]
-[ext_resource type="Texture2D" uid="uid://cfxmaghcaiy0x" path="res://Demo/assets/levels/3DtestLevel/TestLevel_25822719.png" id="8_ffqxn"]
-[ext_resource type="Texture2D" uid="uid://c02ynly5787id" path="res://Demo/assets/levels/3DtestLevel/TestLevel_0374d0d9.png" id="9_i3jwt"]
-[ext_resource type="Texture2D" uid="uid://dlbo2qituysul" path="res://Demo/assets/levels/3DtestLevel/TestLevel_f36932b7.png" id="10_s842i"]
-[ext_resource type="Texture2D" uid="uid://betq63xwd6bbn" path="res://Demo/assets/levels/3DtestLevel/TestLevel_b7640988.png" id="11_vadw7"]
-[ext_resource type="Texture2D" uid="uid://r27txum17ht7" path="res://Demo/assets/levels/3DtestLevel/TestLevel_3caf62fc.png" id="12_c6386"]
-[ext_resource type="Texture2D" uid="uid://b8jmskbdf2pf" path="res://Demo/assets/levels/3DtestLevel/TestLevel_b4ee04bb.png" id="13_tsjra"]
-[ext_resource type="Texture2D" uid="uid://dnxl1pniuym40" path="res://Demo/assets/levels/3DtestLevel/TestLevel_2623e7c8.png" id="14_1v4na"]
-[ext_resource type="Texture2D" uid="uid://pq32hcgl5nre" path="res://Demo/assets/levels/3DtestLevel/TestLevel_010c4b9a.png" id="15_hgm6p"]
-[ext_resource type="Texture2D" uid="uid://cfcossrebllsu" path="res://Demo/assets/levels/3DtestLevel/TestLevel_2df89fb2.png" id="16_11k52"]
-[ext_resource type="Texture2D" uid="uid://l3ju3yuxgv22" path="res://Demo/assets/levels/3DtestLevel/TestLevel_62cb4340.png" id="17_kv1p0"]
-[ext_resource type="Texture2D" uid="uid://ck8samcgh4j2p" path="res://Demo/assets/levels/3DtestLevel/TestLevel_480d43d6.png" id="18_436e3"]
-[ext_resource type="Texture2D" uid="uid://dir1yjjec5see" path="res://Demo/assets/levels/3DtestLevel/TestLevel_2ca2a0bd.png" id="19_dmkwm"]
-[ext_resource type="Texture2D" uid="uid://ddu6qkqecn3fa" path="res://Demo/assets/levels/3DtestLevel/TestLevel_25dbb4c1.png" id="20_y7tjo"]
-[ext_resource type="Texture2D" uid="uid://d274a643niwul" path="res://Demo/assets/levels/3DtestLevel/TestLevel_b7bd407e.png" id="21_xmvnq"]
+[ext_resource type="Texture2D" uid="uid://bo1lhpwx3jr35" path="res://Demo/assets/levels/3DtestLevel/TestLevel_25822719.png" id="8_ffqxn"]
+[ext_resource type="Texture2D" uid="uid://ukmmmtc7eu7n" path="res://Demo/assets/levels/3DtestLevel/TestLevel_0374d0d9.png" id="9_i3jwt"]
+[ext_resource type="Texture2D" uid="uid://dy8nrhc0b3id3" path="res://Demo/assets/levels/3DtestLevel/TestLevel_f36932b7.png" id="10_s842i"]
+[ext_resource type="Texture2D" uid="uid://bu1xiq4sq1qly" path="res://Demo/assets/levels/3DtestLevel/TestLevel_b7640988.png" id="11_vadw7"]
+[ext_resource type="Texture2D" uid="uid://bvvqn33t7um8t" path="res://Demo/assets/levels/3DtestLevel/TestLevel_3caf62fc.png" id="12_c6386"]
+[ext_resource type="Texture2D" uid="uid://bdqp3fbrhiyl2" path="res://Demo/assets/levels/3DtestLevel/TestLevel_b4ee04bb.png" id="13_tsjra"]
+[ext_resource type="Texture2D" uid="uid://dupoaybvl0ge4" path="res://Demo/assets/levels/3DtestLevel/TestLevel_2623e7c8.png" id="14_1v4na"]
+[ext_resource type="Texture2D" uid="uid://cy7cergbbn2l1" path="res://Demo/assets/levels/3DtestLevel/TestLevel_010c4b9a.png" id="15_hgm6p"]
+[ext_resource type="Texture2D" uid="uid://b3floci5bg3a" path="res://Demo/assets/levels/3DtestLevel/TestLevel_2df89fb2.png" id="16_11k52"]
+[ext_resource type="Texture2D" uid="uid://cev6uirgrv0t6" path="res://Demo/assets/levels/3DtestLevel/TestLevel_62cb4340.png" id="17_kv1p0"]
+[ext_resource type="Texture2D" uid="uid://ckcnl4nf8nv5n" path="res://Demo/assets/levels/3DtestLevel/TestLevel_480d43d6.png" id="18_436e3"]
+[ext_resource type="Texture2D" uid="uid://bwjndhc2pskft" path="res://Demo/assets/levels/3DtestLevel/TestLevel_2ca2a0bd.png" id="19_dmkwm"]
+[ext_resource type="Texture2D" uid="uid://b5tbc48gk2pci" path="res://Demo/assets/levels/3DtestLevel/TestLevel_25dbb4c1.png" id="20_y7tjo"]
+[ext_resource type="Texture2D" uid="uid://d3uamgpheqmoa" path="res://Demo/assets/levels/3DtestLevel/TestLevel_b7bd407e.png" id="21_xmvnq"]
 [ext_resource type="Texture2D" uid="uid://byuymu5bnfc2o" path="res://Demo/assets/levels/3DtestLevel/Skyboxstuff/skybox_texture.tres" id="23_1pam8"]
 
 [sub_resource type="Environment" id="Environment_noruf"]
@@ -29,7 +30,7 @@ background_color = Color(0.838897, 0.838897, 0.838897, 1)
 background_energy_multiplier = 2.25
 background_canvas_max_layer = -100
 ambient_light_source = 3
-ambient_light_color = Color(0.662452, 0.662452, 0.662452, 1)
+ambient_light_color = Color(0.71213, 0.712129, 0.712129, 1)
 ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.0
 reflected_light_source = 2
@@ -844,6 +845,11 @@ shader_parameter/offset = Vector2(0, 0)
 [node name="test_scene_3d" type="Node3D"]
 transform = Transform3D(0.0127519, 0, 0, 0, 0.0127519, 0, 0, 0, 0.0127519, 0, 0, 0)
 
+[node name="StageMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("1_3m87s")
+autoplay = true
+bus = &"Music"
+
 [node name="ParallaxBackground" type="CanvasLayer" parent="."]
 layer = -100
 
@@ -861,7 +867,7 @@ visible = false
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
-light_color = Color(1.82897e-06, 0.544098, 0.867646, 1)
+light_color = Color(0.731584, 0.742832, 0.91334, 1)
 light_energy = 0.778
 light_indirect_energy = 2.29
 shadow_enabled = true
