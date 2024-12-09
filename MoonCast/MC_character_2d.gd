@@ -461,12 +461,12 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 				#set the transform so that the custom collision shape is properly offset
 				shape_owner_set_transform(anim_col_owner_id, Transform2D(transform.x, transform.y, anim.collision_center))
 				#actually add the shape now
-				shape_owner_add_shape(anim_col_owner_id, anim.collision_shape)
+				shape_owner_add_shape(anim_col_owner_id, anim.collision_shape_2D)
 				
-				anim.compute_raycast_positions()
+				anim.compute_raycast_positions_2D()
 				
-				onscreen_checker.rect = anim.collision_shape.get_rect()
-				reposition_raycasts(anim.col_bottom_left_corner, anim.col_bottom_right_corner, anim.col_bottom_center)
+				onscreen_checker.rect = anim.collision_shape_2D.get_rect()
+				reposition_raycasts(anim.colision_2d_left, anim.collision_2d_right, anim.collision_2d_center)
 			else:
 				onscreen_checker.rect = def_vis_notif_shape
 				reposition_raycasts(def_ray_left_corner, def_ray_right_corner, def_ray_gnd_center)

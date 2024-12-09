@@ -87,10 +87,12 @@ class_name MoonCastPlayer3D
 ##A Dictionary of custom sound effects. 
 @export var sfx_custom:Dictionary[StringName, AudioStream]
 
-@onready var pivot:Camera3D
-
+#the raw axis information from the directional input
 var input_direction:Vector2
+##the input direction adjusted to reflect the current y rotation of the camera.
+var spatial_input_direction:Vector3
 var space_velocity:Vector3
+var collision_rotation:Vector3
 
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
@@ -106,9 +108,11 @@ var overlay_sprites:Dictionary[StringName, AnimatedSprite2D]
 
 ##A flag set per frame once an animation has been set
 var animation_set:bool = false
+var animation_custom:bool = false
 ##The current animation
 var current_anim:MoonCastAnimation = MoonCastAnimation.new()
 
+#sorted arrays of the keys for anim_run and anim_skid
 var anim_run_sorted_keys:PackedFloat32Array = []
 var anim_skid_sorted_keys:PackedFloat32Array = []
 
@@ -117,12 +121,15 @@ var anim_skid_sorted_keys:PackedFloat32Array = []
 var user_collision_owners:PackedInt32Array
 ##The shape owner ID of the custom collision shapes of animations.
 var anim_col_owner_id:int
-##Default corner for the left ground raycast
-var def_ray_forward_point:Vector3
-##Default corner for the right ground raycast
-var def_ray_right_corner:Vector3
-##Default position for the center ground raycast
+#default positions for all the ground raycasts. These are based off of the collison
+#shapes present as children of the MoonCastPlayer3D upon _ready()
+var def_gnd_ahead_point:Vector3
+var def_gnd_back_point:Vector3
+var def_gnd_left_point:Vector3
+var def_gnd_right_point:Vector3
 var def_ray_gnd_center:Vector3
+
+
 ##The default shape of the visiblity notifier.
 var def_vis_notif_shape:AABB = AABB()
 
@@ -134,35 +141,42 @@ var sfx_playback_ref:AudioStreamPlaybackPolyphonic
 
 var rotation_root:Node3D = Node3D.new()
 var ray_ground_forward:RayCast3D = RayCast3D.new()
-var ray_ground_central:RayCast3D = RayCast3D.new()
 var ray_ground_back:RayCast3D = RayCast3D.new()
+var ray_ground_left:RayCast3D = RayCast3D.new()
+var ray_ground_right:RayCast3D = RayCast3D.new()
+var ray_ground_central:RayCast3D = RayCast3D.new()
 var ray_wall_forward:RayCast3D = RayCast3D.new()
-var ray_wall_back:RayCast3D = RayCast3D.new() #eventually will remove because it's pointless
+
+var camera:Camera3D
+##a reference to the remote transform for the camera. This is used so that the 
+##camera does not need to be moved in the tree in order to be manipulated, preserving
+##possible node paths used by projects.
+var camera_remote:RemoteTransform3D = RemoteTransform3D.new()
 var onscreen_checker:VisibleOnScreenNotifier3D = VisibleOnScreenNotifier3D.new()
 
 #processing signals, for the Ability system
 ##Emitted before processing physics 
-signal pre_physics(player:MoonCastPlayer2D)
+signal pre_physics(player:MoonCastPlayer3D)
 ##Emitted after processing physics
-signal post_physics(player:MoonCastPlayer2D)
+signal post_physics(player:MoonCastPlayer3D)
 ##Emitted when the player jumps
-signal jump(player:MoonCastPlayer2D)
+signal jump(player:MoonCastPlayer3D)
 ##Emitted when the player is hurt
 @warning_ignore("unused_signal")
-signal hurt(player:MoonCastPlayer2D)
+signal hurt(player:MoonCastPlayer3D)
 ##Emitted when the player collects something, like a shield or ring
 @warning_ignore("unused_signal")
-signal collectible_recieved(player:MoonCastPlayer2D)
+signal collectible_recieved(player:MoonCastPlayer3D)
 ##Emitted when the player makes contact with the ground
-signal contact_ground(player:MoonCastPlayer2D)
+signal contact_ground(player:MoonCastPlayer3D)
 ##Emitted when the player makes contact with a wall
-signal contact_wall(player:MoonCastPlayer2D)
+signal contact_wall(player:MoonCastPlayer3D)
 ##Emitted when the player is now airborne
-signal contact_air(player:MoonCastPlayer2D)
+signal contact_air(player:MoonCastPlayer3D)
 ##Emitted every frame when the player is touching the ground
-signal state_ground(player:MoonCastPlayer2D)
+signal state_ground(player:MoonCastPlayer3D)
 ##Emitted every frame when the player is in the air
-signal state_air(player:MoonCastPlayer2D)
+signal state_air(player:MoonCastPlayer3D)
 
 ##Translates [space_vector] to [space_vector_h] so that horizontal value evaluation
 ##can occur.
@@ -179,6 +193,50 @@ func unflatten_2d_vector(unflatten:Vector2, based_on:Vector3) -> Vector3:
 	else:
 		return Vector3(unflatten.x, unflatten.y, based_on.z)
 
+func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
+
+	#only set the animation if it is forced or not set this frame
+	if (force or not animation_set) and is_instance_valid(anim):
+		#anim.player = self
+		if anim != current_anim:
+			#setup custom collision
+			for default_owners:int in user_collision_owners:
+				shape_owner_set_disabled(default_owners, anim.override_collision)
+			shape_owner_set_disabled(anim_col_owner_id, not anim.override_collision)
+			if anim.override_collision:
+				#clear shapes
+				shape_owner_clear_shapes(anim_col_owner_id)
+				#set the transform so that the custom collision shape is properly offset
+				shape_owner_set_transform(anim_col_owner_id, Transform3D(transform.basis, anim.collision_center_3D))
+				#actually add the shape now
+				shape_owner_add_shape(anim_col_owner_id, anim.collision_shape_3D)
+				
+				anim.compute_raycast_positions_2D()
+				
+				onscreen_checker.aabb = anim.collision_shape_3D.get_debug_mesh().get_aabb()
+				reposition_raycasts(anim.collision_3d_ahead, anim.collision_3d_back, anim.collision_3d_left, anim.collision_3d_right, anim.collision_3d_center)
+			else:
+				onscreen_checker.aabb = def_vis_notif_shape
+				reposition_raycasts(def_gnd_ahead_point, def_gnd_back_point, def_gnd_left_point, def_gnd_right_point, def_ray_gnd_center)
+			
+			#process the animation before it actually is played
+			current_anim._animation_cease()
+			anim._animation_start()
+			anim._animation_process()
+			current_anim = anim
+		else:
+			current_anim._animation_process()
+		
+		#check if the animation wants to branch
+		animation_custom = anim._branch_animation()
+		#set the actual animation to play based on if the animation wants to branch
+		var played_anim:StringName = anim.next_animation if animation_custom else anim.animation
+		
+		if is_instance_valid(animations) and animations.has_animation(played_anim):
+			animations.play(played_anim, -1, anim.speed)
+			animation_set = true
+
+
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func setup_children() -> void:
@@ -189,7 +247,7 @@ func setup_children() -> void:
 		#Patch for the inability for get_class to return GDScript classes
 		if nodes.has_meta(&"Ability_flag"):
 			abilities.append(nodes.name)
-			nodes.call(&"setup_ability_2D", self)
+			nodes.call(&"setup_ability_3D", self)
 	
 	
 	add_child(physics.jump_timer)
@@ -206,23 +264,26 @@ func setup_children() -> void:
 	#Add the raycasts to the scene
 	rotation_root.name = "Raycast Rotator"
 	add_child(rotation_root)
+	
 	ray_ground_forward.name = "RayGroundAhead"
 	rotation_root.add_child(ray_ground_forward)
 	ray_ground_back.name = "RayGroundBack"
 	rotation_root.add_child(ray_ground_back)
+	ray_ground_left.name = "RayGroundLeft"
+	rotation_root.add_child(ray_ground_left)
+	ray_ground_right.name = "RayGroundRight"
+	rotation_root.add_child(ray_ground_right)
 	ray_ground_central.name = "RayGroundCentral"
 	rotation_root.add_child(ray_ground_central)
-	ray_wall_forward.name = "RayWallForward"
+	
+	ray_wall_forward.name = "RayWall"
 	rotation_root.add_child(ray_wall_forward)
-	ray_wall_back.name = "RayWallBack"
-	rotation_root.add_child(ray_wall_back)
 	
-	var cam:Camera3D = get_viewport().get_camera_3d()
-	var cam_parent:Node = cam.get_parent()
-	if cam.is_inside_tree():
-		cam_parent.remove_child(cam)
-	rotation_root.add_child(cam)
-	
+	camera = get_viewport().get_camera_3d()
+	add_child(camera_remote)
+	if is_instance_valid(camera):
+		camera_remote.transform = camera.transform
+		camera_remote.remote_path = camera.get_path()
 	
 	if not is_instance_valid(anim_model):
 		push_error("No player model found for ", name)
@@ -235,10 +296,13 @@ func setup_collision() -> void:
 	#handles most of the rest for detection that these would traditionally be used 
 	#for.
 	
-	#The farthest down and ahead point for collision among the player's hitboxes
-	var ground_forward_point:Vector3 = Vector3(0.0, INF, 0.0)
-	#The farthest downa and back point for collision among the player's hitboxes
-	var ground_back_point:Vector3 = Vector3(0.0, INF, 0.0)
+	#these represent the points that are the farthest down and also farthest out in 
+	#their respective directions. Y is set to INF to find anything lower than it.
+	var point_default:Vector3 = Vector3(0.0, INF, 0.0)
+	var ground_forward_point:Vector3 = point_default
+	var ground_back_point:Vector3 = point_default
+	var ground_left_point:Vector3 = point_default
+	var ground_right_point:Vector3 = point_default
 	
 	user_collision_owners = get_shape_owners().duplicate()
 	
@@ -250,61 +314,90 @@ func setup_collision() -> void:
 			var this_shape_node:Node3D = shape_owner_get_owner(collision_shapes)
 			
 			if this_shape_node.position.y >= 0:
-				var shape_outmost_point:Vector3 = this_shape.get_debug_mesh().get_aabb().end
+				#top right corner
+				var shape_end_point:Vector3 = this_shape.get_debug_mesh().get_aabb().end
+				#bottom left corner
+				var opposite_end_point:Vector3 = -shape_end_point
+				opposite_end_point.y = shape_end_point.y
+				
 				def_vis_notif_shape = def_vis_notif_shape.merge(this_shape.get_debug_mesh().get_aabb())
 				
 				var owner_node_position:Vector3 = Vector3.ZERO
 				if this_shape_node != self:
 					owner_node_position = this_shape_node.position
 				
-				var outmost_back_point:Vector3 = owner_node_position + Vector3(-shape_outmost_point.x, shape_outmost_point.y, -shape_outmost_point.z)
-				var outmost_ahead_point:Vector3 = owner_node_position + shape_outmost_point
+				#var outmost_back_point:Vector3 = owner_node_position + Vector3(-shape_end_point.x, shape_end_point.y, -shape_end_point.z)
+				var outmost_back_point:Vector3 = owner_node_position + opposite_end_point
+				var outmost_ahead_point:Vector3 = owner_node_position + shape_end_point
+				var outmost_left_point:Vector3 = owner_node_position + opposite_end_point
+				var outmost_right_point:Vector3 = owner_node_position + shape_end_point
 				
 				#If it's farther down vertically than either of the max points
-				if outmost_ahead_point.y <= ground_forward_point.y or outmost_back_point.y <= ground_back_point.y:
+				if outmost_ahead_point.y <= ground_forward_point.y or outmost_back_point.y <= ground_back_point.y or outmost_left_point.y <= ground_left_point.y or outmost_right_point.y <= ground_right_point.y:
 					#If it's farther ahead than the ahead left point so far...
+					outmost_ahead_point.z = maxf(outmost_ahead_point.z, ground_forward_point.z)
 					if outmost_ahead_point.z > ground_forward_point.z:
 						ground_forward_point = outmost_ahead_point
 					#Otherwise, if it's farther back that the most back point so far...
 					if outmost_back_point.z < ground_back_point.z:
 						ground_back_point = outmost_back_point
+					
+					if outmost_left_point.x < ground_left_point.x:
+						ground_left_point = outmost_left_point
+					
+					if outmost_right_point.x > ground_right_point.x:
+						ground_right_point = outmost_right_point
 	
 	#when these are true, no collision shapes were found. Presumably.
 	if not is_finite(ground_forward_point.y):
 		ground_forward_point = Vector3(0.0, 0.0, 1.5)
 	if not is_finite(ground_back_point.y):
 		ground_back_point = Vector3(0.0, 0.0, -1.5)
+	if not is_finite(ground_left_point.y):
+		ground_left_point = Vector3(-1.5, 0.0, 0.0)
+	if not is_finite(ground_right_point.y):
+		ground_right_point = Vector3(1.5, 0.0, 0.0)
+	
+	printt("Check 2", ground_forward_point, ground_back_point, ground_left_point, ground_right_point)
 	
 	rotation_root.position.y = def_vis_notif_shape.size.y / 2.0
 	
 	anim_col_owner_id = create_shape_owner(self)
 	
-	def_ray_forward_point = ground_forward_point
+	def_gnd_ahead_point = ground_forward_point
 	ray_ground_forward.collision_mask = collision_mask
 	ray_ground_forward.debug_shape_thickness = 10
 	ray_ground_forward.add_exception(self)
 	
-	def_ray_right_corner = ground_back_point
+	def_gnd_back_point = ground_back_point
 	ray_ground_back.collision_mask = collision_mask
 	ray_ground_back.debug_shape_thickness = 10
 	ray_ground_back.add_exception(self)
 	
-	def_ray_gnd_center = (ground_forward_point + ground_back_point) / 2.0
+	def_gnd_left_point = ground_left_point
+	ray_ground_left.collision_mask = collision_mask
+	ray_ground_left.debug_shape_thickness = 10
+	ray_ground_left.add_exception(self)
+	
+	def_gnd_right_point = ground_right_point
+	ray_ground_right.collision_mask = collision_mask
+	ray_ground_right.debug_shape_thickness = 10
+	ray_ground_right.add_exception(self)
+	
+	def_ray_gnd_center = (ground_forward_point + ground_back_point + ground_left_point + ground_right_point) / 4.0
 	ray_ground_central.collision_mask = collision_mask
 	ray_ground_central.debug_shape_thickness = 10
 	ray_ground_central.add_exception(self)
 	
 	ray_wall_forward.add_exception(self)
 	ray_wall_forward.debug_shape_thickness = 10
-	ray_wall_back.add_exception(self)
-	ray_wall_back.debug_shape_thickness = 10
 	
 	add_child(onscreen_checker)
 	onscreen_checker.name = "VisiblityChecker"
 	onscreen_checker.aabb = def_vis_notif_shape
 	
 	#place the raycasts based on the above derived values
-	reposition_raycasts(ground_forward_point, ground_back_point, def_ray_gnd_center)
+	reposition_raycasts(ground_forward_point, ground_back_point, ground_left_point, ground_right_point, def_ray_gnd_center)
 
 func setup_performance_monitors() -> void:
 	pass
@@ -312,33 +405,89 @@ func setup_performance_monitors() -> void:
 func update_animations() -> void:
 	if not animation_set:
 		var anim:int = physics.assess_animations()
-		
+		match anim:
+			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
+				pass
+			MoonCastPhysicsTable.AnimationTypes.STAND:
+				play_animation(anim_stand)
+			MoonCastPhysicsTable.AnimationTypes.FREE_FALL:
+				play_animation(anim_free_fall)
 		#TODO: Match statement for anim
+
+func rotate_model(new_basis:Basis) -> void:
+	if current_anim.can_turn_horizontal:
+		#TODO: do this properly. Should just turn y axis
+		anim_model.basis = new_basis
 
 func update_collision_rotation() -> void:
 	if not camera_use_mouse and not input_direction.is_zero_approx():
-		rotation_root.rotation.y = input_direction.rotated(deg_to_rad(90.0)).angle()
+		camera_remote.rotation.y = input_direction.rotated(deg_to_rad(90.0)).angle()
 	
+	physics.collision_angle = rotation_root.rotation.normalized().angle_to(Vector3.ZERO)
 	
+	const ray_count:int = 5
 	
+	var will_actually_land:bool = get_slide_collision_count() > 0 and not (ray_wall_forward.is_colliding() and is_on_wall_only())
+	
+	#yes I think I am very funny with naming
+	var in_ar_ray:Array[RayCast3D] = [ray_ground_back, ray_ground_forward, ray_ground_left, ray_ground_right, ray_ground_central]
+	var out_ar_ray:Array[RayCast3D] = []
+	#note: This should be unrolled in C++
+	for arr_num:int in ray_count:
+		var current_raycast:RayCast3D = in_ar_ray[arr_num]
+		if current_raycast.is_colliding():
+			out_ar_ray.append(current_raycast)
+	
+	if not out_ar_ray.is_empty():
+		#NOTE: for 3 and 4, we are assuming the central ray is one of the contacting rays.
+		match out_ar_ray.size():
+			1:
+				if physics.is_grounded:
+					#we just ran off a ledge; don't update collision rotation
+					collision_rotation.lerp(Vector3.ZERO, 0.01)
+				else:
+					#we aren't grounded; still calculate angles
+					collision_rotation = out_ar_ray[0].get_collision_normal()
+			2:
+				if out_ar_ray.has(ray_ground_central):
+					#we are grounded, likely standing on the edge of some small fence or smth
+					pass
+				else: #we are NOT grounded
+					pass
+			3: 
+				pass
+			4, 5:
+				#definitely grounded; just grab it from CharacterBody API
+				collision_rotation = get_floor_normal()
+			_:
+				assert(false, "How did we get here")
+	
+	physics.is_grounded = out_ar_ray.size() > 3 or will_actually_land
 
-#TODO: Update this
-func reposition_raycasts(forward_point:Vector3, back_point:Vector3, center:Vector3 = (forward_point + back_point) / 2.0) -> void:
-	#move the raycast horizontally to point down to the corner
+
+func reposition_raycasts(forward_point:Vector3, back_point:Vector3, left_point:Vector3, right_point:Vector3, center:Vector3) -> void:
+	#move the raycasts horizontally to the point on their relevant axis, then
+	#point the raycast directly down, and then beyond that by the floor snap length
+	
 	ray_ground_forward.position.z = forward_point.z
-	#point the raycast down to the corner, and then beyond that by the margin
 	ray_ground_forward.target_position.y = -forward_point.y - floor_snap_length
 	
 	ray_ground_back.position.z = back_point.z
 	ray_ground_back.target_position.y = -back_point.y - floor_snap_length
 	
+	ray_ground_left.position.x = left_point.x
+	ray_ground_left.target_position.y = -left_point.y - floor_snap_length
+	
+	ray_ground_right.position.x = right_point.x
+	ray_ground_right.target_position.y = -right_point.y - floor_snap_length
+	
 	ray_ground_central.position.z = center.z
+	ray_ground_central.position.x = center.x
 	ray_ground_central.target_position.y = -center.y - floor_snap_length
 	
 	#TODO: Place these better; they should be targeting the x pos of the absolute
 	#farthest horizontal collision boxes, not only the ground-valid boxes
-	ray_wall_forward.target_position = Vector3(0.0, 0.0, forward_point.x - 1)
-	ray_wall_back.target_position = Vector3(0.0, 0.0, back_point.x + 1)
+	ray_wall_forward.target_position = Vector3(0.0, 0.0, forward_point.z + 1)
 
 func _ready() -> void: 
 	Input.mouse_mode = camera_mouse_capture_mode
@@ -376,7 +525,7 @@ func _ready() -> void:
 func _input(event:InputEvent) -> void:
 	#camera
 	if camera_use_mouse and event is InputEventMouseMotion:
-		rotate_y(deg_to_rad(-event.relative.x * camera_sensitivity.x))
+		camera_remote.rotate_y(deg_to_rad(-event.relative.x * camera_sensitivity.x))
 
 func _physics_process(delta: float) -> void:
 	new_physics_process(delta)
@@ -393,11 +542,19 @@ func new_physics_process(delta:float) -> void:
 	#some calculations/checks that always happen no matter what the state
 	#velocity_direction = get_position_delta().normalized().sign()
 	
-	input_direction = Vector2.ZERO
+	spatial_input_direction = Vector3.ZERO
 	if physics.can_be_moving:
-		input_direction = Input.get_vector(controls.direction_left, controls.direction_right, controls.direction_up, controls.direction_down)
+		var raw_input_vec3:Vector3 = Vector3.ZERO
+		raw_input_vec3.x = Input.get_axis(controls.direction_left, controls.direction_right)
+		raw_input_vec3.z = Input.get_axis(controls.direction_down, controls.direction_up)
+		
+		#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
+		#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
+		spatial_input_direction = (camera_remote.basis * raw_input_vec3).normalized()
 	
 	physics.space_velocity = flatten_3d_vector(space_velocity)
+	
+	physics.input_direction = spatial_input_direction.z
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -424,6 +581,7 @@ func new_physics_process(delta:float) -> void:
 	
 	space_velocity = unflatten_2d_vector(physics.space_velocity, space_velocity)
 	space_velocity.y = -space_velocity.y
+	
 	#Make the callback for physics post-calculation
 	#But this is *before* actually moving, or else it'd be nearly
 	#the same as pre_physics
@@ -468,23 +626,15 @@ func old_physics_process(delta:float) -> void:
 	
 	#The x axis will be which way Sonic should be traveling on the x axis in space, and 
 	#the y axis will be which way Sonic should be traveling on the z axis in space.
-	var input_dir:Vector2 = Input.get_vector(controls.direction_left, controls.direction_right, controls.direction_up, controls.direction_down)
+	input_direction = Input.get_vector(controls.direction_left, controls.direction_right, controls.direction_up, controls.direction_down)
 	
-	#Transform basis is rotation, scale, and shear. In particular, we want rotation, because 
-	#we want Sonic to move in the direction he is facing/rotated.
-	#Multiplying transform.basis by input_dir multiplies those values all by values ranging from 0 to 1, 
-	#meaning they zero out when the player is not moving and are at full value when the player is fully moving.
-	#
-	#This ultimately gives the *game* a sense of what direction Sonic *should* be going 
-	#based on the player input.
+	#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
+	#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
+	spatial_input_direction = (camera_remote.basis * Vector3(input_direction.x, 0, input_direction.y)).normalized()
 	
-	#And normalizing the result is basically dividing the vector proportionally to itself, so we 
-	#get a result vector that's more a percentage than a raw (and possibly very high) number.
-	var direction:Vector3 = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
-	
-	if not direction.is_zero_approx(): #if Sonic should be going somewhere
-		velocity.x = move_toward(velocity.x, physics.ground_top_speed, physics.ground_acceleration * direction.x)
-		velocity.z = move_toward(velocity.z, physics.ground_top_speed, physics.ground_acceleration * direction.z)
+	if not spatial_input_direction.is_zero_approx(): #if Sonic should be going somewhere
+		velocity.x = move_toward(velocity.x, physics.ground_top_speed, physics.ground_acceleration * spatial_input_direction.x)
+		velocity.z = move_toward(velocity.z, physics.ground_top_speed, physics.ground_acceleration * spatial_input_direction.z)
 	else: #we're not holding anything, move velocity down to 0 on non-gravity axes
 		velocity.x = move_toward(velocity.x, 0, physics.ground_deceleration)
 		velocity.z = move_toward(velocity.z, 0, physics.ground_deceleration)

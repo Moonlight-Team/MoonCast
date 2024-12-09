@@ -12,7 +12,7 @@ class_name MoonCastAnimation
 ##controls the ability to change it's tilt angle.
 @export var can_turn_vertically:bool = true
 ##If this animation can be turned horizontally to match the direction of the player.
-##In 3D, this is a rotation, and in 2D, this is flipping the sprite in the other direction.
+##In 3D, this is y rotation, and in 2D, this is flipping the sprite in the other direction.
 @export var can_turn_horizontal:bool = true
 ##If set, this animation override's the player's defaults for animation rotation.
 @export var override_rotation:bool = false:
@@ -28,16 +28,23 @@ class_name MoonCastAnimation
 @export_group("Collision", "collision_")
 ##The center for the collision shape.
 @export_storage var collision_center:Vector2
-##The custom collision shape to use when this animation is active.
-@export_storage var collision_shape:Shape2D = null
-##Internal: The position of the left ground raycast based on the collision shape
-@export_storage var col_bottom_left_corner:Vector2
-##Internal: The position of the left ground raycast based on the collision shape
-@export_storage var col_bottom_center:Vector2
-##Internal: The position of the left ground raycast based on the collision shape
-@export_storage var col_bottom_right_corner:Vector2
-##Internal:The shape ID of this animation's collision object
-@export_storage var collision_shape_id:int = -1
+##The custom collision shape to use when this animation is active in 2D.
+@export_storage var collision_shape_2D:Shape2D = null
+##The custom collision shape to use when this animation is active in 3D.
+@export_storage var collision_shape_3D:Shape3D = null
+
+#internal: Pre-computed raycast target positions for the custom collision shape
+#of the animation
+@export_storage var colision_2d_left:Vector2
+@export_storage var collision_2d_center:Vector2
+@export_storage var collision_2d_right:Vector2
+
+@export_storage var collision_3d_ahead:Vector3
+@export_storage var collision_3d_back:Vector3
+@export_storage var collision_3d_left:Vector3 
+@export_storage var collision_3d_right:Vector3
+@export_storage var collision_3d_center:Vector3
+
 @export_group("")
 @export_group("Rotation", "rotation_")
 ##The rotation snap of the animation.
@@ -51,6 +58,8 @@ var next_animation:StringName
 ##The player node for this MoonCastAnimation. Eventually this will not be a thing, and the 
 ##player properties will be exposed natively like they are in MoonCastAbility.
 var player:MoonCastPlayer2D
+
+var mode_2d:bool = true
 
 func _get_property_list() -> Array[Dictionary]:
 	var property_list:Array[Dictionary] = []
@@ -75,7 +84,7 @@ func _get_property_list() -> Array[Dictionary]:
 			}
 		])
 	if override_collision:
-		property_list.append_array([
+		property_list.append(
 			#TODO: Add group declaration here
 			{
 				"name": "collision_center",
@@ -85,29 +94,48 @@ func _get_property_list() -> Array[Dictionary]:
 				"hint_string": "",
 				"usage": PROPERTY_USAGE_DEFAULT
 			},
+		)
+		if mode_2d:
+			property_list.append(
 			{
-				"name": "collision_shape",
+				"name": "collision_shape_2D",
 				"class_name": &"Shape2D",
 				"type": TYPE_OBJECT,
 				"hint": PROPERTY_HINT_RESOURCE_TYPE,
 				"hint_string": "Shape2D",
 				"usage": PROPERTY_USAGE_DEFAULT
 			}
-		])
+		)
+		else:
+			property_list.append(
+			{
+				"name": "collision_shape_3D",
+				"class_name": &"Shape3D",
+				"type": TYPE_OBJECT,
+				"hint": PROPERTY_HINT_RESOURCE_TYPE,
+				"hint_string": "Shape3D",
+				"usage": PROPERTY_USAGE_DEFAULT
+			}
+		)
 	return property_list
 
 func _init() -> void:
-	if collision_shape != null:
-		compute_raycast_positions()
+	if collision_shape_2D != null:
+		compute_raycast_positions_2D()
+	if collision_shape_3D != null:
+		compute_raycast_positions_3D()
 
-func compute_raycast_positions() -> void:
-	var shape_outmost_point:Vector2 = collision_shape.get_rect().end
+func compute_raycast_positions_2D() -> void:
+	var shape_outmost_point:Vector2 = collision_shape_2D.get_rect().end
 	#the lower right corner of the shape
-	col_bottom_right_corner = collision_center + shape_outmost_point
+	collision_2d_right = collision_center + shape_outmost_point
 	#The lower left corner of the shape
-	col_bottom_left_corner = collision_center + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
+	colision_2d_left = collision_center + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
 	
-	col_bottom_center = (col_bottom_left_corner + col_bottom_right_corner) / 2.0
+	collision_2d_center = (colision_2d_left + collision_2d_right) / 2.0
+
+func compute_raycast_positions_3D() -> void:
+	pass
 
 ##This function is called when the animation is started. (Note: [b]not[/b] when it loops.)
 func _animation_start() -> void:
