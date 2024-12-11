@@ -407,11 +407,23 @@ func update_animations() -> void:
 		var anim:int = physics.assess_animations()
 		match anim:
 			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
-				pass
+				play_animation(anim_stand)
 			MoonCastPhysicsTable.AnimationTypes.STAND:
 				play_animation(anim_stand)
+			MoonCastPhysicsTable.AnimationTypes.LOOK_UP:
+				play_animation(anim_look_up)
+			MoonCastPhysicsTable.AnimationTypes.BALANCE:
+				play_animation(anim_balance)
+			MoonCastPhysicsTable.AnimationTypes.CROUCH:
+				play_animation(anim_crouch)
 			MoonCastPhysicsTable.AnimationTypes.FREE_FALL:
 				play_animation(anim_free_fall)
+			MoonCastPhysicsTable.AnimationTypes.ROLL:
+				if current_anim != anim_roll:
+					print("Alright partner, keep on rollin baby")
+				play_animation(anim_roll)
+			_:
+				print("Implement animation ", anim)
 		#TODO: Match statement for anim
 
 func rotate_model(new_basis:Basis) -> void:
@@ -457,8 +469,14 @@ func update_collision_rotation() -> void:
 			3: 
 				pass
 			4, 5:
-				#definitely grounded; just grab it from CharacterBody API
-				collision_rotation = get_floor_normal()
+				physics.is_balancing = false
+				
+				if physics.is_grounded:
+					#definitely grounded; just grab it from CharacterBody API
+					apply_floor_snap()
+					collision_rotation = get_floor_normal()
+				else:
+					collision_rotation = ray_ground_central.get_collision_normal()
 			_:
 				assert(false, "How did we get here")
 	
@@ -488,6 +506,8 @@ func reposition_raycasts(forward_point:Vector3, back_point:Vector3, left_point:V
 	#TODO: Place these better; they should be targeting the x pos of the absolute
 	#farthest horizontal collision boxes, not only the ground-valid boxes
 	ray_wall_forward.target_position = Vector3(0.0, 0.0, forward_point.z + 1)
+	
+	#rotate_model(camera_remote.basis)
 
 func _ready() -> void: 
 	Input.mouse_mode = camera_mouse_capture_mode

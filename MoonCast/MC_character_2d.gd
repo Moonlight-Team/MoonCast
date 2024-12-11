@@ -973,34 +973,18 @@ func update_collision_rotation() -> void:
 	var wall_contact:bool = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
 	
 	if wall_contact:
-		#the direction the player is moving horizontally
-		var movement_dir:float
-		
-		if is_grounded:
-			movement_dir = ground_velocity
-		else:
-			movement_dir = space_velocity.x
+		var was_pushing:bool = is_pushing
 		
 		if ray_wall_left.is_colliding():
 			#they are pushing if they're pressing left
 			is_pushing = input_direction < 0.0
-			
-			#The player can only go right from here
-			movement_dir = maxf(movement_dir, 0.0)
 		
 		if ray_wall_right.is_colliding():
 			#they are pushing if they're pressing right
 			is_pushing = input_direction > 0.0
-			
-			#the player can only go left from here
-			movement_dir = minf(movement_dir, 0.0)
 		
-		if is_grounded:
-			ground_velocity = movement_dir
-		else:
-			space_velocity.x = movement_dir
-		
-		contact_wall.emit()
+		if not was_pushing and is_pushing:
+			contact_wall.emit()
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
@@ -1469,11 +1453,15 @@ func _physics_process(delta: float) -> void:
 		var feedback_physics:bool = false
 		for bodies:int in get_slide_collision_count():
 			var body:KinematicCollision2D = get_slide_collision(bodies)
-			if body.get_collider().get_class() == "RigidBody2D":
+			var body_mode:PhysicsServer2D.BodyMode = PhysicsServer2D.body_get_mode(body.get_collider_rid())
+			
+			if body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID or body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID_LINEAR:
 				if not body.get_collider_velocity().is_zero_approx():
 					feedback_physics = true
 				elif not body.get_remainder().is_zero_approx():
 					feedback_physics = true
+				
+				PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), velocity)
 		
 		if feedback_physics:
 			space_velocity = velocity / physics_tick_adjust

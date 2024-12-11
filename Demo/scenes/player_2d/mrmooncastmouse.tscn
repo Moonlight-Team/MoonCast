@@ -1,22 +1,22 @@
-[gd_scene load_steps=36 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=37 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Demo/abilities/sonic_standard/mooncast_physics.tres" id="2_rii83"]
-[ext_resource type="AudioStream" uid="uid://bmtpy36te80lh" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_o6288"]
+[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_o6288"]
 [ext_resource type="Resource" uid="uid://dfwk0fpplgsi4" path="res://Demo/assets/player/control_set.tres" id="3_td25q"]
 [ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_j5cv3"]
-[ext_resource type="AudioStream" uid="uid://clt457h06dl2i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_rcomx"]
-[ext_resource type="AudioStream" uid="uid://84y04uj7xvfy" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_fe7cx"]
+[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_rcomx"]
+[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_fe7cx"]
 [ext_resource type="Script" uid="uid://dwwqwut5sssky" path="res://Demo/scenes/player_2d/speed_varied_anim.gd" id="5_onlsf"]
-[ext_resource type="AudioStream" uid="uid://5yktyqv8unlc" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
+[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
 [ext_resource type="Script" uid="uid://dmn8dq47ypbsf" path="res://Demo/scenes/player_2d/flip_anim.gd" id="6_l0jkf"]
 [ext_resource type="SpriteFrames" uid="uid://dm67r4cqj7ud5" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_ice.tres" id="7_hprdh"]
 [ext_resource type="SpriteFrames" uid="uid://bpvjns0vskghr" path="res://Demo/assets/player/mooncast_sonic_2d/sprite_frame_mooncast.tres" id="7_o1ngo"]
 [ext_resource type="Script" uid="uid://cjwrhog1kep00" path="res://Demo/abilities/bonus/switch_skin.gd" id="8_ax5uv"]
-[ext_resource type="AudioStream" uid="uid://cvn4di68brrwe" path="res://Demo/assets/audio/SFX/switch_outfits.ogg" id="9_apyss"]
+[ext_resource type="AudioStream" uid="uid://bdf5oypybgqj1" path="res://Demo/assets/audio/SFX/switch_outfits.ogg" id="9_apyss"]
 [ext_resource type="Script" uid="uid://dh21r7jthua87" path="res://Demo/abilities/sonic_standard/spindash.gd" id="11_jsmc0"]
-[ext_resource type="AudioStream" uid="uid://bie2bxphv87pm" path="res://Demo/assets/audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
-[ext_resource type="AudioStream" uid="uid://cudrtfxs58a2v" path="res://Demo/assets/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
+[ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/assets/audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
+[ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/assets/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
 [ext_resource type="Script" uid="uid://b3i1iohnqckgd" path="res://Demo/abilities/sonic_standard/super_peel_out.gd" id="14_oykrb"]
 [ext_resource type="Script" uid="uid://dngbkto8dafn8" path="res://Demo/abilities/sonic_standard/drop_dash.gd" id="16_7ai3q"]
 
@@ -103,6 +103,10 @@ rotation_snap = 0.523599
 rotation_smooth = true
 collision_center = Vector2(0, 9)
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_ycwly"]
+resource_name = "ball_collision_shape"
+radius = 16.0
+
 [sub_resource type="Resource" id="Resource_rbxmi"]
 resource_name = "roll_ball"
 script = ExtResource("5_onlsf")
@@ -115,6 +119,7 @@ can_turn_horizontal = false
 override_rotation = false
 override_collision = true
 collision_center = Vector2(0, 5)
+collision_shape_2D = SubResource("CircleShape2D_ycwly")
 colision_2d_left = Vector2(0, 0)
 collision_2d_center = Vector2(0, 0)
 collision_2d_right = Vector2(0, 0)
@@ -126,6 +131,7 @@ collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
 collision_center = Vector2(0, 5)
+collision_shape_2D = SubResource("CircleShape2D_ycwly")
 
 [sub_resource type="Resource" id="Resource_xe3mx"]
 resource_name = "walk"
@@ -221,6 +227,7 @@ can_turn_horizontal = true
 override_rotation = false
 override_collision = true
 collision_center = Vector2(0, 0)
+collision_shape_2D = SubResource("CircleShape2D_ycwly")
 colision_2d_left = Vector2(0, 0)
 collision_2d_center = Vector2(0, 0)
 collision_2d_right = Vector2(0, 0)
@@ -232,6 +239,7 @@ collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
 collision_center = Vector2(0, 0)
+collision_shape_2D = SubResource("CircleShape2D_ycwly")
 
 [sub_resource type="Resource" id="Resource_d7m6u"]
 script = ExtResource("6_l0jkf")
