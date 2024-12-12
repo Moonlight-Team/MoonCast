@@ -45,8 +45,6 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var camera_max_bounds:Rect2i = Rect2i(0, 0, 20, 20)
 
 @export_group("Animations", "anim_")
-##The color of animation collision when in the editor.
-@export var anim_collision_debug_color:Color = ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.AQUA)
 ##If true, then all sprites are mirrored by default.
 @export var anim_sprites_left_default:bool = false
 ##The animation to play when standing still.
@@ -454,8 +452,12 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 			#setup custom collision
 			for default_owners:int in user_collision_owners:
 				shape_owner_set_disabled(default_owners, anim.override_collision)
+				var owner:Object = shape_owner_get_owner(default_owners)
+				if owner is CanvasItem:
+					owner.visible = not anim.override_collision
+				
 			shape_owner_set_disabled(anim_col_owner_id, not anim.override_collision)
-			if anim.override_collision:
+			if anim.override_collision and is_instance_valid(anim.collision_shape_2D):
 				#clear shapes
 				shape_owner_clear_shapes(anim_col_owner_id)
 				#set the transform so that the custom collision shape is properly offset
@@ -478,6 +480,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 			current_anim = anim
 		else:
 			current_anim._animation_process()
+		
+		queue_redraw()
 		
 		#check if the animation wants to branch
 		animation_custom = anim._branch_animation()
@@ -1396,6 +1400,13 @@ func _ready() -> void:
 	anim_skid_sorted_keys = load_dictionary.call(anim_skid)
 	
 	camera = get_window().get_camera_2d()
+
+func _draw() -> void:
+	if get_tree().debug_collisions_hint or Engine.is_editor_hint():
+		if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
+			current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
+		else:
+			RenderingServer.canvas_item_clear(get_canvas_item())
 
 func _exit_tree() -> void:
 	cleanup_performance_monitors()
