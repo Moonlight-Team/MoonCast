@@ -1,7 +1,7 @@
 [gd_scene load_steps=24 format=3 uid="uid://fqh0i1dgi84m"]
 
-[ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
-[ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Demo/abilities/sonic_standard/classic_physics.tres" id="2_b6fdh"]
+[ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
+[ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Framework/abilities/sonic_standard/classic_physics.tres" id="2_b6fdh"]
 [ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_i5f3k"]
 [ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_usa1h"]
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_xm06n"]

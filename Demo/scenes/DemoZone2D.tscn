@@ -12,7 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://bspuebvwnfn0b" path="res://Demo/assets/levels/parallax_layers/green_forest.tres" id="10_uvw1e"]
 [ext_resource type="Texture2D" uid="uid://l2l5vfa2566j" path="res://Demo/assets/levels/parallax_layers/near_mountains.tres" id="11_0xpc3"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/assets/levels/demo_zone_tiles.tres" id="12_gj4r1"]
-[ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/scenes/entity_2d/item_box.tscn" id="13_njlsf"]
+[ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/scenes/entity_2d/item_box/item_box.tscn" id="13_njlsf"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ppmtc"]
 normal = Vector2(1, 0)
