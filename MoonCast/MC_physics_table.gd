@@ -67,11 +67,11 @@ enum AnimationTypes {
 ##The top speed the player can reach by input on level ground alone.
 @export var ground_top_speed:float = 6.0
 ##How much the player will accelerate on the ground each frame.
-@export var ground_acceleration:float = 0.046875
+@export var ground_acceleration:float = 0.07
 ##How much the player will slow down with no direction pressed on the ground.
 @export var ground_deceleration:float = 0.046875
 ##How much the player will slow down on the ground when actively trying to stop or change direction.
-@export var ground_skid_speed:float = 0.5
+@export var ground_skid_speed:float = 0.4
 ##How much running on a slope will affect the player's speed.
 ##The player's speed will increase by this value when running downhill, and
 ##decrease by it when running uphill.
@@ -81,17 +81,17 @@ enum AnimationTypes {
 ##The top horizontal speed the player can reach in the air by input alone.
 @export var air_top_speed:float = 6.0
 ##How much the player will accelerate in the air each physics frame.
-@export var air_acceleration:float = 0.09375
+@export var air_acceleration:float = 0.1
 ##How much the player will fall in the air each physics frame.
 @export var air_gravity_strength:float = 0.21875
 
 @export_group("Roll", "rolling_")
 ##The minimum speed the player must be moving in order to initiate a roll.
-@export var rolling_min_speed:float = 0.5
+@export var rolling_min_speed:float = 1.0
 ##How much the player will additionally slow down when actively trying to stop while rolling.
-@export var rolling_active_stop:float = 0.125
+@export var rolling_active_stop:float = 0.5
 ##How much the player will slow down when rolling on a level surface.
-@export var rolling_flat_factor:float = 0.0234375
+@export var rolling_flat_factor:float = 0.05
 ##How much the player will be slowed down when rolling up a hill.
 @export var rolling_uphill_factor:float = 0.078125
 ##How much the player will gain speed when rolling down a hill.
