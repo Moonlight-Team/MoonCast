@@ -106,6 +106,11 @@ enum AnimationTypes {
 ##next be able to jump
 @export var jump_spam_timer:float = 0.15
 
+@export_group("Misc")
+##The percentage of the player's speed that becomes the force exerted on rigid physics 
+##bodies in the engine when colliding with them.
+@export var physics_collision_power:float = 1.0
+
 ##The timer for the player's ability to jump after landing.
 var jump_timer:Timer = Timer.new()
 ##The timer for the player's ability to move directionally.

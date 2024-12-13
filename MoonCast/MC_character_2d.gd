@@ -194,6 +194,9 @@ var animation_custom:bool = false
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
 
+##True if the player is contacting a wall. This doesn't always mean they are pushing against it
+var wall_contact:bool
+
 ##The ground velocity. This is how fast the player is 
 ##travelling on the ground, regardless of angles.
 var ground_velocity:float = 0.0:
@@ -974,7 +977,7 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
-	var wall_contact:bool = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
+	wall_contact = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
 	
 	if wall_contact:
 		var was_pushing:bool = is_pushing
@@ -1139,7 +1142,6 @@ func update_collision_rotation() -> void:
 			
 			if can_land_on_slope:
 				if ground_is_ceiling:
-					#TODO: Functional ceiling checks
 					is_grounded = in_ground_range and floor_is_fall_angle
 				is_grounded = in_ground_range and will_actually_land
 			else:
@@ -1453,15 +1455,18 @@ func _physics_process(delta: float) -> void:
 	#the same as pre_physics
 	post_physics.emit(self)
 	
-	var physics_tick_adjust:float = 60.0 * (delta * 60.0)
+	const physics_adjust:float = 60.0
+	var raw_velocity:Vector2 = space_velocity * physics_adjust
 	
-	velocity = space_velocity * physics_tick_adjust
+	velocity = raw_velocity
+	
 	move_and_slide()
 	
 	#Make checks to see if the player should recieve physics engine feedback
 	#We can't have it feed back every time, since otherwise, it breaks slope landing physics.
+	var feedback_physics:bool = wall_contact
+	
 	if get_slide_collision_count() > 0:
-		var feedback_physics:bool = false
 		for bodies:int in get_slide_collision_count():
 			var body:KinematicCollision2D = get_slide_collision(bodies)
 			var body_mode:PhysicsServer2D.BodyMode = PhysicsServer2D.body_get_mode(body.get_collider_rid())
@@ -1472,10 +1477,12 @@ func _physics_process(delta: float) -> void:
 				elif not body.get_remainder().is_zero_approx():
 					feedback_physics = true
 				
-				PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), velocity)
+				PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), raw_velocity * physics.physics_collision_power)
+	
+	if feedback_physics:
+		space_velocity = velocity / physics_adjust
 		
-		if feedback_physics:
-			space_velocity = velocity / physics_tick_adjust
+		#TODO: Ground physics feedback
 	
 	update_animations()
 	
