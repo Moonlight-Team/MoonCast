@@ -5,10 +5,10 @@ class_name MoonCastDebugMode
 @export_group("Debug controls", "button_")
 ##The action for enabling debug. When debug is enabled, the 
 ##player will [i]not[/i] be affected by pausing the game (with debug mode)
-@export var button_enable_debug:StringName
+@export var button_enable_debug:StringName = "ui_cancel"
 @export var button_cycle_objects:StringName
-@export var button_scene_pause:StringName
-@export var button_scene_frame_advance:StringName
+@export var button_scene_pause:StringName = "ui_focus_next"
+@export var button_scene_frame_advance:StringName = "ui_focus_prev"
 
 var in_debug_mode:bool = false
 var pause_next_frame:bool = false

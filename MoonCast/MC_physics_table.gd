@@ -33,6 +33,10 @@ enum AnimationTypes {
 	SKID,
 }
 
+const perf_ground_velocity:StringName = &"Ground Velocity"
+const perf_ground_angle:StringName = &"Ground Angle"
+const perf_state:StringName = &"Player State"
+
 @export_group("Control Options", "control_")
 @export_subgroup("3D Options", "control_3d_")
 ##3D only: The threshold of how far off from 180 degrees a joystick input has to be in 
@@ -53,6 +57,13 @@ enum AnimationTypes {
 ##If enabled, the player can hold jump to repeatedly jump as soon as the jump timer is over.
 ##Otherwise, they [i]also[/i] have to let go of jump in order to jump again.
 @export var control_jump_hold_repeat:bool = false
+
+@export_group("General")
+##The absolute fastest speed the player can achieve traveling through space, no matter what.
+@export var absolute_speed_cap:Vector2 = Vector2(16.0, 16.0)
+##The default up direction for the player.
+@export var default_up_direction:Vector3 = Vector3.UP
+@export_group("")
 
 @export_group("Ground", "ground_")
 ##The minimum speed the player needs to be moving to not be considered to be at a standstill.
@@ -76,6 +87,8 @@ enum AnimationTypes {
 ##The player's speed will increase by this value when running downhill, and
 ##decrease by it when running uphill.
 @export var ground_slope_factor:float = 0.125
+##The absolute fastest speed the player can achieve on the ground, no matter what.
+@export var ground_speed_cap:float = 16.0
 
 @export_group("Air", "air_")
 ##The top horizontal speed the player can reach in the air by input alone.
@@ -130,24 +143,33 @@ var ground_velocity:float:
 ##Easy-access variable for the absolute value of [ground_velocity], because it's 
 ##often needed for general checks regarding speed.
 var abs_ground_velocity:float
-##The character's current velocity in 2D space.
-##When translated from 3D, x is whichever axis is larger between x and z, ie.
-##the "forward" axis.
-var space_velocity:Vector2 = Vector2.ZERO
+##The character's current velocity through space. For 2D, z is the equivalent of x.
+var space_velocity:Vector3 = Vector3.ZERO
 ##The forwards/backwards  direction the player is facing horizontally.
-var facing_direction:float = 0.0
+var facing_direction:Vector2 = Vector2.ZERO
 ##The forwards/backwards direction of the player's controller movement input.
 var input_direction:float = 0.0
 ##The direction of the slope that the player is slipping down.
 var slipping_direction:float
-##The rotation of the collision. when is_grounded, this is the ground angle.
-##In the air, this should be 0.
+
+var up_direction:Vector3
+
+#angle values
+##The rotation of the collision. When is_grounded, this is the ground angle.
+##In the air, this should be 0. In 2D, this is player's rotation. In 3D, this is 
+##rotation on the x axis (tilt forwards/backwards).
 var collision_angle:float
 
+##The max angle of the floor before the player will fall (not slip) off of it when
+##moving too slowly.
+var floor_max_angle:float
 ##Floor is too steep to be on at all
 var floor_is_fall_angle:bool
 ##Floor is too steep to keep grip at low speeds
 var floor_is_slip_angle:bool
+
+var wall_contact:bool 
+var wall_only_contact:bool
 
 var can_jump:bool = true:
 	set(on):
@@ -165,7 +187,6 @@ var can_roll:bool = true:
 var can_be_pushing:bool = true
 var can_be_moving:bool = true
 var can_be_attacking:bool = true
-
 
 ##If true, the player is on what the physics consider 
 ##to be the ground.
@@ -212,6 +233,13 @@ var is_slipping:bool = false:
 ##If the player is in an attacking state.
 var is_attacking:bool = false
 
+##The name of the custom performance monitor for ground_velocity
+var self_perf_ground_vel:StringName
+##The name of the custom performance monitor for the ground angle
+var self_perf_ground_angle:StringName
+##The name of the custom performance monitor for state
+var self_perf_state:StringName
+
 ##Emitted when the player makes contact with the ground
 signal contact_ground(player:MoonCastPlayer2D)
 ##Emitted when the player makes contact with a wall
@@ -224,23 +252,55 @@ signal state_ground(player:MoonCastPlayer2D)
 signal state_air(player:MoonCastPlayer2D)
 
 func _init() -> void:
+	connect_timers(Timer.new(), Timer.new(), Timer.new())
+
+func connect_timers(jump:Timer, control_lock:Timer, ground_snap:Timer) -> void:
+	disconnect_timers()
+	jump_timer = jump
 	jump_timer.name = "JumpTimer"
 	jump_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	jump_timer.one_shot = true
 	
+	control_lock_timer = control_lock
 	control_lock_timer.name = "ControlLockTimer"
 	control_lock_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	control_lock_timer.one_shot = true
 	
+	ground_snap_timer = ground_snap
 	ground_snap_timer.name = "GroundSnapTimer"
 	ground_snap_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	ground_snap_timer.one_shot = true
+
+func disconnect_timers(free:bool = false) -> void:
+	if free:
+		if is_instance_valid(jump_timer):
+			jump_timer.queue_free()
+		if is_instance_valid(control_lock_timer):
+			control_lock_timer.queue_free()
+		if is_instance_valid(ground_snap_timer):
+			ground_snap_timer.queue_free()
+	
+	jump_timer = null
+	control_lock_timer = null
+	ground_snap_timer = null
+
+func setup_performance_monitors(name:StringName) -> void:
+	self_perf_ground_angle = name + &"/" + perf_ground_angle
+	self_perf_ground_vel = name + &"/" + perf_ground_velocity
+	self_perf_state = name + &"/" + perf_state
+	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_angle"])
+	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"abs_ground_velocity"])
+
+##Clean up the custom performance monitors for the player
+func cleanup_performance_monitors() -> void:
+	Performance.remove_custom_monitor(self_perf_ground_angle)
+	Performance.remove_custom_monitor(self_perf_ground_vel)
 
 ##Runs checks on being able to roll and returns the new value of [member can_roll].
 func roll_checks() -> bool:
 	#check this first, cause if we aren't allowed to roll externally, we don't
 	#need the more nitty gritty checks
-	if  control_roll_enabled:
+	if control_roll_enabled:
 		#If the player is is_grounded, they can roll, since the previous check for
 		#it being enabled is true. If they're in the air though, they can only 
 		#roll if they can midair roll
@@ -273,8 +333,8 @@ func process_air() -> void:
 	space_velocity.y += air_gravity_strength
 
 func enter_air() -> void:
-	#collision_rotation = 0.0
-	#up_direction = default_up_direction
+	collision_angle = 0.0
+	up_direction = default_up_direction
 	
 	contact_air.emit(self)
 
@@ -305,7 +365,7 @@ func process_ground() -> void:
 				ground_velocity += rolling_uphill_factor * sine_ground_angle
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
-		if not is_equal_approx(facing_direction, signf(ground_velocity)):
+		if not is_equal_approx(facing_direction.y, signf(ground_velocity)):
 			ground_velocity -= rolling_active_stop * signf(ground_velocity)
 			#facing_direction = -facing_direction
 			#sprites_flip()
@@ -337,12 +397,12 @@ func process_ground() -> void:
 
 func land_on_ground() -> void:
 	#Transfer space_velocity to ground_velocity
-	var applied_ground_speed:Vector2 #= Vector2.from_angle(collision_rotation) 
-	applied_ground_speed *= (space_velocity)
+	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_angle) 
+	applied_ground_speed *= Vector2(space_velocity.z, space_velocity.y)
 	ground_velocity = applied_ground_speed.x + applied_ground_speed.y
 	
 	#land in a roll if the player can
-	if roll_checks(): #and Input.is_action_pressed(controls.action_roll):
+	if roll_checks() and false: #and Input.is_action_pressed(controls.action_roll):
 		is_rolling = true
 		#play_sound_effect(sfx_roll_name)
 	else:
@@ -350,7 +410,7 @@ func land_on_ground() -> void:
 	
 	#begin control lock timer
 	if not control_lock_timer.timeout.get_connections().is_empty() and control_lock_timer.is_stopped():
-		#ground_velocity += physics.air_gravity_strength * sin(collision_rotation)
+		ground_velocity += air_gravity_strength * sin(collision_angle)
 		control_lock_timer.start(ground_slip_time)
 	
 	#if Input.is_action_pressed(controls.action_jump) and not control_jump_hold_repeat:
@@ -368,6 +428,156 @@ func land_on_ground() -> void:
 	
 	
 	contact_ground.emit(self)
+
+func update_wall_contact(is_contacting:bool, is_on_wall_only:bool) -> void:
+	wall_contact = is_contacting
+	wall_only_contact = is_on_wall_only
+	if is_contacting:
+		var was_pushing:bool = is_pushing
+		
+		if facing_direction.y < 0.0:
+			#they are pushing if they're pressing left
+			is_pushing = input_direction < 0.0
+		
+		if facing_direction.y > 0.0:
+			#they are pushing if they're pressing right
+			is_pushing = input_direction > 0.0
+		
+		if not was_pushing and is_pushing:
+			contact_wall.emit()
+	else:
+		#The player obviously isn't going to be pushing a wall they aren't touching
+		is_pushing = false
+
+func update_collision_rotation(rotation_angle:float, contact_point_count:int, has_slide_collisions:bool) -> bool:
+	collision_angle = rotation_angle
+	var apply_floor_snap:bool 
+	
+	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
+	#properly applies ground angle
+	#This check is made so that the player does not prematurely enter the ground state as soon
+	# as the raycasts intersect the ground
+	var will_actually_land:bool = has_slide_collisions and not (wall_contact and wall_only_contact)
+	
+	#calculate ground angles. This happens even in the air, because we need to 
+	#know before landing what the ground angle is/will be, to apply landing speed
+	if contact_point_count:
+		#ceiling checks
+		
+		const deg_90_rad:float = PI / 2.0
+		
+		#if the player is on what would be considered the ceiling
+		var ground_is_ceiling:bool = collision_angle > deg_90_rad or collision_angle < -(deg_90_rad)
+		
+		if ground_is_ceiling:
+			#TODO: Optimize this section
+			
+			var adjusted_col_rot:float = fmod(collision_angle, deg_90_rad)
+			#false on shallow angles going up and right. Otherwise true.
+			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + floor_max_angle)
+			#false on shallow angles going up and left. Otherwise true.
+			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - floor_max_angle)
+			
+			#We make sure the angle is steep. We also check for it being near 0 because otherwise,
+			#nearly/entirely flat ceilings will pass the check.
+			floor_is_fall_angle = leftward_steep_check and rightward_steep_check and not is_zero_approx(adjusted_col_rot)
+			floor_is_slip_angle = floor_is_fall_angle or (adjusted_col_rot < (deg_90_rad - ground_slip_angle) and adjusted_col_rot > (-deg_90_rad + ground_slip_angle))
+		else:
+			floor_is_fall_angle = collision_angle > floor_max_angle or collision_angle < -floor_max_angle
+			floor_is_slip_angle = floor_is_fall_angle or (collision_angle > ground_slip_angle or collision_angle < -ground_slip_angle)
+		
+		#slip checks
+		
+		var fast_enough:bool = abs_ground_velocity > ground_stick_speed
+		var should_lose_grip:bool = true if ground_is_ceiling else floor_is_slip_angle
+		
+		if is_grounded:
+			if fast_enough and contact_point_count > 1:
+				#up_direction is set so that floor snapping can be used for walking on walls. 
+				var forward_vector:Vector2 =  Vector2.from_angle(collision_angle - deg_to_rad(90.0))
+				up_direction = Vector3(0.0, forward_vector.y, forward_vector.x)
+				
+				#in this situation, they only need to be in range of the ground to be grounded
+				is_grounded = bool(contact_point_count)
+				
+				apply_floor_snap = true
+			
+			else: #not fast enough to simply stick to the ground
+				#up_direction should be set to the default direction, which will unstick
+				#the player from any walls they were on
+				up_direction = default_up_direction
+				
+				if floor_is_fall_angle:
+					if not (ground_is_ceiling and is_slipping):
+						is_slipping = true
+						#set up the connection for the control lock timer.
+						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+						control_lock_timer.start(ground_slip_time)
+					is_grounded = false
+				
+				elif should_lose_grip:
+					#unstick from any ceilings we're on
+					if ground_is_ceiling:
+						is_grounded = false
+					#if we're not slipping, start slipping
+					if not is_slipping:
+						is_slipping = true
+						#set up the connection for the control lock timer.
+						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+						control_lock_timer.start(ground_slip_time)
+						#prevent immedeate "oh we're moving fast enough" upon landing
+						if slipping_direction == signf(ground_velocity):
+							ground_velocity = 0.0
+		else: #not grounded
+			up_direction = default_up_direction
+			
+			#player can land on a ground slope if it's not too steep, and only on a ceiling slope
+			#when it *is* too steep
+			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
+			
+			#the raycasts will find the ground before the CharacterBody hitbox does, 
+			#so only become grounded when both are "on the ground"
+			
+			if can_land_on_slope:
+				if ground_is_ceiling:
+					is_grounded = bool(contact_point_count) and floor_is_fall_angle
+				is_grounded = bool(contact_point_count) and will_actually_land
+			else:
+				#slip if we're not on the ceiling
+				
+				if ground_is_ceiling and has_slide_collisions:
+					#stop moving vertically if we're on the ceiling
+					space_velocity.y = maxf(space_velocity.y, 0.0)
+				
+				if not is_slipping:
+					is_slipping = true
+					#set up the connection for the control lock timer.
+					control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
+					control_lock_timer.start(ground_slip_time)
+				is_grounded = will_actually_land and not ground_is_ceiling
+		
+		#set sprite rotations
+		#update_ground_visual_rotation()
+	else:
+		#it's important to set this here so that slope launching is calculated 
+		#before reseting collision rotation
+		is_grounded = false
+		is_slipping = false
+		
+		#ground sensors point whichever direction the player is traveling vertically
+		#this is so that landing on the ceiling is made possible
+		if space_velocity.y >= 0:
+			collision_angle = 0
+		else:
+			collision_angle = PI #180 degrees, pointing up
+		
+		up_direction = default_up_direction
+		
+		#set sprite rotation
+		#update_air_visual_rotation()
+	
+	#sprites_set_rotation(sprite_rotation)
+	return apply_floor_snap
 
 ##Determine which animation should be playing for the player based on their physics state. 
 ##This does not include custom animations. This returns a value from [AnimationTypes].

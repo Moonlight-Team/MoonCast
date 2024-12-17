@@ -209,9 +209,6 @@ var ground_velocity:float = 0.0:
 var abs_ground_velocity:float
 ##The character's current velocity in space.
 var space_velocity:Vector2 = Vector2.ZERO
-##The character's direction of travel.
-##Equivalent to get_position_delta().normalized().sign()
-var velocity_direction:Vector2
 
 ##Floor is too steep to be on at all
 var floor_is_fall_angle:bool
@@ -1413,16 +1410,13 @@ func _draw() -> void:
 func _exit_tree() -> void:
 	cleanup_performance_monitors()
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	
 	#reset this flag specifically
 	animation_set = false
 	pre_physics.emit(self)
-	
-	#some calculations/checks that always happen no matter what the state
-	velocity_direction = get_position_delta().normalized().sign()
 	
 	input_direction = 0.0
 	if can_be_moving:
@@ -1471,13 +1465,28 @@ func _physics_process(delta: float) -> void:
 			var body:KinematicCollision2D = get_slide_collision(bodies)
 			var body_mode:PhysicsServer2D.BodyMode = PhysicsServer2D.body_get_mode(body.get_collider_rid())
 			
-			if body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID or body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID_LINEAR:
-				if not body.get_collider_velocity().is_zero_approx():
-					feedback_physics = true
-				elif not body.get_remainder().is_zero_approx():
-					feedback_physics = true
-				
-				PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), raw_velocity * physics.physics_collision_power)
+			match body_mode:
+				PhysicsServer2D.BodyMode.BODY_MODE_STATIC:
+					#the player will "snag" upon landing if we don't do this
+					feedback_physics = false
+					##TODO: Improve this to recieve feedback but don't get snagged
+				PhysicsServer2D.BodyMode.BODY_MODE_RIGID:
+					if not body.get_collider_velocity().is_zero_approx():
+						feedback_physics = true
+					elif not body.get_remainder().is_zero_approx():
+						feedback_physics = true
+					
+					PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), raw_velocity * physics.physics_collision_power)
+				PhysicsServer2D.BodyMode.BODY_MODE_RIGID_LINEAR:
+					if not body.get_collider_velocity().is_zero_approx():
+						feedback_physics = true
+					elif not body.get_remainder().is_zero_approx():
+						feedback_physics = true
+					
+					PhysicsServer2D.body_apply_impulse(body.get_collider_rid(), raw_velocity * physics.physics_collision_power, body.get_position())
+				PhysicsServer2D.BodyMode.BODY_MODE_KINEMATIC:
+					#undecided just what we will do for inter-player interactions
+					pass
 	
 	if feedback_physics:
 		space_velocity = velocity / physics_adjust

@@ -249,7 +249,7 @@ func setup_children() -> void:
 			abilities.append(nodes.name)
 			nodes.call(&"setup_ability_3D", self)
 	
-	
+	physics.connect_timers(Timer.new(), Timer.new(), Timer.new())
 	add_child(physics.jump_timer)
 	add_child(physics.control_lock_timer)
 	add_child(physics.ground_snap_timer)
@@ -407,21 +407,34 @@ func update_animations() -> void:
 		var anim:int = physics.assess_animations()
 		match anim:
 			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
+				print("Default anim")
 				play_animation(anim_stand)
 			MoonCastPhysicsTable.AnimationTypes.STAND:
+				if current_anim != anim_stand:
+					print("Standing")
 				play_animation(anim_stand)
 			MoonCastPhysicsTable.AnimationTypes.LOOK_UP:
 				play_animation(anim_look_up)
 			MoonCastPhysicsTable.AnimationTypes.BALANCE:
 				play_animation(anim_balance)
 			MoonCastPhysicsTable.AnimationTypes.CROUCH:
+				if current_anim != anim_crouch:
+					print("Crouching")
 				play_animation(anim_crouch)
 			MoonCastPhysicsTable.AnimationTypes.FREE_FALL:
+				if current_anim != anim_free_fall:
+					print("Falling")
 				play_animation(anim_free_fall)
 			MoonCastPhysicsTable.AnimationTypes.ROLL:
 				if current_anim != anim_roll:
-					print("Alright partner, keep on rollin baby")
+					print("Rolling")
 				play_animation(anim_roll)
+			MoonCastPhysicsTable.AnimationTypes.RUN:
+				if current_anim != anim_stand:
+					print("Running")
+			MoonCastPhysicsTable.AnimationTypes.SKID:
+				if current_anim != anim_stand:
+					print("*oddly realistic tire squeal noise*")
 			_:
 				print("Implement animation ", anim)
 		#TODO: Match statement for anim
@@ -433,9 +446,7 @@ func rotate_model(new_basis:Basis) -> void:
 
 func update_collision_rotation() -> void:
 	if not camera_use_mouse and not input_direction.is_zero_approx():
-		camera_remote.rotation.y = input_direction.rotated(deg_to_rad(90.0)).angle()
-	
-	physics.collision_angle = rotation_root.rotation.normalized().angle_to(Vector3.ZERO)
+		camera_remote.rotation.y = input_direction.rotated(deg_to_rad(90.0)).angle() * camera_sensitivity.x
 	
 	const ray_count:int = 5
 	
@@ -480,8 +491,13 @@ func update_collision_rotation() -> void:
 			_:
 				assert(false, "How did we get here")
 	
-	physics.is_grounded = out_ar_ray.size() > 3 or will_actually_land
-
+	
+	physics.update_wall_contact(ray_wall_forward.is_colliding(), is_on_wall_only())
+	
+	if physics.update_collision_rotation(get_floor_angle(up_direction), out_ar_ray.size(), get_slide_collision_count() > 0):
+		up_direction = physics.up_direction
+		collision_rotation.x = physics.collision_angle
+		apply_floor_snap()
 
 func reposition_raycasts(forward_point:Vector3, back_point:Vector3, left_point:Vector3, right_point:Vector3, center:Vector3) -> void:
 	#move the raycasts horizontally to the point on their relevant axis, then
@@ -548,10 +564,10 @@ func _input(event:InputEvent) -> void:
 		camera_remote.rotate_y(deg_to_rad(-event.relative.x * camera_sensitivity.x))
 
 func _physics_process(delta: float) -> void:
-	new_physics_process(delta)
+	new_physics_process()
 	#old_physics_process(delta)
 
-func new_physics_process(delta:float) -> void:
+func new_physics_process() -> void:
 	if Engine.is_editor_hint():
 		return
 	
@@ -572,7 +588,7 @@ func new_physics_process(delta:float) -> void:
 		#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
 		spatial_input_direction = (camera_remote.basis * raw_input_vec3).normalized()
 	
-	physics.space_velocity = flatten_3d_vector(space_velocity)
+	physics.space_velocity = space_velocity
 	
 	physics.input_direction = spatial_input_direction.z
 	
@@ -599,7 +615,7 @@ func new_physics_process(delta:float) -> void:
 			if not physics.is_grounded:
 				state_air.emit(self)
 	
-	space_velocity = unflatten_2d_vector(physics.space_velocity, space_velocity)
+	space_velocity = physics.space_velocity
 	space_velocity.y = -space_velocity.y
 	
 	#Make the callback for physics post-calculation
@@ -607,9 +623,10 @@ func new_physics_process(delta:float) -> void:
 	#the same as pre_physics
 	post_physics.emit(self)
 	
-	var physics_tick_adjust:float = 60.0 * (delta * 60.0)
+	const physics_tick_adjust:float = 60.0
 	
-	velocity = space_velocity * physics_tick_adjust
+	velocity = camera_remote.basis * space_velocity #* physics_tick_adjust
+	
 	move_and_slide()
 	
 	#Make checks to see if the player should recieve physics engine feedback
@@ -618,14 +635,15 @@ func new_physics_process(delta:float) -> void:
 		var feedback_physics:bool = false
 		for bodies:int in get_slide_collision_count():
 			var body:KinematicCollision3D = get_slide_collision(bodies)
-			if body.get_collider().get_class() == "RigidBody2D":
+			if body.get_collider().get_class() == "RigidBody3D":
 				if not body.get_collider_velocity().is_zero_approx():
 					feedback_physics = true
 				elif not body.get_remainder().is_zero_approx():
 					feedback_physics = true
 		
 		if feedback_physics:
-			space_velocity = velocity / physics_tick_adjust
+			#space_velocity = velocity / physics_tick_adjust
+			pass
 	
 	update_animations()
 	

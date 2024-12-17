@@ -105,7 +105,7 @@ collision_center = Vector2(0, 9)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ycwly"]
 resource_name = "ball_collision_shape"
-radius = 16.0
+radius = 15.0
 
 [sub_resource type="Resource" id="Resource_rbxmi"]
 resource_name = "roll_ball"
@@ -118,7 +118,7 @@ can_turn_vertically = false
 can_turn_horizontal = false
 override_rotation = false
 override_collision = true
-collision_center = Vector2(0, 5)
+collision_center = Vector2(0, 6)
 collision_shape_2D = SubResource("CircleShape2D_ycwly")
 colision_2d_left = Vector2(0, 0)
 collision_2d_center = Vector2(0, 0)
@@ -130,7 +130,7 @@ collision_3d_right = Vector3(0, 0, 0)
 collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
-collision_center = Vector2(0, 5)
+collision_center = Vector2(0, 6)
 collision_shape_2D = SubResource("CircleShape2D_ycwly")
 
 [sub_resource type="Resource" id="Resource_xe3mx"]

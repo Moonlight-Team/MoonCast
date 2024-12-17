@@ -78,7 +78,7 @@ bounce = 1.0
 radius = 15.0
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_ao618"]
-friction = 0.5
+friction = 0.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ao618"]
 size = Vector2(40, 40)
@@ -256,11 +256,13 @@ physics_material_override = SubResource("PhysicsMaterial_aalw2")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/BouncyBall"]
 shape = SubResource("CircleShape2D_320si")
 
-[node name="RigidBody2D" type="RigidBody2D" parent="Movable Objects"]
+[node name="PushableBox" type="RigidBody2D" parent="Movable Objects"]
 position = Vector2(1536, 200)
+mass = 200.0
 physics_material_override = SubResource("PhysicsMaterial_ao618")
+linear_damp = 1.0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/RigidBody2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/PushableBox"]
 shape = SubResource("RectangleShape2D_ao618")
 
 [node name="Parallax2D" type="Parallax2D" parent="."]
