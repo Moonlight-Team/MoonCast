@@ -1,16 +1,10 @@
-[gd_scene load_steps=18 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=12 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_ntp3g"]
 [ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/assets/audio/Music/2DStage.ogg" id="2_8djix"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="3_p8adb"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="4_vamuc"]
-[ext_resource type="Script" uid="uid://bk7d21p4johr7" path="res://Demo/assets/levels/parallax_layers/water_generation.gd" id="5_2xi77"]
-[ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="6_pti3i"]
-[ext_resource type="Texture2D" uid="uid://doxoffm5241gn" path="res://Demo/assets/levels/parallax_layers/blue_sky.tres" id="7_vj462"]
-[ext_resource type="Texture2D" uid="uid://bmj8ofs8l5i2t" path="res://Demo/assets/levels/parallax_layers/sunset_fade.tres" id="8_3fu65"]
-[ext_resource type="Texture2D" uid="uid://dfdbx4jniuil" path="res://Demo/assets/levels/parallax_layers/far_mountains.tres" id="9_kidn3"]
-[ext_resource type="Texture2D" uid="uid://bspuebvwnfn0b" path="res://Demo/assets/levels/parallax_layers/green_forest.tres" id="10_uvw1e"]
-[ext_resource type="Texture2D" uid="uid://l2l5vfa2566j" path="res://Demo/assets/levels/parallax_layers/near_mountains.tres" id="11_0xpc3"]
+[ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/scenes/2d_background.tscn" id="5_bedyd"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/assets/levels/demo_zone_tiles.tres" id="12_gj4r1"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/scenes/entity_2d/item_box/item_box.tscn" id="13_njlsf"]
 
@@ -55,59 +49,7 @@ drag_bottom_margin = 0.1
 editor_draw_limits = true
 editor_draw_drag_margin = true
 
-[node name="Background" type="Node2D" parent="."]
-z_index = -1
-script = ExtResource("5_2xi77")
-start_atlas = ExtResource("6_pti3i")
-autoscroll_speed = 20.0
-
-[node name="Blue Sky" type="Parallax2D" parent="Background"]
-visibility_layer = 2
-z_index = -10
-repeat_size = Vector2(30, 30)
-repeat_times = 50
-
-[node name="Sprite2D" type="Sprite2D" parent="Background/Blue Sky"]
-texture = ExtResource("7_vj462")
-
-[node name="Sunset Fade" type="Parallax2D" parent="Background"]
-z_index = -9
-scroll_scale = Vector2(0.2, 0)
-scroll_offset = Vector2(0, 61)
-repeat_size = Vector2(60, 0)
-repeat_times = 30
-
-[node name="Sprite2D" type="Sprite2D" parent="Background/Sunset Fade"]
-texture = ExtResource("8_3fu65")
-
-[node name="Far Mountains" type="Parallax2D" parent="Background"]
-z_index = -6
-scroll_scale = Vector2(0.3, 0.01)
-scroll_offset = Vector2(0, 96)
-repeat_size = Vector2(256, 0)
-repeat_times = 6
-
-[node name="Sprite2D" type="Sprite2D" parent="Background/Far Mountains"]
-z_index = -3
-texture = ExtResource("9_kidn3")
-
-[node name="Greenery" type="Parallax2D" parent="Background"]
-scroll_scale = Vector2(0.4, 0.02)
-scroll_offset = Vector2(0, 130)
-repeat_size = Vector2(71, 0)
-repeat_times = 22
-
-[node name="Sprite2D" type="Sprite2D" parent="Background/Greenery"]
-texture = ExtResource("10_uvw1e")
-
-[node name="Near Mountains" type="Parallax2D" parent="Background"]
-scroll_scale = Vector2(0.5, 0.03)
-scroll_offset = Vector2(0, 132)
-repeat_size = Vector2(256, 0)
-repeat_times = 6
-
-[node name="Sprite2D" type="Sprite2D" parent="Background/Near Mountains"]
-texture = ExtResource("11_0xpc3")
+[node name="Background" parent="." instance=ExtResource("5_bedyd")]
 
 [node name="CollisionGeometryPieces" type="StaticBody2D" parent="."]
 

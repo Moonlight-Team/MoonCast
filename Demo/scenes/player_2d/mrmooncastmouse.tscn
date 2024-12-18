@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3 uid="uid://x0bop1i17eyt"]
+[gd_scene load_steps=39 format=3 uid="uid://x0bop1i17eyt"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Framework/abilities/sonic_standard/mooncast_physics.tres" id="2_rii83"]
@@ -285,6 +285,9 @@ rotation_smooth = true
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
 size = Vector2(20, 38)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_td25q"]
+size = Vector2(20, 19)
+
 [sub_resource type="Resource" id="Resource_jenem"]
 resource_name = "spindash"
 script = ExtResource("4_j5cv3")
@@ -293,8 +296,9 @@ speed = 1.0
 can_turn_vertically = true
 can_turn_horizontal = true
 override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
+override_collision = true
+collision_center = Vector2(0, 9.5)
+collision_shape_2D = SubResource("RectangleShape2D_td25q")
 colision_2d_left = Vector2(0, 0)
 collision_2d_center = Vector2(0, 0)
 collision_2d_right = Vector2(0, 0)
@@ -305,16 +309,22 @@ collision_3d_right = Vector3(0, 0, 0)
 collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
+collision_center = Vector2(0, 9.5)
+collision_shape_2D = SubResource("RectangleShape2D_td25q")
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_td25q"]
+radius = 14.0
 
 [sub_resource type="Resource" id="Resource_snjwk"]
 script = ExtResource("4_j5cv3")
 animation = &"drop_dash_charge"
 speed = 1.0
-can_turn_vertically = true
+can_turn_vertically = false
 can_turn_horizontal = true
 override_rotation = false
-override_collision = false
+override_collision = true
 collision_center = Vector2(0, 0)
+collision_shape_2D = SubResource("CircleShape2D_td25q")
 colision_2d_left = Vector2(0, 0)
 collision_2d_center = Vector2(0, 0)
 collision_2d_right = Vector2(0, 0)
@@ -325,6 +335,8 @@ collision_3d_right = Vector3(0, 0, 0)
 collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
+collision_center = Vector2(0, 0)
+collision_shape_2D = SubResource("CircleShape2D_td25q")
 
 [sub_resource type="Resource" id="Resource_dt87g"]
 script = ExtResource("4_j5cv3")

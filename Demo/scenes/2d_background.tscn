@@ -1,0 +1,63 @@
+[gd_scene load_steps=8 format=3 uid="uid://c5or4rx5y00el"]
+
+[ext_resource type="Script" uid="uid://bk7d21p4johr7" path="res://Demo/assets/levels/parallax_layers/water_generation.gd" id="1_ctt8c"]
+[ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="2_uv6pj"]
+[ext_resource type="Texture2D" uid="uid://doxoffm5241gn" path="res://Demo/assets/levels/parallax_layers/blue_sky.tres" id="3_3vrs1"]
+[ext_resource type="Texture2D" uid="uid://bmj8ofs8l5i2t" path="res://Demo/assets/levels/parallax_layers/sunset_fade.tres" id="4_kac4q"]
+[ext_resource type="Texture2D" uid="uid://dfdbx4jniuil" path="res://Demo/assets/levels/parallax_layers/far_mountains.tres" id="5_hn2jm"]
+[ext_resource type="Texture2D" uid="uid://bspuebvwnfn0b" path="res://Demo/assets/levels/parallax_layers/green_forest.tres" id="6_i6ovr"]
+[ext_resource type="Texture2D" uid="uid://l2l5vfa2566j" path="res://Demo/assets/levels/parallax_layers/near_mountains.tres" id="7_mpoed"]
+
+[node name="Background" type="Node2D"]
+z_index = -1
+script = ExtResource("1_ctt8c")
+start_atlas = ExtResource("2_uv6pj")
+autoscroll_speed = 20.0
+
+[node name="Blue Sky" type="Parallax2D" parent="."]
+visibility_layer = 2
+z_index = -10
+repeat_size = Vector2(30, 30)
+repeat_times = 50
+
+[node name="Sprite2D" type="Sprite2D" parent="Blue Sky"]
+texture = ExtResource("3_3vrs1")
+
+[node name="Sunset Fade" type="Parallax2D" parent="."]
+z_index = -9
+scroll_scale = Vector2(0.2, 0)
+scroll_offset = Vector2(0, 61)
+repeat_size = Vector2(60, 0)
+repeat_times = 30
+
+[node name="Sprite2D" type="Sprite2D" parent="Sunset Fade"]
+texture = ExtResource("4_kac4q")
+
+[node name="Far Mountains" type="Parallax2D" parent="."]
+z_index = -6
+scroll_scale = Vector2(0.3, 0.01)
+scroll_offset = Vector2(0, 96)
+repeat_size = Vector2(256, 0)
+repeat_times = 6
+
+[node name="Sprite2D" type="Sprite2D" parent="Far Mountains"]
+z_index = -3
+texture = ExtResource("5_hn2jm")
+
+[node name="Greenery" type="Parallax2D" parent="."]
+scroll_scale = Vector2(0.4, 0.02)
+scroll_offset = Vector2(0, 130)
+repeat_size = Vector2(71, 0)
+repeat_times = 22
+
+[node name="Sprite2D" type="Sprite2D" parent="Greenery"]
+texture = ExtResource("6_i6ovr")
+
+[node name="Near Mountains" type="Parallax2D" parent="."]
+scroll_scale = Vector2(0.5, 0.03)
+scroll_offset = Vector2(0, 132)
+repeat_size = Vector2(256, 0)
+repeat_times = 6
+
+[node name="Sprite2D" type="Sprite2D" parent="Near Mountains"]
+texture = ExtResource("7_mpoed")

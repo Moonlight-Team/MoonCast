@@ -1092,14 +1092,15 @@ func update_collision_rotation() -> void:
 		var should_lose_grip:bool = true if ground_is_ceiling else floor_is_slip_angle
 		
 		if is_grounded:
-			if fast_enough and contact_point_count > 1:
+			if fast_enough:
 				#up_direction is set so that floor snapping can be used for walking on walls. 
 				up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
 				
 				#in this situation, they only need to be in range of the ground to be grounded
 				is_grounded = in_ground_range
 				
-				apply_floor_snap()
+				if contact_point_count > 1:
+					apply_floor_snap()
 			
 			else: #not fast enough to simply stick to the ground
 				#up_direction should be set to the default direction, which will unstick
@@ -1492,6 +1493,16 @@ func _physics_process(_delta: float) -> void:
 		space_velocity = velocity / physics_adjust
 		
 		#TODO: Ground physics feedback
+	else:
+		#TODO: Better "stop on wall" implementation
+		if ray_wall_right.is_colliding():
+			if is_pushing:
+				if ground_velocity > 0:
+					ground_velocity = minf(ground_velocity, physics.ground_acceleration)
+				else:
+					ground_velocity = maxf(ground_velocity, -physics.ground_acceleration)
+			else:
+				ground_velocity = 0.0
 	
 	update_animations()
 	

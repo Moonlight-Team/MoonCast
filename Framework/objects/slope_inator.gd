@@ -7,17 +7,26 @@ class_name Slopeinator
 #Note from c08o: Special thanks to my friend Alex for helping me brainstorm
 #algorithms for the textures
 
+#TODO: Cache generated arrays so that runtime does not have computation wait times
+#for simply loading in
+
 @export_group("Editor", "editor_")
 ##If true, collision will be shown in the editor. 
 ##This value does not affect it being visible in-game.
 @export var editor_show_collision:bool = true:
 	set(on):
 		editor_show_collision = on
-		if on:
-			RenderingServer.canvas_item_set_canvas_group_mode(collision_canvas_rid, RenderingServer.CANVAS_GROUP_MODE_CLIP_AND_DRAW)
-			generate_collision_slope()
+		
+		if collision_canvas_rid.is_valid():
+			if on:
+				RenderingServer.canvas_item_set_canvas_group_mode(collision_canvas_rid, RenderingServer.CANVAS_GROUP_MODE_CLIP_AND_DRAW)
+				generate_collision_slope()
+			else:
+				RenderingServer.canvas_item_set_canvas_group_mode(collision_canvas_rid, RenderingServer.CANVAS_GROUP_MODE_CLIP_ONLY)
 		else:
-			RenderingServer.canvas_item_set_canvas_group_mode(collision_canvas_rid, RenderingServer.CANVAS_GROUP_MODE_CLIP_ONLY)
+			if on:
+				load_collision_slope()
+		
 		queue_redraw()
 ##If true, the texturing for the slope will be shown in the editor. 
 ##This value does not affect it being visible in-game.
@@ -37,13 +46,13 @@ class_name Slopeinator
 		#The floor margin CANNOT be 0 if there is no texture!
 		if not is_instance_valid(floor_texture):
 			collision_bottom_margin = maxi(collision_bottom_margin, 1)
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 ##The self-modulation (tint) of the floor texture.
 @export var floor_self_modulate:Color = Color.WHITE:
 	set(new_color):
 		floor_self_modulate = new_color
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 ##Snap each column of the floor texture to the nearest integer. 
 ##Enable this to get a more "retro-authentic" looking slope.
@@ -64,51 +73,59 @@ class_name Slopeinator
 @export var background_texture:Texture2D = Texture2D.new():
 	set(new_texture):
 		background_texture = new_texture
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 ##The self-modulation applied to the background texture.
 @export var background_self_modulate:Color = Color.WHITE:
 	set(new_color):
 		background_self_modulate = new_color
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 ##If the center of the background texture's nine-patch will render.
 @export var background_draw_center:bool = true:
 	set(new_val):
 		background_draw_center = new_val
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 ##The top and left margins defining the background texture's nine-patch rectangle.
 @export var background_margin_top_left:Vector2i:
 	set(new_pos):
 		background_margin_top_left = new_pos
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 ##The bottom and right margins defining the background texture's nine-patch rectangle.
 @export var background_margin_bottom_right:Vector2i:
 	set(new_pos):
 		background_margin_bottom_right = new_pos
-		draw_texture_slope()
+		draw_visual_slope()
 		queue_redraw()
 
 @export_group("Collision", "collision_")
 ##The collision mask of the slope.
 @export_flags_2d_physics var collision_mask:int = 1:
 	set(new_mask):
-		PhysicsServer2D.body_set_collision_mask(collision_body_rid, new_mask)
+		if collision_body_rid.is_valid():
+			PhysicsServer2D.body_set_collision_mask(collision_body_rid, new_mask)
 	get():
-		return PhysicsServer2D.body_get_collision_mask(collision_body_rid)
+		if collision_body_rid.is_valid():
+			return PhysicsServer2D.body_get_collision_mask(collision_body_rid)
+		else:
+			return 1
 ##The collision layer of the slope.
 @export_flags_2d_physics var collision_layer:int = 1:
 	set(new_layer):
-		PhysicsServer2D.body_set_collision_layer(collision_body_rid, new_layer)
+		if collision_body_rid.is_valid():
+			PhysicsServer2D.body_set_collision_layer(collision_body_rid, new_layer)
 	get():
-		return PhysicsServer2D.body_get_collision_layer(collision_body_rid)
+		if collision_body_rid.is_valid():
+			return PhysicsServer2D.body_get_collision_layer(collision_body_rid)
+		else:
+			return 1
 ##The [PhysicsMaterial] for this body.
 @export var collision_physics_material:PhysicsMaterial = PhysicsMaterial.new():
 	set(new_material):
 		collision_physics_material = new_material
-		if is_instance_valid(new_material):
+		if is_instance_valid(new_material) and collision_body_rid.is_valid():
 			PhysicsServer2D.body_set_param(collision_body_rid, PhysicsServer2D.BODY_PARAM_BOUNCE, new_material.bounce)
 			PhysicsServer2D.body_set_param(collision_body_rid, PhysicsServer2D.BODY_PARAM_FRICTION, new_material.friction)
 
@@ -189,7 +206,11 @@ func _notification(what: int) -> void:
 			setup_collision()
 			setup_rendering()
 			
-			generate_all_slopes()
+			if collision_polygon_array.is_empty() or visual_polygon_array.is_empty():
+				generate_all_slopes()
+			else:
+				load_all_slopes()
+			
 			print("Slope ready")
 		
 		NOTIFICATION_DRAW:
@@ -309,14 +330,7 @@ func generate_collision_slope() -> void:
 	collision_polygon_array.append(bottom_right)
 	collision_polygon_array.append(bottom_left)
 	
-	var convex_polys:Array[PackedVector2Array] = Geometry2D.decompose_polygon_in_convex(collision_polygon_array)
-	collision_shape_rids.resize(convex_polys.size())
-	
-	for current_shape:int in convex_polys.size():
-		collision_shape_rids[current_shape] = PhysicsServer2D.convex_polygon_shape_create()
-		PhysicsServer2D.shape_set_data(collision_shape_rids[current_shape], convex_polys[current_shape])
-		PhysicsServer2D.body_add_shape(collision_body_rid, collision_shape_rids[current_shape], Transform2D())
-	
+	load_collision_slope()
 	draw_collision_slope()
 	queue_redraw()
 
@@ -380,8 +394,53 @@ func generate_visual_slope() -> void:
 				current_point.y = roundf(current_point.y)
 				visual_polygon_array[current_index] = current_point
 	
-	draw_texture_slope()
+	load_visual_slope()
+	draw_visual_slope()
 	queue_redraw()
+
+func load_all_slopes() -> void:
+	load_collision_slope()
+	load_visual_slope()
+
+##Load the data for the collision slope so that collision will be updated. This does
+##not update the data, just load what is in place.
+func load_collision_slope() -> void:
+	if collision_polygon_array.is_empty():
+		push_error("Cannot load collision slope because cache is empty")
+	
+	var convex_polys:Array[PackedVector2Array] = Geometry2D.decompose_polygon_in_convex(collision_polygon_array)
+	
+	if convex_polys.is_empty():
+		return
+	
+	var poly_count:int = convex_polys.size()
+	var rid_count:int = collision_shape_rids.size()
+	
+	#clear out the "extra" RIDs 
+	if rid_count != poly_count:
+		#TODO: Skip to "overflow" section and only free those
+		for current_rid:int in range(0, rid_count):
+			#This is effectively "popping" the value cause the underlying array does that
+			PhysicsServer2D.body_remove_shape(collision_body_rid, 0)
+			PhysicsServer2D.free_rid(collision_shape_rids[current_rid])
+			collision_shape_rids[current_rid] = RID()
+	
+	collision_shape_rids.resize(poly_count)
+	
+	for current_shape:int in poly_count:
+		var current_shape_rid:RID = collision_shape_rids[current_shape]
+		
+		if not current_shape_rid.is_valid():
+			collision_shape_rids[current_shape] = PhysicsServer2D.convex_polygon_shape_create()
+			current_shape_rid = collision_shape_rids[current_shape]
+			PhysicsServer2D.body_add_shape(collision_body_rid, current_shape_rid, Transform2D())
+		
+		PhysicsServer2D.shape_set_data(current_shape_rid, convex_polys[current_shape])
+
+func load_visual_slope() -> void:
+	#TODO: Offload some of the processing from draw_visual_slope to here
+	pass
+
 
 func draw_all_slopes() -> void:
 	RenderingServer.canvas_item_clear(floor_canvas_rid)
@@ -395,9 +454,9 @@ func draw_all_slopes() -> void:
 		
 		if Engine.is_editor_hint():
 			if editor_show_textures:
-				draw_texture_slope()
+				draw_visual_slope()
 		else:
-			draw_texture_slope()
+			draw_visual_slope()
 
 ##Draw the collision shape for the slope. This must happen regardless of if it 
 ##"should" be visible (eg. editor visiblity is on or debug collision is on), because
@@ -410,7 +469,13 @@ func draw_collision_slope() -> void:
 	
 	var draw_color:Color = Color.WHITE
 	
-	if (Engine.is_editor_hint() and editor_show_collision) or is_instance_valid(get_tree()) and get_tree().debug_collisions_hint:
+	var draw_in_scene:bool = false
+	if is_inside_tree():
+		var tree:SceneTree = get_tree()
+		if is_instance_valid(tree):
+			draw_in_scene = tree.debug_collisions_hint
+	
+	if (Engine.is_editor_hint() and editor_show_collision) or draw_in_scene:
 		draw_color = ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.WHITE)
 	else:
 		draw_color = Color8(255, 255, 255, 255)
@@ -418,7 +483,7 @@ func draw_collision_slope() -> void:
 	#multiplying this transform2D offsets the array to the right position so it draws at the right spot
 	RenderingServer.canvas_item_add_polygon(collision_canvas_rid, collision_polygon_array, [draw_color])
 
-func draw_texture_slope() -> void:
+func draw_visual_slope() -> void:
 	RenderingServer.canvas_item_clear(floor_canvas_rid)
 	RenderingServer.canvas_item_clear(background_canvas_rid)
 	

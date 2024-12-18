@@ -16,14 +16,15 @@ func _animation_start() -> void:
 	can_flip = false
 
 func _animation_process() -> void:
-	can_flip = player.collision_rotation > flip_range_start and player.collision_rotation < flip_range_end
+	var abs_collision:float = absf(player.collision_rotation)
+	can_flip = abs_collision > flip_range_start and abs_collision < flip_range_end
 
 func _animation_cease() -> void:
 	flip_played = false
 	can_flip = false
 
 func _branch_animation() -> bool:
-	if not flip_played and can_flip:
+	if not flip_played and can_flip and not player.is_jumping:
 		player.animated_sprite1.connect(&"animation_finished", func(): flip_played = true, CONNECT_ONE_SHOT)
 		return true
 	else:

@@ -89,7 +89,7 @@ func _get_property_list() -> Array[Dictionary]:
 			{
 				"name": "collision_center",
 				"class_name": &"",
-				"type": TYPE_VECTOR2I,
+				"type": TYPE_VECTOR2,
 				"hint": PROPERTY_HINT_NONE,
 				"hint_string": "",
 				"usage": PROPERTY_USAGE_DEFAULT
