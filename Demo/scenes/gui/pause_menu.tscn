@@ -1,11 +1,11 @@
 [gd_scene load_steps=11 format=3 uid="uid://dgbkwdyscsahk"]
 
 [ext_resource type="Script" uid="uid://bs65vxrvd54pr" path="res://Demo/scenes/gui/pause_menu.gd" id="1_opu2g"]
-[ext_resource type="FontFile" uid="uid://sg6whfh1udd1" path="res://Demo/assets/gui/Rodin-Bold.ttf" id="2_67olp"]
+[ext_resource type="FontFile" uid="uid://dj7adu3cf3vuc" path="res://Demo/assets/gui/Rodin-Bold.ttf" id="2_67olp"]
 [ext_resource type="Theme" uid="uid://cc45jjppij0nc" path="res://Demo/assets/gui/pause_menu_buttons.tres" id="2_j3bkn"]
-[ext_resource type="AudioStream" uid="uid://bf1jrm24an0oi" path="res://Demo/assets/Audio/gui/Dreamcast Sounds/SELECT.wav" id="2_xqvs1"]
-[ext_resource type="AudioStream" uid="uid://b8ojo7kcldpq7" path="res://Demo/assets/Audio/gui/Dreamcast Sounds/CONFIRMATION.wav" id="3_py2i4"]
-[ext_resource type="AudioStream" uid="uid://cqeafomvcy562" path="res://Demo/assets/Audio/gui/Dreamcast Sounds/BACK.wav" id="4_mmtby"]
+[ext_resource type="AudioStream" uid="uid://brx6w374bgcc2" path="res://Demo/assets/audio/gui/Dreamcast Sounds/SELECT.wav" id="2_xqvs1"]
+[ext_resource type="AudioStream" uid="uid://d2eghet26sb7y" path="res://Demo/assets/audio/gui/Dreamcast Sounds/CONFIRMATION.wav" id="3_py2i4"]
+[ext_resource type="AudioStream" uid="uid://buepbxvb6tmfo" path="res://Demo/assets/audio/gui/Dreamcast Sounds/BACK.wav" id="4_mmtby"]
 
 [sub_resource type="Theme" id="Theme_mu0qj"]
 Button/fonts/font = ExtResource("2_67olp")

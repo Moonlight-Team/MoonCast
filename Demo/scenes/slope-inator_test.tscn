@@ -1,13 +1,12 @@
-[gd_scene load_steps=16 format=3 uid="uid://bgfhovmrj5mn1"]
+[gd_scene load_steps=14 format=3 uid="uid://bgfhovmrj5mn1"]
 
-[ext_resource type="Shader" uid="uid://dmja6e4a28qps" path="res://Demo/scenes/Tilingtestback.gdshader" id="1_vudd8"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="1_wqfls"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="2_5lvg2"]
 [ext_resource type="Script" uid="uid://duft4hid3q220" path="res://Framework/objects/slope_inator.gd" id="2_nmrp3"]
-[ext_resource type="Texture2D" uid="uid://dfe2qx4qnud01" path="res://Demo/assets/levels/3DtestLevel/Textures/grid.png" id="4_vudd8"]
+[ext_resource type="Texture2D" uid="uid://dlqbd5s6eq0b1" path="res://Demo/assets/levels/3DtestLevel/Textures/grid.png" id="4_vudd8"]
 [ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="5_kiok0"]
-[ext_resource type="Texture2D" uid="uid://da3pemtyxfqid" path="res://Demo/assets/levels/3DtestLevel/Textures/backdropgrid.png" id="5_x8m3d"]
-[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/assets/levels/3DtestLevel/Textures/Hud.tscn" id="8_x8m3d"]
+[ext_resource type="Texture2D" uid="uid://bfxhgikdlju4r" path="res://Demo/assets/levels/3DtestLevel/Textures/backdropgrid.png" id="5_x8m3d"]
+[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/scenes/gui/Hud.tscn" id="8_x8m3d"]
 
 [sub_resource type="GDScript" id="GDScript_5lvg2"]
 resource_name = "slope-inator-test"
@@ -47,10 +46,6 @@ func _ready() -> void:
 		range_tween.set_loops()
 "
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_x8m3d"]
-shader = ExtResource("1_vudd8")
-shader_parameter/speed = 0.1
-
 [sub_resource type="Curve2D" id="Curve2D_sg8w8"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, -287, -79, 0, 0, 0, 0, -105, -79, -77.8, 1.1, 77.8, -1.1, 0, 90, -94.727, 0, 94.727, 0, 275, 90, 0, 0, 0, 0, 385, 38, 0, 0, 0, 0, 505, 36, 0.0789108, -180.989, -0.0789108, 180.989, 606, 196, -313.843, -2.85312, 313.843, 2.85312, 867, 483, 0, 0, 0, 0, 1141, 141, 0, 0, 0, 0, 1327.65, 116.408, 0, 0, 0, 0, 1327, 72, 0, 0, 0, 0, 1456, 72, -28.6, 29.7, 28.6, -29.7, 1562, 47, 0, 0, 0, 0, 1586, -10, 0, 0, 0, 0, 1934.22, -1.93335, -140.308, 1.94872, 140.308, -1.94872, 2069, 115, 0, 0, 0, 0, 2216.78, -7.77948, -93.5384, -1.94872, 93.5384, 1.94872, 2313, -79, 0, 0, 0, 0, 2427, -8, -85.7436, 0, 85.7436, 0, 2538, 80, -192.923, -57.8769, 192.923, 57.8769, 2978, 407, -172.614, 100.43, 172.614, -100.43, 3607, 359, 0, 0, 0, 0, 3789, 133, 0, 0, 0, 0, 4036, 132, 0, 0, 0, 0, 4110, 70, 0, 0.909091, 0, -0.909091, 4236.77, 71.7327, 0, 0, 0, 0, 4289, 10, 0, 0, 0, 0, 4412, -60, 0, 0, 0, 0, 4810.19, -45.5083, 0, 0, 0, 0, 4989, 127, 0, 0, 0, 0, 5281.78, 136.054, 0, 0, 0, 0, 5284, 68, 0, 0, 0, 0, 5397.31, 60.5994, 0, 0, 0, 0, 5447, 4, 0, 0, 0, 0, 5550.58, -3.06525, 0, 0, 0, 0, 5610, -46, -172.13, 0, 172.13, 0, 5868.91, -47.8663, -216.931, -91.96, 216.931, 91.96, 6157, 273, -11.3925, 163.292, 11.3925, -163.292, 6512.83, 290.019, -41.7725, 148.102, 41.7725, -148.102, 6394, 35, -68.355, -113.925, 68.355, 113.925, 6847, -52, -45.57, -148.102, 45.57, 148.102, 6695, 248, -63.6364, 28.9256, 63.6364, -28.9256, 7167, 296, 0, 0, 0, 0, 7463, 53, -134.875, 51.8749, 134.875, -51.8749, 7803, 157, 0, 0, 0, 0, 7978, -94, 0, 0, 0, 0, 8382, -93, 0, 0, 0, 0, 8399, -95, -311.027, -83.1174, 311.027, 83.1174, 8626, 163, 0, 0, 0, 0, 9206.67, -354.117, 0, 0, 0, 0, 9226.8, -430.08, 0, 0, 0, 0, 9200.94, -504.128, 0, 0, 0, 0, 9203.01, -545.124, 0, 0, 0, 0, 9253.87, -602.168, 0, 0, 0, 0, 9615.4, -754.368, 0, 0, 0, 0, 9721.08, -581.174, 0, 0, 0, 0, 9951.74, -391.751, 0, 0, 0, 0, 10193.5, -262.307, 0, 0, 0, 0, 10455.3, -169.827, 0, 0, 0, 0, 11835.3, -172.296, 0, 0, 0, 0, 12092.5, -235.825, 0, 0, 0, 0, 12501.3, -138.075, 0, 0, 0, 0, 12633.5, -241.833, 0, 0, 0, 0, 12842.5, -260.449, 0, 0, 0, 0, 13130.2, -117.921, 0, 0, 0, 0, 13218.2, -94.7601, 0, 0, 0, 0, 13259.2, -99.685, 0, 0, 0, 0, 13302.2, -118.606, 0, 0, 0, 0, 13352.3, -142.514, 0, 0, 0, 0, 13391.4, -185.443, 0, 0, 0, 0, 13430.4, -207.371, 0, 0, 0, 0, 13472.4, -184.294, 0, 0, 0, 0, 13563.3, -166.127, 0, 0, 0, 0, 13644.3, -163.979, 0, 0, 0, 0, 13737.4, -186.808, 0, 0, 0, 0, 13797.5, -247.698, 0, 0, 0, 0, 13813.6, -289.669, 0, 0, 0, 0, 13819.6, -321.658, 0, 0, 0, 0, 13785.7, -373.72, 0, 0, 0, 0, 13759.8, -409.768, 0, 0, 0, 0, 13712.8, -433.854, 0, 0, 0, 0, 13683.8, -446.907, 0, 0, 0, 0, 13667.9, -464.936, 0, 0, 0, 0, 13666.9, -485.938, 0, 0, 0, 0, 13670, -510.932, 0, 0, 0, 0, 13693, -524.89, 0, 0, 0, 0, 15684.3, -114.373, 0, 0, 0, 0, 100000, -9)
@@ -76,25 +71,23 @@ point_index = 1
 move_range = 20.0
 time_mult = 3.0
 
-[node name="TextureRect" type="TextureRect" parent="."]
-modulate = Color(0.621524, 0.621524, 0.621524, 1)
-material = SubResource("ShaderMaterial_x8m3d")
-offset_left = -705.0
-offset_top = -50570.0
-offset_right = 161446.0
-offset_bottom = 34915.0
+[node name="Background" type="Parallax2D" parent="."]
+z_index = -10
+repeat_size = Vector2(128, 128)
+autoscroll = Vector2(-5, -5)
+repeat_times = 8
+
+[node name="Sprite2D" type="Sprite2D" parent="Background"]
 texture = ExtResource("5_x8m3d")
-stretch_mode = 1
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="HudPLacholder" parent="CanvasLayer" instance=ExtResource("8_x8m3d")]
+metadata/_edit_use_anchors_ = true
 
 [node name="mrmooncastmouse" parent="." instance=ExtResource("1_wqfls")]
-rotation_static_collision = false
 
 [node name="Camera2D" type="Camera2D" parent="mrmooncastmouse"]
-
-[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/Camera2D"]
-
-[node name="HudPLacholder" parent="mrmooncastmouse/Camera2D/CanvasLayer" instance=ExtResource("8_x8m3d")]
-metadata/_edit_use_anchors_ = true
 
 [node name="DebugMode" type="Node" parent="mrmooncastmouse"]
 script = ExtResource("2_5lvg2")

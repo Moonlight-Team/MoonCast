@@ -241,7 +241,10 @@ var def_vis_notif_shape:Rect2
 ##If true, the player can jump.
 var can_jump:bool = true:
 	set(on):
-		can_jump = on and jump_timer.is_stopped()
+		if is_instance_valid(jump_timer):
+			can_jump = on and jump_timer.is_stopped()
+		else:
+			can_jump = on
 ##If true, the player can move. 
 var can_roll:bool = true:
 	set(on):
