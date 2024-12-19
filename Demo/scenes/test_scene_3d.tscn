@@ -3,7 +3,7 @@
 [ext_resource type="AudioStream" uid="uid://ck045d2hb6qed" path="res://Demo/assets/Audio/Music/3Dstage.ogg" id="1_3m87s"]
 [ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_7yqcc"]
 [ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d/player_3d.tscn" id="1_73jpb"]
-[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/assets/levels/3DtestLevel/Textures/Hud.tscn" id="5_1pam8"]
+[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/scenes/gui/Hud.tscn" id="5_1pam8"]
 [ext_resource type="Texture2D" uid="uid://bw53mc03y2q6u" path="res://Demo/assets/levels/3DtestLevel/Textures/4435f9ba.png" id="5_3m87s"]
 [ext_resource type="Texture2D" uid="uid://bwrnkhgvngkor" path="res://Demo/assets/levels/3DtestLevel/Textures/5a67bd19.png" id="6_1pam8"]
 [ext_resource type="Shader" uid="uid://c5tbcwf8ixnu4" path="res://Demo/scenes/skybox.gdshader" id="7_frwh0"]

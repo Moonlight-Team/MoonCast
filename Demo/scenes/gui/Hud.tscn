@@ -1,10 +1,15 @@
-[gd_scene load_steps=4 format=3 uid="uid://depkq6ebpq4yo"]
+[gd_scene load_steps=7 format=3 uid="uid://depkq6ebpq4yo"]
 
 [ext_resource type="LabelSettings" uid="uid://cfup4uq7hlb1w" path="res://Demo/assets/gui/Hud_label_settings.tres" id="1_1epmb"]
 [ext_resource type="Script" uid="uid://cxqx2gqwq1nn2" path="res://Demo/scenes/gui/hud.gd" id="1_4yg4n"]
+[ext_resource type="LabelSettings" uid="uid://bn8k114i30be4" path="res://Demo/assets/gui/Disclaimer_label_settings.tres" id="3_2ok7i"]
+[ext_resource type="Texture2D" uid="uid://5sys0o5mcxg8" path="res://Demo/assets/gui/icon.png" id="3_p7vns"]
+[ext_resource type="FontFile" uid="uid://oxla68t5crft" path="res://Demo/assets/gui/GreenHillSans.ttf" id="4_mvpr0"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_1epmb"]
-font_size = 11
+font = ExtResource("4_mvpr0")
+font_size = 6
+shadow_color = Color(0, 0, 0, 1)
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -17,15 +22,18 @@ script = ExtResource("1_4yg4n")
 
 [node name="Margins" type="MarginContainer" parent="."]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchors_preset = -1
+anchor_left = 0.01
+anchor_top = 0.01
+anchor_right = 0.996
+anchor_bottom = 0.979
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
+metadata/_edit_use_anchors_ = true
 
 [node name="Everything" type="VBoxContainer" parent="Margins"]
 layout_mode = 2
@@ -39,19 +47,19 @@ theme_override_constants/separation = 0
 [node name="Score" type="Label" parent="Margins/Everything/MainInfo"]
 layout_mode = 2
 size_flags_vertical = 0
-text = "Score: "
+text = "Score"
 label_settings = ExtResource("1_1epmb")
 
 [node name="Rings" type="Label" parent="Margins/Everything/MainInfo"]
 layout_mode = 2
 size_flags_vertical = 0
-text = "Rings: "
+text = "Time"
 label_settings = ExtResource("1_1epmb")
 
 [node name="Time" type="Label" parent="Margins/Everything/MainInfo"]
 layout_mode = 2
 size_flags_vertical = 0
-text = "Time: "
+text = "Rings"
 label_settings = ExtResource("1_1epmb")
 
 [node name="Bottom" type="HBoxContainer" parent="Margins/Everything"]
@@ -65,12 +73,14 @@ size_flags_horizontal = 2
 [node name="TextureRect" type="TextureRect" parent="Margins/Everything/Bottom/Lives"]
 layout_mode = 2
 size_flags_vertical = 8
+texture = ExtResource("3_p7vns")
+stretch_mode = 2
 
 [node name="Label" type="Label" parent="Margins/Everything/Bottom/Lives"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
-text = "x3"
+text = "x      3"
 label_settings = SubResource("LabelSettings_1epmb")
 
 [node name="Pre-Release Disclaimer" type="Label" parent="Margins/Everything/Bottom"]
@@ -79,7 +89,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
 text = "MoonCast Engine version {version}: Everything in footage is subject to change"
-label_settings = ExtResource("1_1epmb")
-horizontal_alignment = 2
+label_settings = ExtResource("3_2ok7i")
+horizontal_alignment = 1
 vertical_alignment = 2
 autowrap_mode = 2

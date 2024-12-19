@@ -1,9 +1,11 @@
 [gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://cfup4uq7hlb1w"]
 
-[ext_resource type="FontFile" uid="uid://bpfhcx0t0nlo7" path="res://Demo/assets/gui/GreenHillSans.ttf" id="1_oajs1"]
+[ext_resource type="FontFile" uid="uid://oxla68t5crft" path="res://Demo/assets/gui/GreenHillSans.ttf" id="1_oajs1"]
 
 [resource]
+line_spacing = 1.0
 font = ExtResource("1_oajs1")
-font_size = 8
+font_size = 10
 font_color = Color(1, 1, 0, 1)
+shadow_size = 2
 shadow_color = Color(0, 0, 0, 1)
