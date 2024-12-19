@@ -138,6 +138,20 @@ switch_chars={
 
 pointing/emulate_touch_from_mouse=true
 
+[layer_names]
+
+2d_physics/layer_1="Ground Constant"
+2d_physics/layer_2="Ground Flip A"
+2d_physics/layer_3="Ground Flip B"
+2d_physics/layer_4="Players"
+2d_physics/layer_5="Rings"
+2d_physics/layer_6="Item boxes"
+2d_physics/layer_9="Enemy Badnik"
+2d_physics/layer_10="Enemy Spikes"
+2d_physics/layer_11="Enemy Fire"
+2d_physics/layer_12="Enemy Ice"
+2d_physics/layer_13="Enemy Electric"
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=3
