@@ -1,4 +1,5 @@
 @icon("res://MoonCast/assets/2dplayer.svg")
+@tool
 extends CharacterBody2D
 ##A 2D player in MoonCast
 class_name MoonCastPlayer2D
@@ -62,13 +63,19 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 ##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
-@export var anim_run:Dictionary[float, MoonCastAnimation] = {}
+@export var anim_run:Dictionary[float, MoonCastAnimation] = {}:
+	set(new_dict):
+		anim_run = new_dict
+		anim_run_sorted_keys = load_dictionary(new_dict)
 ##The animations for when the player is skidding to a halt.
 ##The key is the minimum percentage of [member ground_velocity] in relation
 ##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
-@export var anim_skid:Dictionary[float, MoonCastAnimation] = {}
+@export var anim_skid:Dictionary[float, MoonCastAnimation] = {}:
+	set(new_dict):
+		anim_skid = new_dict
+		anim_skid_sorted_keys = load_dictionary(new_dict)
 ##Animation to play when pushing a wall or object.
 @export var anim_push:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation to play when jumping.
@@ -360,7 +367,11 @@ signal state_air(player:MoonCastPlayer2D)
 
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
-func setup_children() -> void:
+func scan_children() -> void:
+	animations = null
+	sprite1 = null
+	animated_sprite1 = null
+	
 	#find the animationPlayer and other nodes
 	for nodes:Node in get_children():
 		if not is_instance_valid(animations) and nodes is AnimationPlayer:
@@ -370,10 +381,12 @@ func setup_children() -> void:
 		if not is_instance_valid(animated_sprite1) and nodes is AnimatedSprite2D:
 			animated_sprite1 = nodes
 		#Patch for the inability for get_class to return GDScript classes
-		if nodes.has_meta(&"Ability_flag"):
+		if not Engine.is_editor_hint() and nodes.has_meta(&"Ability_flag"):
 			abilities.append(nodes.name)
 			nodes.call(&"setup_ability_2D", self)
-	
+
+##Sets up internally used children.
+func setup_children() -> void:
 	jump_timer.name = "JumpTimer"
 	jump_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	jump_timer.one_shot = true
@@ -407,21 +420,21 @@ func setup_children() -> void:
 	raycast_wheel.add_child(ray_wall_left)
 	ray_wall_right.name = "RayWallRight"
 	raycast_wheel.add_child(ray_wall_right)
+
+##Internal: Used for sorting the keys of anim_run and anim_skid
+func load_dictionary(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
+	var sorted_keys:PackedFloat32Array
+	#check the anim_run keys for valid values
+	for keys:float in dict.keys():
+		var snapped_key:float = snappedf(keys, 0.001)
+		if not is_equal_approx(keys, snapped_key):
+			push_warning("Key ", keys, " is more precise than the precision cutoff")
+		sorted_keys.append(snapped_key)
+	#sort the keys (from least to greatest)
+	sorted_keys.sort()
 	
-	#If we have an AnimatedSprite2D, not having the other two doesn't matter
-	if not is_instance_valid(animated_sprite1):
-		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
-		#but having both is optional. Therefore, only warn about the lack of the latter
-		#if one of the two for the former is missing.
-		var warn:bool = false
-		if not is_instance_valid(animations):
-			push_error("No AnimationPlayer found for ", name)
-			warn = true
-		if not is_instance_valid(sprite1):
-			push_error("No Sprite2D found for ", name)
-			warn = true
-		if warn:
-			push_error("No AnimatedSprite2D found for ", name)
+	sorted_keys.reverse()
+	return sorted_keys
 
 #region Performance Monitor
 ##Set up the custom performance monitors for the player
@@ -1369,47 +1382,63 @@ func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
 #endregion
 
 func _ready() -> void:
+	#scan for children. This can happen even in the editor.
+	if not ((is_instance_valid(animations) or is_instance_valid(sprite1)) or is_instance_valid(animated_sprite1)):
+		scan_children()
+	
+	#everything past here should NOT happen in the editor
+	if Engine.is_editor_hint():
+		return
+	
 	set_meta(&"is_player", true)
 	#Set up nodes
 	setup_children()
 	#Find collision points. Run this after children
 	#setup so that the raycasts can be placed properly.
 	setup_collision()
-	#setup performance montiors
-	setup_performance_monitors()
 	
 	#After all, why [i]not[/i] use our own API?
 	connect(&"contact_air", enter_air)
 	connect(&"contact_ground", land_on_ground)
 	
-	var load_dictionary:Callable = func(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
-		var sorted_keys:PackedFloat32Array
-		#check the anim_run keys for valid values
-		for keys:float in dict.keys():
-			var snapped_key:float = snappedf(keys, 0.001)
-			if not is_equal_approx(keys, snapped_key):
-				push_warning("Key ", keys, " is more precise than the precision cutoff")
-			sorted_keys.append(snapped_key)
-		#sort the keys (from least to greatest)
-		sorted_keys.sort()
-		
-		sorted_keys.reverse()
-		return sorted_keys
-	
-	anim_run_sorted_keys = load_dictionary.call(anim_run)
-	anim_skid_sorted_keys = load_dictionary.call(anim_skid)
+	anim_run_sorted_keys = load_dictionary(anim_run)
+	anim_skid_sorted_keys = load_dictionary(anim_skid)
 	
 	camera = get_window().get_camera_2d()
 
-func _draw() -> void:
-	if get_tree().debug_collisions_hint or Engine.is_editor_hint():
-		if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
-			current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings:PackedStringArray = []
+	
+	#If we have an AnimatedSprite2D, not having the other two doesn't matter
+	if not is_instance_valid(animated_sprite1):
+		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
+		#but having both is optional. Therefore, only warn about the lack of the latter
+		#if one of the two for the former is missing.
+		if is_instance_valid(sprite1) and not is_instance_valid(animations):
+			warnings.append("Using Sprite2D mode: No AnimationPlayer found. Please add one, or an AnimatedSprite2D.")
+		elif is_instance_valid(animations) and not is_instance_valid(sprite1):
+			warnings.append("Using Sprite2D mode: No Sprite2D child found. Please add one, or an AnimatedSprite2D.")
 		else:
-			RenderingServer.canvas_item_clear(get_canvas_item())
+			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
+	return warnings
 
-func _exit_tree() -> void:
-	cleanup_performance_monitors()
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_DRAW:
+			if is_visible_in_tree() and get_tree().debug_collisions_hint or Engine.is_editor_hint():
+				if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
+					current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
+				else:
+					RenderingServer.canvas_item_clear(get_canvas_item())
+		NOTIFICATION_ENTER_TREE:
+			if not Engine.is_editor_hint():
+				setup_performance_monitors()
+		NOTIFICATION_EXIT_TREE:
+			if not Engine.is_editor_hint():
+				cleanup_performance_monitors()
+		NOTIFICATION_CHILD_ORDER_CHANGED:
+			scan_children()
+			update_configuration_warnings()
 
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint():
