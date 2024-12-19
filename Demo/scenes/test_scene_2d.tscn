@@ -1,10 +1,11 @@
-[gd_scene load_steps=30 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=31 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="2_43wwi"]
+[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/assets/levels/3DtestLevel/Textures/Hud.tscn" id="3_le1ph"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="3_pfiy8"]
 [ext_resource type="Script" uid="uid://bsijqywm6rvv0" path="res://Framework/abilities/bonus/rolling_plus.gd" id="5_hlu7c"]
 [ext_resource type="Script" uid="uid://kv6fjiweqpvg" path="res://Framework/abilities/bonus/dynamic_camera.gd" id="6_qevq0"]
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
+[ext_resource type="Texture2D" uid="uid://bxkq5qjfapjhn" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)
@@ -278,6 +279,11 @@ texture = ExtResource("7_2q626")
 [node name="mrmooncastmouse" parent="." instance=ExtResource("2_43wwi")]
 
 [node name="Camera2D" type="Camera2D" parent="mrmooncastmouse"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/Camera2D"]
+
+[node name="HudPLacholder" parent="mrmooncastmouse/Camera2D/CanvasLayer" instance=ExtResource("3_le1ph")]
+metadata/_edit_use_anchors_ = true
 
 [node name="DebugMode" type="Node" parent="mrmooncastmouse"]
 script = ExtResource("3_pfiy8")

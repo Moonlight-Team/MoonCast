@@ -1,9 +1,10 @@
-[gd_scene load_steps=12 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=13 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_ntp3g"]
-[ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/assets/audio/Music/2DStage.ogg" id="2_8djix"]
+[ext_resource type="AudioStream" uid="uid://gl2oxl251i1t" path="res://Demo/assets/Audio/Music/2DStage.ogg" id="2_8djix"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="3_p8adb"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="4_vamuc"]
+[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/assets/levels/3DtestLevel/Textures/Hud.tscn" id="5_0blm6"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/scenes/2d_background.tscn" id="5_bedyd"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/assets/levels/demo_zone_tiles.tres" id="12_gj4r1"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/scenes/entity_2d/item_box/item_box.tscn" id="13_njlsf"]
@@ -48,6 +49,11 @@ drag_vertical_enabled = true
 drag_bottom_margin = 0.1
 editor_draw_limits = true
 editor_draw_drag_margin = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/Cam"]
+
+[node name="HudPLacholder" parent="mrmooncastmouse/Cam/CanvasLayer" instance=ExtResource("5_0blm6")]
+metadata/_edit_use_anchors_ = true
 
 [node name="Background" parent="." instance=ExtResource("5_bedyd")]
 

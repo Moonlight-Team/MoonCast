@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" uid="uid://ck5ru1un6s2iy" path="res://MoonCast/MC_character_3d.gd" id="1_g6lm5"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Framework/abilities/sonic_standard/mooncast_physics.tres" id="2_8cqfv"]
-[ext_resource type="Texture2D" uid="uid://cn2gdvkeaioxg" path="res://Demo/assets/player/mooncast_sonic_3d/PlayerModel_Atlas_00002.png" id="2_d8crn"]
+[ext_resource type="Texture2D" uid="uid://dd6jklhlxo36b" path="res://Demo/assets/player/mooncast_sonic_3d/PlayerModel_Atlas_00002.png" id="2_d8crn"]
 [ext_resource type="Resource" uid="uid://dfwk0fpplgsi4" path="res://Demo/assets/player/control_set.tres" id="3_2g5o8"]
 [ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_cd8xi"]
-[ext_resource type="Texture2D" uid="uid://fmy3pv0afi2g" path="res://Demo/assets/player/mooncast_sonic_3d/Playerjump_Atlas_00002.png" id="6_6i8fx"]
+[ext_resource type="Texture2D" uid="uid://dd1ri85fmmnr6" path="res://Demo/assets/player/mooncast_sonic_3d/Playerjump_Atlas_00002.png" id="6_6i8fx"]
 
 [sub_resource type="Resource" id="Resource_6i8fx"]
 script = ExtResource("4_cd8xi")

@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3 uid="uid://depkq6ebpq4yo"]
+
+[ext_resource type="FontFile" uid="uid://oxla68t5crft" path="res://Demo/assets/gui/GreenHillSans.ttf" id="1_ded3g"]
+
+[node name="HudPLacholder" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RichTextLabel2" type="RichTextLabel" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.214623
+anchor_top = 0.9375
+anchor_right = 1.08863
+anchor_bottom = 1.21566
+offset_right = 186.423
+offset_bottom = 17.2414
+scale = Vector2(0.535105, 0.534016)
+theme_override_fonts/normal_font = ExtResource("1_ded3g")
+bbcode_enabled = true
+text = "[color=black]work in progress; everything is subject to change"
+fit_content = true
+text_direction = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="RichTextLabel" type="RichTextLabel" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.212264
+anchor_top = 0.929167
+anchor_right = 1.07212
+anchor_bottom = 1.20733
+offset_right = 186.423
+offset_bottom = 17.2414
+scale = Vector2(0.535105, 0.534016)
+theme_override_fonts/normal_font = ExtResource("1_ded3g")
+bbcode_enabled = true
+text = "[color=Yellow ]work in progress; everything is subject to change."
+fit_content = true
+text_direction = 3
+metadata/_edit_use_anchors_ = true
