@@ -468,10 +468,10 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 			#setup custom collision
 			for default_owners:int in user_collision_owners:
 				shape_owner_set_disabled(default_owners, anim.override_collision)
-				var owner:Object = shape_owner_get_owner(default_owners)
-				if owner is CanvasItem:
-					owner.visible = not anim.override_collision
-				
+				var shape_owner:Object = shape_owner_get_owner(default_owners)
+				if shape_owner is CanvasItem:
+					shape_owner.visible = not anim.override_collision
+			
 			shape_owner_set_disabled(anim_col_owner_id, not anim.override_collision)
 			if anim.override_collision and is_instance_valid(anim.collision_shape_2D):
 				#clear shapes

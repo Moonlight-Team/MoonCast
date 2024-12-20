@@ -3,9 +3,9 @@
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="1_wqfls"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="2_5lvg2"]
 [ext_resource type="Script" uid="uid://duft4hid3q220" path="res://Framework/objects/slope_inator.gd" id="2_nmrp3"]
-[ext_resource type="Texture2D" uid="uid://dfe2qx4qnud01" path="res://Demo/assets/levels/3DtestLevel/Textures/grid.png" id="4_vudd8"]
+[ext_resource type="Texture2D" uid="uid://dlqbd5s6eq0b1" path="res://Demo/assets/levels/3DtestLevel/Textures/grid.png" id="4_vudd8"]
 [ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="5_kiok0"]
-[ext_resource type="Texture2D" uid="uid://da3pemtyxfqid" path="res://Demo/assets/levels/3DtestLevel/Textures/backdropgrid.png" id="5_x8m3d"]
+[ext_resource type="Texture2D" uid="uid://bfxhgikdlju4r" path="res://Demo/assets/levels/3DtestLevel/Textures/backdropgrid.png" id="5_x8m3d"]
 [ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/scenes/gui/Hud.tscn" id="8_x8m3d"]
 
 [sub_resource type="GDScript" id="GDScript_5lvg2"]

@@ -40,10 +40,10 @@ func setup_ability_2D(parent:MoonCastPlayer2D) -> void:
 		return
 	
 	_pre_physics_2D(parent)
-	if _active_pre_physics:
+	if _active_pre_physics and not parent.is_connected(&"pre_physics", _pre_physics_2D):
 		parent.connect(&"pre_physics", _pre_physics_2D)
 	_post_physics_2D(parent)
-	if _active_post_physics:
+	if _active_post_physics and not parent.is_connected(&"post_physics", _post_physics_2D):
 		parent.connect(&"post_physics", _post_physics_2D)
 	
 	_hurt_2D(parent)
@@ -54,21 +54,21 @@ func setup_ability_2D(parent:MoonCastPlayer2D) -> void:
 		parent.connect(&"jump", _jump_2D)
 	
 	_air_contact_2D(parent)
-	if _active_air_contact:
+	if _active_air_contact and not parent.is_connected(&"contact_air", _air_contact_2D):
 		parent.connect(&"contact_air", _air_contact_2D)
 	_air_state_2D(parent)
-	if _active_air_state:
+	if _active_air_state and not parent.is_connected(&"state_air", _air_state_2D):
 		parent.connect(&"state_air", _air_state_2D)
 	
 	_ground_contact_2D(parent)
-	if _active_ground_contact:
+	if _active_ground_contact and not parent.is_connected(&"contact_ground", _ground_state_2D):
 		parent.connect(&"contact_ground", _ground_contact_2D)
 	_ground_state_2D(parent)
-	if _active_ground_state:
+	if _active_ground_state and not parent.is_connected(&"state_ground", _ground_state_2D):
 		parent.connect(&"state_ground", _ground_state_2D)
 	
 	_wall_contact_2D(parent)
-	if _active_wall_contact:
+	if _active_wall_contact and not parent.is_connected(&"contact_wall", _wall_contact_2D):
 		parent.connect(&"contact_wall", _wall_contact_2D)
 	
 	_custom_state_2D(parent)
