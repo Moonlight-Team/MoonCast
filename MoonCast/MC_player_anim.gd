@@ -126,13 +126,14 @@ func _init() -> void:
 		compute_raycast_positions_3D()
 
 func compute_raycast_positions_2D() -> void:
-	var shape_outmost_point:Vector2 = collision_shape_2D.get_rect().end
-	#the lower right corner of the shape
-	collision_2d_right = collision_center + shape_outmost_point
-	#The lower left corner of the shape
-	colision_2d_left = collision_center + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
-	
-	collision_2d_center = (colision_2d_left + collision_2d_right) / 2.0
+	if is_instance_valid(collision_shape_2D):
+		var shape_outmost_point:Vector2 = collision_shape_2D.get_rect().end
+		#the lower right corner of the shape
+		collision_2d_right = collision_center + shape_outmost_point
+		#The lower left corner of the shape
+		colision_2d_left = collision_center + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
+		
+		collision_2d_center = (colision_2d_left + collision_2d_right) / 2.0
 
 func compute_raycast_positions_3D() -> void:
 	pass

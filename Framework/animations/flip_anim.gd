@@ -25,7 +25,7 @@ func _animation_cease() -> void:
 
 func _branch_animation() -> bool:
 	if not flip_played and can_flip and not player.is_jumping:
-		player.animated_sprite1.connect(&"animation_finished", func(): flip_played = true, CONNECT_ONE_SHOT)
+		player.node_animated_sprite.connect(&"animation_finished", func(): flip_played = true, CONNECT_ONE_SHOT)
 		return true
 	else:
 		return false

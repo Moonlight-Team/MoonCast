@@ -1,7 +1,7 @@
 @icon("res://MoonCast/assets/2dplayer.svg")
 extends CharacterBody2D
 
-class_name MoonCastPlayer2DNew
+class_name MoonCastPlayer2DPhysicsDirect
 
 ##The sfx name for [member sfx_jump].
 const sfx_jump_name:StringName = &"player_base_jump"
@@ -100,24 +100,6 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var sfx_custom:Dictionary[StringName, AudioStream]
 
 #node references
-##A central node around which all the raycasts rotate.
-var raycast_wheel:Node2D = Node2D.new()
-##The left ground raycast, used for determining balancing and rotation.
-##[br]
-##Its position is based on the farthest down and left [CollisionShape2D] shape that 
-##is a child of the player (ie. it is not going to account for collision shapes that
-##aren't going to touch the ground due to other lower shapes), and it points to that 
-##shape's lowest reaching y value, plus [floor_snap_length] into the ground.
-var ray_ground_left:RayCast2D = RayCast2D.new()
-##The right ground raycast, used for determining balancing and rotation.
-##Its position and target_position are determined the same way ray_ground_left.position
-##are, but for rightwards values.
-var ray_ground_right:RayCast2D = RayCast2D.new()
-##The central raycast, used for balancing. This is based on the central point values 
-##between ray_ground_left and ray_ground_right.
-var ray_ground_central:RayCast2D = RayCast2D.new()
-##The raycast for detecting running into a wall.
-var ray_wall:RayCast2D = RayCast2D.new()
 ##The [VisibleOnScreenNotifier2D] node for this player.
 var onscreen_checker:VisibleOnScreenNotifier2D = VisibleOnScreenNotifier2D.new()
 ##The sfx player node
@@ -161,6 +143,24 @@ var def_ray_gnd_center:Vector2
 ##The default shape of the visiblity notifier.
 var def_vis_notif_shape:Rect2
 
+var ray_query:PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
+var wall_data:Dictionary
+var ground_left_data:Dictionary
+var ground_right_data:Dictionary
+var ground_center_data:Dictionary
+
+var wall_left_origin:Vector2 = Vector2.ZERO
+var wall_right_origin:Vector2 = Vector2.ZERO
+var ground_left_origin:Vector2 = Vector2.ZERO
+var ground_right_origin:Vector2 = Vector2.ZERO
+var ground_center_origin:Vector2 = Vector2.ZERO
+
+var wall_left_target:Vector2 = Vector2.ZERO
+var wall_right_target:Vector2 = Vector2.ZERO
+var ground_left_target:Vector2 = Vector2.ZERO
+var ground_right_target:Vector2 = Vector2.ZERO
+var ground_center_target:Vector2 = Vector2.ZERO
+
 var facing_direction:float
 
 var self_old:MoonCastPlayer2D = MoonCastPlayer2D.new()
@@ -188,10 +188,6 @@ signal contact_air(player:MoonCastPlayer2D)
 signal state_ground(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
-
-func _ready() -> void:
-	setup_internal_children()
-	scan_children()
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
@@ -241,7 +237,7 @@ func _physics_process(delta: float) -> void:
 	
 	#Make checks to see if the player should recieve physics engine feedback
 	#We can't have it feed back every time, since otherwise, it breaks slope landing physics.
-	var feedback_physics:bool = ray_wall.is_colliding()
+	var feedback_physics:bool = not wall_data.is_empty()
 	
 	if get_slide_collision_count() > 0:
 		for bodies:int in get_slide_collision_count():
@@ -266,6 +262,88 @@ func _physics_process(delta: float) -> void:
 	update_animations()
 	
 	update_collision_rotation()
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_DRAW:
+			if is_visible_in_tree() and (get_tree().debug_collisions_hint or Engine.is_editor_hint()):
+				draw_debug_info()
+		NOTIFICATION_READY:
+			setup_internal_children()
+			scan_children()
+			setup_collision()
+		NOTIFICATION_CHILD_ORDER_CHANGED:
+			scan_children()
+			update_configuration_warnings()
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings:PackedStringArray = []
+	
+	#If we have an AnimatedSprite2D, not having the other two doesn't matter
+	if not is_instance_valid(node_animated_sprite_2d):
+		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
+		#but having both is optional. Therefore, only warn about the lack of the latter
+		#if one of the two for the former is missing.
+		if is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animation_player):
+			warnings.append("Using Sprite2D mode: No AnimationPlayer found. Please add one, or an AnimatedSprite2D.")
+		elif is_instance_valid(node_animation_player) and not is_instance_valid(node_sprite_2d):
+			warnings.append("Using Sprite2D mode: No Sprite2D child found. Please add one, or an AnimatedSprite2D.")
+		elif not is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animation_player):
+			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
+	return warnings
+
+func draw_debug_info() -> void:
+	#draw the collision shape
+	if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
+		current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
+	else:
+		RenderingServer.canvas_item_clear(get_canvas_item())
+		
+	#Draw the ray sensor lines
+	
+	#const order: left, then right; down, up, and wall
+	const sensor_a:Color = Color8(0, 240, 0)
+	const sensor_b:Color = Color8(56, 255, 162)
+	const sensor_c:Color = Color8(0, 174, 239)
+	const sensor_d:Color = Color8(255, 242, 56)
+	const sensor_e:Color = Color8(255, 56, 255)
+	const sensor_f:Color = Color8(255, 84, 84)
+	
+	const line_thickness:float = 1.0
+	
+	var target_vec:Vector2
+	var origin_vec:Vector2
+	
+	if physics.space_velocity.x < 0.0:
+		#draw left side rays
+		origin_vec = ground_left_origin + global_position
+		target_vec = Vector2(origin_vec.x, ground_left_target.y + global_position.y)
+		
+		if physics.space_velocity.y > 0.0:
+			draw_line(origin_vec, target_vec, sensor_a, line_thickness)
+		else:
+			target_vec.y = -target_vec.y + int(floor_snap_length)
+			draw_line(origin_vec, target_vec, sensor_c, line_thickness)
+		
+		
+		origin_vec = global_position + wall_left_origin
+		target_vec = global_position + wall_left_target
+		draw_line(origin_vec, target_vec, sensor_e, line_thickness)
+	else:
+		#draw right side rays
+		
+		origin_vec = ground_right_origin + global_position
+		target_vec = Vector2(origin_vec.x, ground_right_target.y + global_position.y)
+		if physics.space_velocity.y > 0.0:
+			draw_line(origin_vec, target_vec, sensor_b, line_thickness)
+		else:
+			target_vec.y = -target_vec.y + int(floor_snap_length)
+			draw_line(origin_vec, target_vec, sensor_d, line_thickness)
+		
+		
+		origin_vec = global_position + wall_right_origin
+		target_vec = global_position + wall_right_target
+		draw_line(origin_vec, target_vec, sensor_f, line_thickness)
 
 func scan_children() -> void:
 	#find the animationPlayer and other nodes
@@ -298,6 +376,9 @@ func scan_children() -> void:
 			push_error("No AnimatedSprite2D found for ", name)
 
 func setup_internal_children() -> void:
+	add_child(jump_timer)
+	add_child(control_lock_timer)
+	add_child(ground_snap_timer)
 	physics.connect_timers(jump_timer, control_lock_timer, ground_snap_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
@@ -306,17 +387,67 @@ func setup_internal_children() -> void:
 	sfx_player.bus = sfx_bus
 	sfx_player.play()
 	sfx_playback_ref = sfx_player.get_stream_playback()
+
+func setup_collision() -> void:
+	ray_query.collision_mask = collision_mask
+	ray_query.collide_with_areas = false
+	ray_query.collide_with_bodies = true
+	ray_query.exclude = [get_rid()]
+	ray_query.hit_from_inside = false
 	
-	raycast_wheel.name = "Raycast Rotator"
-	add_child(raycast_wheel)
-	ray_ground_left.name = "RayGroundLeft"
-	raycast_wheel.add_child(ray_ground_left)
-	ray_ground_right.name = "RayGroundRight"
-	raycast_wheel.add_child(ray_ground_right)
-	ray_ground_central.name = "RayGroundCentral"
-	raycast_wheel.add_child(ray_ground_central)
-	ray_wall.name = "RayWall"
-	raycast_wheel.add_child(ray_wall)
+	#find the two "lowest" and farthest out points among the shapes, and the lowest 
+	#left and lowest right points are where the ledge sensors will be placed. These 
+	#will be mostly used for ledge animation detection, as the collision system 
+	#handles most of the rest for detection that these would traditionally be used 
+	#for.
+	
+	#The lowest left point for collision among the player's hitboxes
+	var ground_left_corner:Vector2
+	#The lowest right point for collision among the player's hitboxes
+	var ground_right_corner:Vector2
+	
+	user_collision_owners = get_shape_owners().duplicate()
+	
+	for collision_shapes:int in user_collision_owners:
+		for shapes:int in shape_owner_get_shape_count(collision_shapes):
+			#Get the shape itself
+			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
+			#Get the shape's node, for stuff like position
+			var this_shape_node:Node2D = shape_owner_get_owner(collision_shapes)
+			
+			#If this shape's node isn't higher up than the player's origin
+			#(ie. it's on the player's lower half)
+			if this_shape_node.position.y >= 0:
+				var shape_outmost_point:Vector2 = this_shape.get_rect().end
+				def_vis_notif_shape = def_vis_notif_shape.merge(this_shape.get_rect())
+				#the lower right corner of the shape
+				var collision_outmost_right:Vector2 = this_shape_node.position + shape_outmost_point
+				#The lower left corner of the shape
+				var collision_outmost_left:Vector2 = this_shape_node.position + Vector2(-shape_outmost_point.x, shape_outmost_point.y)
+				
+				#If it's farther down vertically than either of the max points
+				if collision_outmost_left.y >= ground_left_corner.y or collision_outmost_right.y >= ground_right_corner.y:
+					#If it's farther left than the most left point so far...
+					if collision_outmost_left.x < ground_left_corner.x:
+						ground_left_corner = collision_outmost_left
+					#Otherwise, if it's farther right that the most right point so far...
+					if collision_outmost_right.x > ground_right_corner.x:
+						ground_right_corner = collision_outmost_right
+	
+	anim_col_owner_id = create_shape_owner(self)
+	
+	def_ray_left_corner = ground_left_corner
+	
+	def_ray_right_corner = ground_right_corner
+	
+	def_ray_gnd_center = (ground_left_corner + ground_right_corner) / 2.0
+	
+	add_child(onscreen_checker)
+	onscreen_checker.name = "VisiblityChecker"
+	onscreen_checker.rect = def_vis_notif_shape
+	
+	#place the raycasts based on the above derived values
+	reposition_raycasts(ground_left_corner, ground_right_corner, def_ray_gnd_center)
 
 ##Play a sound effect that belongs to the player. This can be either a custom sound
 ##effect, or one of the hard coded/built in sound effects. 
@@ -352,10 +483,12 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 			#setup custom collision
 			for default_owners:int in user_collision_owners:
 				shape_owner_set_disabled(default_owners, anim.override_collision)
-				var owner:Object = shape_owner_get_owner(default_owners)
-				if owner is CanvasItem:
-					owner.visible = not anim.override_collision
+				var shape_owner:Object = shape_owner_get_owner(default_owners)
 				
+				if is_visible_in_tree() and (Engine.is_editor_hint() or get_tree().debug_collisions_hint):
+					if shape_owner is CanvasItem:
+						shape_owner.visible = not anim.override_collision
+			
 			shape_owner_set_disabled(anim_col_owner_id, not anim.override_collision)
 			if anim.override_collision and is_instance_valid(anim.collision_shape_2D):
 				#clear shapes
@@ -407,7 +540,6 @@ func has_animation(anim:MoonCastAnimation) -> bool:
 func update_animations() -> void:
 	sprites_flip()
 	var anim:int = physics.assess_animations()
-	print("Animation: ", anim)
 	match anim:
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:
@@ -433,10 +565,10 @@ func update_animations() -> void:
 						play_sound_effect(sfx_skid_name)
 					break
 		MoonCastPhysicsTable.AnimationTypes.BALANCE:
-			if not ray_ground_left.is_colliding():
+			if ground_left_data.is_empty():
 				#face the ledge
 				facing_direction = -1.0
-			elif not ray_ground_right.is_colliding():
+			elif ground_right_data.is_empty():
 				#face the ledge
 				facing_direction = 1.0
 			
@@ -453,7 +585,7 @@ func update_animations() -> void:
 			else:
 				play_animation(anim_stand)
 		_:
-			pass
+			pass #print("Animation: ", anim)
 
 func sprites_flip(something:bool = true) -> void:
 	pass
@@ -470,17 +602,47 @@ func limitAngle(input_angle:float) -> float:
 #this is likely the most complicated part of this whole codebase LOL
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
+	#update the state data of all our raycasts
+	var space:PhysicsDirectSpaceState2D = PhysicsServer2D.space_get_direct_state(PhysicsServer2D.body_get_space(get_rid()))
+	
+	if facing_direction < 0.0:
+		ray_query.from = global_position + wall_left_origin
+		ray_query.to = global_position + wall_left_target
+	else:
+		ray_query.from = global_position + wall_right_origin
+		ray_query.to = global_position + wall_right_target
+	
+	wall_data = space.intersect_ray(ray_query)
+	
+	ray_query.from = global_position + ground_left_origin
+	ray_query.to = global_position + ground_left_target
+	ground_left_data = space.intersect_ray(ray_query)
+	
+	ray_query.from = global_position + ground_right_origin
+	ray_query.to = global_position + ground_right_target
+	ground_right_data = space.intersect_ray(ray_query)
+	
+	ray_query.from = global_position + ground_center_origin
+	ray_query.to = global_position + ground_center_target
+	ground_center_data = space.intersect_ray(ray_query)
+	
+	#printt("\nLeft: ", ground_left_data, "\nRight:", ground_right_data, "\nCenter:", ground_center_data)
+	
+	var wall_colliding:bool = not wall_data.is_empty()
+	var ground_left_colliding:bool = not ground_left_data.is_empty()
+	var ground_right_colliding:bool = not ground_right_data.is_empty()
+	var ground_center_colliding:bool = not ground_center_data.is_empty()
+	
 	#figure out if we've hit a wall
+	physics.update_wall_contact(wall_colliding, is_on_wall_only())
 	
-	physics.update_wall_contact(ray_wall.is_colliding(), is_on_wall_only())
-	
-	var contact_point_count:int = int(ray_ground_left.is_colliding()) + int(ray_ground_central.is_colliding()) + int(ray_ground_right.is_colliding())
+	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
 	var in_ground_range:bool = bool(contact_point_count)
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
-	var will_actually_land:bool = get_slide_collision_count() > 0 and not (ray_wall.is_colliding() and is_on_wall_only())
+	var will_actually_land:bool = get_slide_collision_count() > 0 and not (wall_colliding and is_on_wall_only())
 	
 	var collision_rotation:float = 0.0
 	
@@ -504,23 +666,31 @@ func update_collision_rotation() -> void:
 					#false positives caused by one raycast being the remaining raycast when 
 					#launching off a slope
 					
-					if ray_ground_left.is_colliding():
-						collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+					if ground_left_colliding:
+						var collision_normal:Vector2 = ground_left_data.get("normal", Vector2.ZERO)
+						
+						collision_rotation = limitAngle(-atan2(collision_normal.x, collision_normal.y) - PI)
 						facing_direction = 1.0 #slope is to the left, face right
-					elif ray_ground_right.is_colliding():
-						collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+					elif ground_right_colliding:
+						var collision_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
+						
+						collision_rotation = limitAngle(-atan2(collision_normal.x, collision_normal.y) - PI)
 						facing_direction = -1.0 #slope is to the right, face left
 			2:
 				physics.is_balancing = false
-				var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-				var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 				
-				if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
+				var left_normal:Vector2 = ground_left_data.get("normal", Vector2.ZERO)
+				var right_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
+				
+				var left_angle:float = limitAngle(-atan2(left_normal.x, left_normal.y) - PI)
+				var right_angle:float = limitAngle(-atan2(right_normal.x, right_normal.y) - PI)
+				
+				if ground_left_colliding and ground_right_colliding:
 					collision_rotation = (right_angle + left_angle) / 2.0
 				#in these next two cases, the other contact point is the center
-				elif ray_ground_left.is_colliding():
+				elif ground_left_colliding:
 					collision_rotation = left_angle
-				elif ray_ground_right.is_colliding():
+				elif ground_right_colliding:
 					collision_rotation = right_angle
 			3:
 				physics.is_balancing = false
@@ -539,9 +709,11 @@ func update_collision_rotation() -> void:
 					#the CharacterBody2D system has no idea what the ground normal is when its
 					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
 					#we use the raycasts. 
+					var left_normal:Vector2 = ground_left_data.get("normal", Vector2.ZERO)
+					var right_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
 					
-					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+					var left_angle:float = limitAngle(-atan2(left_normal.x, left_normal.y) - PI)
+					var right_angle:float = limitAngle(-atan2(right_normal.x, right_normal.y) - PI)
 					
 					collision_rotation = (right_angle + left_angle) / 2.0
 		
@@ -573,17 +745,17 @@ func reposition_raycasts(left_corner:Vector2, right_corner:Vector2, center:Vecto
 	var ground_safe_margin:int = int(floor_snap_length)
 	
 	#move the raycast horizontally to point down to the corner
-	ray_ground_left.position.x = left_corner.x
+	ground_left_origin.x = left_corner.x
 	#point the raycast down to the corner, and then beyond that by the margin
-	ray_ground_left.target_position.y = left_corner.y + ground_safe_margin
+	ground_left_target.y = left_corner.y + ground_safe_margin
 	
-	ray_ground_right.position.x = right_corner.x
-	ray_ground_right.target_position.y = right_corner.y + ground_safe_margin
+	ground_right_origin.x = right_corner.x
+	ground_right_target.y = right_corner.y + ground_safe_margin
 	
-	ray_ground_central.position.x = center.x
-	ray_ground_central.target_position.y = center.y + ground_safe_margin
+	ground_center_origin.x = center.x
+	ground_center_target.y = center.y + ground_safe_margin
 	
 	#TODO: Place these better; they should be targeting the x pos of the absolute
 	#farthest horizontal collision boxes, not only the ground-valid boxes
-	#ray_wall_left.target_position = Vector2(left_corner.x - 1, 0)
-	#ray_wall_right.target_position = Vector2(right_corner.x + 1, 0)
+	wall_left_target.x = left_corner.x - 1
+	wall_right_target.x = right_corner.x + 1

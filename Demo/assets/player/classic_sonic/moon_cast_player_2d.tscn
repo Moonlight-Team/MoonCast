@@ -1,0 +1,355 @@
+[gd_scene load_steps=25 format=3 uid="uid://bxb1mxfoss2kg"]
+
+[ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_vmo3m"]
+[ext_resource type="Script" uid="uid://rkrxyjvaqm8f" path="res://MoonCast/MC_physics_table.gd" id="2_fn30h"]
+[ext_resource type="Script" uid="uid://bjvs88myg4lbr" path="res://MoonCast/MC_control_set.gd" id="3_pj4c3"]
+[ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_ugm85"]
+[ext_resource type="SpriteFrames" uid="uid://csph0fs33wav5" path="res://Demo/assets/player/classic_sonic/classic_sonic_spriteframes.tres" id="5_glpth"]
+[ext_resource type="Script" uid="uid://dwwqwut5sssky" path="res://Framework/animations/speed_varied_anim.gd" id="5_ugm85"]
+[ext_resource type="Script" uid="uid://dngbkto8dafn8" path="res://Framework/abilities/sonic_standard/drop_dash.gd" id="6_pj4c3"]
+[ext_resource type="Script" uid="uid://dh21r7jthua87" path="res://Framework/abilities/sonic_standard/spindash.gd" id="7_ugm85"]
+
+[sub_resource type="Resource" id="Resource_ugm85"]
+script = ExtResource("2_fn30h")
+control_3d_turn_around_threshold = 0.392699
+control_roll_move_lock = true
+control_roll_enabled = true
+control_roll_midair_activate = false
+control_jump_is_vulnerable = false
+control_jump_roll_lock = false
+control_jump_hold_repeat = false
+absolute_speed_cap = Vector2(16, 16)
+default_up_direction = Vector3(0, 1, 0)
+ground_min_speed = 0.2
+ground_stick_speed = 0.2
+ground_slip_time = 0.5
+ground_top_speed = 6.0
+ground_acceleration = 0.07
+ground_deceleration = 0.046875
+ground_skid_speed = 0.4
+ground_slope_factor = 0.125
+ground_speed_cap = 16.0
+air_top_speed = 6.0
+air_acceleration = 0.1
+air_gravity_strength = 0.21875
+rolling_min_speed = 1.0
+rolling_active_stop = 0.5
+rolling_flat_factor = 0.05
+rolling_uphill_factor = 0.078125
+rolling_downhill_factor = 0.3125
+jump_velocity = 6.5
+jump_short_limit = 4.0
+jump_spam_timer = 0.15
+physics_collision_power = 1.0
+
+[sub_resource type="Resource" id="Resource_glpth"]
+script = ExtResource("3_pj4c3")
+direction_up = &"ui_up"
+direction_down = &"ui_down"
+direction_left = &"ui_left"
+direction_right = &"ui_right"
+action_jump = &"ui_accept"
+action_roll = &"down"
+action_custom = Dictionary[StringName, StringName]({})
+camera_up = &""
+camera_down = &""
+camera_left = &""
+camera_right = &""
+
+[sub_resource type="Resource" id="Resource_65d0o"]
+script = ExtResource("4_ugm85")
+animation = &"stand"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_bmj40"]
+script = ExtResource("4_ugm85")
+animation = &"look_up"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_bb0hn"]
+script = ExtResource("4_ugm85")
+animation = &"balance"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_ccwgu"]
+script = ExtResource("4_ugm85")
+animation = &"crouch"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ug30f"]
+radius = 15.0
+
+[sub_resource type="Resource" id="Resource_w6k7h"]
+script = ExtResource("5_ugm85")
+walk_min_speed = 0.3
+speed_scale = 2.0
+animation = &"roll"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = true
+collision_center = Vector2(0, 4)
+collision_shape_2D = SubResource("CircleShape2D_ug30f")
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+collision_center = Vector2(0, 4)
+collision_shape_2D = SubResource("CircleShape2D_ug30f")
+metadata/_custom_type_script = ExtResource("5_ugm85")
+
+[sub_resource type="Resource" id="Resource_mn6dl"]
+script = ExtResource("5_ugm85")
+walk_min_speed = 0.3
+speed_scale = 2.0
+animation = &"walk"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("5_ugm85")
+
+[sub_resource type="Resource" id="Resource_w4r1x"]
+script = ExtResource("4_ugm85")
+animation = &"run"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_ugm85")
+
+[sub_resource type="Resource" id="Resource_ix6p4"]
+script = ExtResource("4_ugm85")
+animation = &"push"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_bu1ek"]
+script = ExtResource("4_ugm85")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_mfx6s"]
+script = ExtResource("4_ugm85")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mpb4u"]
+size = Vector2(20, 39)
+
+[sub_resource type="Resource" id="Resource_owtnc"]
+script = ExtResource("4_ugm85")
+animation = &"spindash"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_ugm85")
+
+[sub_resource type="Resource" id="Resource_avgwv"]
+script = ExtResource("4_ugm85")
+animation = &"drop_dash"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_ugm85")
+
+[node name="MoonCastPlayer2D" type="CharacterBody2D"]
+position = Vector2(1, 0)
+floor_snap_length = 15.0
+script = ExtResource("1_vmo3m")
+physics = SubResource("Resource_ugm85")
+controls = SubResource("Resource_glpth")
+rotation_static_collision = true
+anim_stand = SubResource("Resource_65d0o")
+anim_look_up = SubResource("Resource_bmj40")
+anim_balance = SubResource("Resource_bb0hn")
+anim_crouch = SubResource("Resource_ccwgu")
+anim_roll = SubResource("Resource_w6k7h")
+anim_run = Dictionary[float, ExtResource("4_ugm85")]({
+0.01: SubResource("Resource_mn6dl"),
+1.0: SubResource("Resource_w4r1x")
+})
+anim_push = SubResource("Resource_ix6p4")
+anim_jump = SubResource("Resource_w6k7h")
+anim_free_fall = SubResource("Resource_bu1ek")
+anim_death = SubResource("Resource_mfx6s")
+metadata/_custom_type_script = ExtResource("1_vmo3m")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("5_glpth")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_mpb4u")
+
+[node name="SpindashAbility" type="Node" parent="."]
+script = ExtResource("7_ugm85")
+spindash_animation = SubResource("Resource_owtnc")
+metadata/_custom_type_script = ExtResource("7_ugm85")
+
+[node name="DropDash" type="Node" parent="."]
+script = ExtResource("6_pj4c3")
+charge_button = &"jump"
+anim_charge = SubResource("Resource_avgwv")
+metadata/_custom_type_script = ExtResource("6_pj4c3")

@@ -19,6 +19,6 @@ func _post_physics_2D(player:MoonCastPlayer2D) -> void:
 		if current_skin > skins.size() - 1:
 			current_skin = 0
 		
-		player.animated_sprite1.sprite_frames = skins[current_skin]
+		player.node_animated_sprite.sprite_frames = skins[current_skin]
 		
 		player.play_sound_effect(switch_sfx_name)

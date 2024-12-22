@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_ntp3g"]
 [ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/assets/audio/Music/2DStage.ogg" id="2_8djix"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="3_p8adb"]
-[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://MoonCast/debug_mode.gd" id="4_vamuc"]
+[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="4_vamuc"]
 [ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/scenes/gui/Hud.tscn" id="5_0blm6"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/scenes/2d_background.tscn" id="5_bedyd"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/assets/levels/demo_zone_tiles.tres" id="12_gj4r1"]

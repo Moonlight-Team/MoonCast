@@ -1,268 +1,197 @@
-[gd_scene load_steps=24 format=3 uid="uid://fqh0i1dgi84m"]
+[gd_scene load_steps=20 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Framework/abilities/sonic_standard/classic_physics.tres" id="2_b6fdh"]
+[ext_resource type="Resource" uid="uid://dfwk0fpplgsi4" path="res://Demo/assets/player/control_set.tres" id="3_8yeox"]
 [ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_i5f3k"]
+[ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_2p7v6"]
 [ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_usa1h"]
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_xm06n"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_msc3m"]
-[ext_resource type="Texture2D" uid="uid://q5thi20c5oyo" path="res://Demo/assets/player/Sonic.png" id="7_bgmmo"]
+[ext_resource type="SpriteFrames" uid="uid://csph0fs33wav5" path="res://Demo/assets/player/classic_sonic/classic_sonic_spriteframes.tres" id="9_8yeox"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_x7kbe"]
-size = Vector2(20, 38)
+[sub_resource type="Resource" id="Resource_0k2go"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_2p7v6")
 
-[sub_resource type="Animation" id="Animation_wlfi8"]
-length = 0.001
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 1,
-"values": [0]
-}
+[sub_resource type="Resource" id="Resource_gjoh5"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_iq3sf"]
-resource_name = "crouch"
-length = 0.40001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1),
-"transitions": PackedFloat32Array(1, 1),
-"update": 1,
-"values": [12, 13]
-}
+[sub_resource type="Resource" id="Resource_5e6kq"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_qois4"]
-resource_name = "run_mach"
-length = 0.40001
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 1,
-"values": [28, 29, 30, 31]
-}
+[sub_resource type="Resource" id="Resource_qpctf"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_hw6c2"]
-resource_name = "run_1"
-length = 0.40001
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 1,
-"values": [24, 25, 26, 27]
-}
+[sub_resource type="Resource" id="Resource_f3qyl"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_qvr7q"]
-resource_name = "falling"
-length = 0.50001
-loop_mode = 2
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.4),
-"transitions": PackedFloat32Array(1, 1, 1),
-"update": 1,
-"values": [43, 44, 45]
-}
+[sub_resource type="Resource" id="Resource_xlgiw"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_x2kjc"]
-resource_name = "balance"
-length = 0.8
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.4, 0.6),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 1,
-"values": [43, 44, 45, 44]
-}
+[sub_resource type="Resource" id="Resource_cull0"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_kgsx7"]
-resource_name = "spindash"
-length = 0.60001
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
-"update": 1,
-"values": [37, 38, 39, 40, 41, 42]
-}
+[sub_resource type="Resource" id="Resource_sy2h6"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_7uit0"]
-resource_name = "drop_dash_charge"
-length = 0.6
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(-0.0333333, 0.0666667, 0.166667, 0.266667),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 1,
-"values": [36, 70, 71, 69]
-}
+[sub_resource type="Resource" id="Resource_tw8rf"]
+script = ExtResource("4_2p7v6")
+animation = &""
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
 
-[sub_resource type="Animation" id="Animation_lmbq0"]
-resource_name = "hurt"
-length = 0.5
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0.0333333, 0.266667),
-"transitions": PackedFloat32Array(1, 1),
-"update": 1,
-"values": [75, 76]
-}
-
-[sub_resource type="Animation" id="Animation_wdns5"]
-resource_name = "walk"
-length = 0.80001
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
-"update": 1,
-"values": [18, 19, 20, 21, 22, 23, 16, 17]
-}
-
-[sub_resource type="Animation" id="Animation_vg7os"]
-resource_name = "skid"
-length = 0.40001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2),
-"transitions": PackedFloat32Array(1, 1, 1),
-"update": 1,
-"values": [64, 65, 66]
-}
-
-[sub_resource type="Animation" id="Animation_e184m"]
-resource_name = "push"
-length = 0.9
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0.0333333, 0.233333, 0.466667, 0.7),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 1,
-"values": [60, 61, 62, 63]
-}
-
-[sub_resource type="Animation" id="Animation_tqr3a"]
-resource_name = "jump_ball"
-length = 0.750002
-loop_mode = 1
-step = 0.0166667
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
-"update": 1,
-"values": [32, 36, 33, 36, 34, 36, 35, 36]
-}
-
-[sub_resource type="Animation" id="Animation_scyfb"]
-resource_name = "standing"
-length = 9.00001
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprites:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 3.3, 3.6, 3.9, 4.4, 4.8, 5.2, 5.6, 6, 6.4, 6.8, 7.2, 7.6, 8, 8.4),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-"update": 1,
-"values": [0, 1, 6, 7, 8, 7, 8, 9, 7, 8, 7, 8, 7, 1, 0]
-}
-
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_djpht"]
-_data = {
-&"RESET": SubResource("Animation_wlfi8"),
-&"crouch": SubResource("Animation_iq3sf"),
-&"run_mach": SubResource("Animation_qois4"),
-&"run_1": SubResource("Animation_hw6c2"),
-&"falling": SubResource("Animation_qvr7q"),
-&"balance": SubResource("Animation_x2kjc"),
-&"spindash": SubResource("Animation_kgsx7"),
-&"drop_dash_charge": SubResource("Animation_7uit0"),
-&"hurt": SubResource("Animation_lmbq0"),
-&"walk": SubResource("Animation_wdns5"),
-&"skid": SubResource("Animation_vg7os"),
-&"push": SubResource("Animation_e184m"),
-&"jump_ball": SubResource("Animation_tqr3a"),
-&"standing": SubResource("Animation_scyfb")
-}
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dhi"]
 
 [node name="mrneedlemouse" type="CharacterBody2D"]
 floor_stop_on_slope = false
@@ -271,43 +200,28 @@ floor_block_on_wall = false
 floor_snap_length = 15.0
 script = ExtResource("1_4odp6")
 physics = ExtResource("2_b6fdh")
-rotation_classic_snap = true
+controls = ExtResource("3_8yeox")
 rotation_static_collision = true
-anim_stand = &"standing"
-anim_balance = &"balance"
-anim_crouch = &"crouch"
-anim_roll = &"jump_ball"
-anim_run = Dictionary[float, StringName]({
-0.01: &"walk",
-1.0: &"run_1",
-1.6: &"run_mach"
-})
-anim_skid = Dictionary[float, StringName]({
-0.4: &"skid"
-})
-anim_push = &"push"
-anim_jump = &"jump_ball"
-anim_free_fall = &"hurt"
-anim_rotation_blacklist = Array[StringName]([&"jump_ball"])
-anim_vary_speed_playback = Array[StringName]([&"walk", &"run"])
+rotation_classic_snap = true
+anim_stand = SubResource("Resource_0k2go")
+anim_look_up = SubResource("Resource_gjoh5")
+anim_balance = SubResource("Resource_5e6kq")
+anim_crouch = SubResource("Resource_qpctf")
+anim_roll = SubResource("Resource_f3qyl")
+anim_push = SubResource("Resource_xlgiw")
+anim_jump = SubResource("Resource_cull0")
+anim_free_fall = SubResource("Resource_sy2h6")
+anim_death = SubResource("Resource_tw8rf")
 sfx_jump = ExtResource("3_i5f3k")
 sfx_roll = ExtResource("4_usa1h")
 sfx_skid = ExtResource("5_xm06n")
 sfx_hurt = ExtResource("6_msc3m")
 
-[node name="RectangleShape" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_x7kbe")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_r0dhi")
 
-[node name="Cam" type="Camera2D" parent="."]
-
-[node name="Anims" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimationLibrary_djpht")
-}
-
-[node name="Sprites" type="Sprite2D" parent="."]
-texture_filter = 1
-texture = ExtResource("7_bgmmo")
-offset = Vector2(0, -5)
-hframes = 16
-vframes = 18
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("9_8yeox")
+animation = &"push"
+frame = 3
+frame_progress = 0.587718

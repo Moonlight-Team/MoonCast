@@ -40,7 +40,7 @@ class_name Slopeinator
 @export_group("Floor", "floor_")
 ##The value for the floor texture. This texture will be aligned to and repeated 
 ##along the edge of the slope.
-@export var floor_texture:Texture2D = Texture2D.new():
+@export var floor_texture:Texture2D = null:
 	set(new_val):
 		floor_texture = new_val
 		#The floor margin CANNOT be 0 if there is no texture!
@@ -70,7 +70,7 @@ class_name Slopeinator
 @export_group("Background", "background_")
 ##The texture for the "background" of the slope. This tiles and fills the space 
 ##of the collision area.
-@export var background_texture:Texture2D = Texture2D.new():
+@export var background_texture:Texture2D = null:
 	set(new_texture):
 		background_texture = new_texture
 		draw_visual_slope()

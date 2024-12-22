@@ -110,10 +110,10 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 var animations:AnimationPlayer = null
 ##The Sprite2D node for this player.
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
-var sprite1:Sprite2D = null
+var node_sprite_2d:Sprite2D = null
 ##The AnimatedSprite2D for this player.
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
-var animated_sprite1:AnimatedSprite2D = null
+var node_animated_sprite:AnimatedSprite2D = null
 
 ##A central node around which all the raycasts rotate.
 var raycast_wheel:Node2D = Node2D.new()
@@ -372,17 +372,17 @@ signal state_air(player:MoonCastPlayer2D)
 ##internal node references and automatically setting up abilties.
 func scan_children() -> void:
 	animations = null
-	sprite1 = null
-	animated_sprite1 = null
+	node_sprite_2d = null
+	node_animated_sprite = null
 	
 	#find the animationPlayer and other nodes
 	for nodes:Node in get_children():
 		if not is_instance_valid(animations) and nodes is AnimationPlayer:
 			animations = nodes
-		if not is_instance_valid(sprite1) and nodes is Sprite2D:
-			sprite1 = nodes
-		if not is_instance_valid(animated_sprite1) and nodes is AnimatedSprite2D:
-			animated_sprite1 = nodes
+		if not is_instance_valid(node_sprite_2d) and nodes is Sprite2D:
+			node_sprite_2d = nodes
+		if not is_instance_valid(node_animated_sprite) and nodes is AnimatedSprite2D:
+			node_animated_sprite = nodes
 		#Patch for the inability for get_class to return GDScript classes
 		if not Engine.is_editor_hint() and nodes.has_meta(&"Ability_flag"):
 			abilities.append(nodes.name)
@@ -507,8 +507,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 		if is_instance_valid(animations) and animations.has_animation(played_anim):
 			animations.play(played_anim, -1, anim.speed)
 			animation_set = true
-		if is_instance_valid(animated_sprite1.sprite_frames) and animated_sprite1.sprite_frames.has_animation(played_anim):
-			animated_sprite1.play(played_anim, anim.speed)
+		if is_instance_valid(node_animated_sprite.sprite_frames) and node_animated_sprite.sprite_frames.has_animation(played_anim):
+			node_animated_sprite.play(played_anim, anim.speed)
 			animation_set = true
 
 ##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
@@ -516,8 +516,8 @@ func has_animation(anim:MoonCastAnimation) -> bool:
 	var has_anim:bool
 	if is_instance_valid(animations):
 		has_anim = animations.has_animation(anim.animation)
-	if is_instance_valid(animated_sprite1):
-		has_anim = has_anim or animated_sprite1.sprite_frames.has_animation(anim.animation)
+	if is_instance_valid(node_animated_sprite):
+		has_anim = has_anim or node_animated_sprite.sprite_frames.has_animation(anim.animation)
 	return has_anim
 
 #endregion
@@ -1314,23 +1314,23 @@ func sprites_flip(check_speed:bool = true) -> void:
 		#run checks on the nodes, because having the nodes for this is not assumable
 		if does_flip:
 			if facing_direction < 0: #left
-				if is_instance_valid(sprite1):
-					sprite1.flip_h = not anim_sprites_left_default
-				if is_instance_valid(animated_sprite1):
-					animated_sprite1.flip_h = not anim_sprites_left_default
+				if is_instance_valid(node_sprite_2d):
+					node_sprite_2d.flip_h = not anim_sprites_left_default
+				if is_instance_valid(node_animated_sprite):
+					node_animated_sprite.flip_h = not anim_sprites_left_default
 			elif facing_direction > 0: #right
-				if is_instance_valid(sprite1):
-					sprite1.flip_h = anim_sprites_left_default
-				if is_instance_valid(animated_sprite1):
-					animated_sprite1.flip_h = anim_sprites_left_default
+				if is_instance_valid(node_sprite_2d):
+					node_sprite_2d.flip_h = anim_sprites_left_default
+				if is_instance_valid(node_animated_sprite):
+					node_animated_sprite.flip_h = anim_sprites_left_default
 
 ##Set the rotation of the sprites, in radians. This is required in order to preserve
 ##physics behavior while still implementing certain visual rotation features.
 func sprites_set_rotation(new_rotation:float) -> void:
-	if is_instance_valid(sprite1):
-		sprite1.global_rotation = new_rotation
-	if is_instance_valid(animated_sprite1):
-		animated_sprite1.global_rotation = new_rotation
+	if is_instance_valid(node_sprite_2d):
+		node_sprite_2d.global_rotation = new_rotation
+	if is_instance_valid(node_animated_sprite):
+		node_animated_sprite.global_rotation = new_rotation
 
 func update_ground_visual_rotation() -> void:
 	if is_moving and (is_grounded or is_slipping):
@@ -1386,7 +1386,7 @@ func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
 
 func _ready() -> void:
 	#scan for children. This can happen even in the editor.
-	if not ((is_instance_valid(animations) or is_instance_valid(sprite1)) or is_instance_valid(animated_sprite1)):
+	if not ((is_instance_valid(animations) or is_instance_valid(node_sprite_2d)) or is_instance_valid(node_animated_sprite)):
 		scan_children()
 	
 	#everything past here should NOT happen in the editor
@@ -1413,15 +1413,15 @@ func _get_configuration_warnings() -> PackedStringArray:
 	var warnings:PackedStringArray = []
 	
 	#If we have an AnimatedSprite2D, not having the other two doesn't matter
-	if not is_instance_valid(animated_sprite1):
+	if not is_instance_valid(node_animated_sprite):
 		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
 		#but having both is optional. Therefore, only warn about the lack of the latter
 		#if one of the two for the former is missing.
-		if is_instance_valid(sprite1) and not is_instance_valid(animations):
+		if is_instance_valid(node_sprite_2d) and not is_instance_valid(animations):
 			warnings.append("Using Sprite2D mode: No AnimationPlayer found. Please add one, or an AnimatedSprite2D.")
-		elif is_instance_valid(animations) and not is_instance_valid(sprite1):
+		elif is_instance_valid(animations) and not is_instance_valid(node_sprite_2d):
 			warnings.append("Using Sprite2D mode: No Sprite2D child found. Please add one, or an AnimatedSprite2D.")
-		else:
+		elif not is_instance_valid(node_sprite_2d) and not is_instance_valid(animations):
 			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
 	return warnings
 
