@@ -9,10 +9,11 @@ var zoom_rate:Vector2 = Vector2.ONE * zoom_speed
 @onready var cam:Camera2D
 
 func _post_physics_2D(player:MoonCastPlayer2D) -> void:
-	if not is_instance_valid(cam):
+	if not is_instance_valid(cam) and is_instance_valid(get_viewport()):
 		cam = get_viewport().get_camera_2d()
-		if not is_instance_valid(cam):
-			return
+	
+	if not is_instance_valid(cam):
+		return
 	
 	if absf(player.space_velocity.length()) > player.physics.ground_top_speed * 1.3:
 		cam.zoom -= zoom_rate

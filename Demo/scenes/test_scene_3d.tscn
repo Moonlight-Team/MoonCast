@@ -1,9 +1,7 @@
-[gd_scene load_steps=58 format=4 uid="uid://cevdou1y8kc5k"]
+[gd_scene load_steps=56 format=4 uid="uid://cevdou1y8kc5k"]
 
 [ext_resource type="AudioStream" uid="uid://dn1rok6xv488k" path="res://Demo/assets/audio/Music/3Dstage.ogg" id="1_3m87s"]
-[ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_7yqcc"]
 [ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d/player_3d.tscn" id="1_73jpb"]
-[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/scenes/gui/Hud.tscn" id="5_1pam8"]
 [ext_resource type="Texture2D" uid="uid://beba5e0x6inxn" path="res://Demo/assets/levels/3DtestLevel/Textures/4435f9ba.png" id="5_3m87s"]
 [ext_resource type="Texture2D" uid="uid://b8sjw50jqxtyq" path="res://Demo/assets/levels/3DtestLevel/Textures/5a67bd19.png" id="6_1pam8"]
 [ext_resource type="Shader" uid="uid://c5tbcwf8ixnu4" path="res://Demo/scenes/skybox.gdshader" id="7_frwh0"]
@@ -879,13 +877,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="Camera3D" type="Camera3D" parent="MC_3D"]
 transform = Transform3D(78.4197, 0, 0, 0, 73.6435, 26.9497, 0, -26.9497, 73.6435, 0, 6.52628, 10.0058)
-
-[node name="PauseMenu" parent="MC_3D/Camera3D" instance=ExtResource("1_7yqcc")]
-layer = 10
-visible = false
-
-[node name="HudPLacholder" parent="MC_3D/Camera3D" instance=ExtResource("5_1pam8")]
-metadata/_edit_use_anchors_ = true
 
 [node name="StaticBody3D" type="StaticBody3D" parent="."]
 
