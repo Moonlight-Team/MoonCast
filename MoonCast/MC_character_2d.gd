@@ -268,10 +268,10 @@ var is_grounded:bool:
 	set(now_grounded):
 		if now_grounded:
 			if not is_grounded:
-				contact_ground.emit(self)
+				land_on_ground()
 		else:
 			if is_grounded:
-				contact_air.emit(self)
+				enter_air()
 		is_grounded = now_grounded
 ##If true, the player is moving.
 var is_moving:bool:
@@ -758,7 +758,7 @@ func process_air() -> void:
 		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
 	
 	#only move if the player does not have the roll lock and is rolling to cause it 
-	if not physics.control_jump_roll_lock or (physics.control_jump_roll_lock and is_rolling):
+	if not physics.control_jump_roll_lock or (physics.control_jump_roll_lock and (is_jumping != is_rolling)):
 		#Only let the player move in midair if they aren't already at max speed
 		if signf(space_velocity.x) != signf(input_direction) or absf(space_velocity.x) < physics.ground_top_speed:
 			space_velocity.x += physics.air_acceleration * input_direction
@@ -944,13 +944,15 @@ func roll_checks() -> bool:
 
 ##A function that is called when the player enters the air from
 ##previously being on the ground.
-func enter_air(_player:MoonCastPlayer2D = null) -> void:
+func enter_air() -> void:
 	collision_rotation = 0.0
 	up_direction = default_up_direction
+	
+	contact_air.emit(self)
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
-func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
+func land_on_ground() -> void:
 	#Transfer space_velocity to ground_velocity
 	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_rotation) 
 	applied_ground_speed *= (space_velocity)
@@ -980,6 +982,8 @@ func land_on_ground(_player:MoonCastPlayer2D = null) -> void:
 		jump_timer.timeout.connect(func(): jump_timer.stop(); can_jump = true, CONNECT_ONE_SHOT)
 		jump_timer.start(physics.jump_spam_timer)
 	is_jumping = false
+	
+	contact_ground.emit(self)
 
 #this is likely the most complicated part of this whole codebase LOL
 ##Update collision and rotation.
@@ -1395,10 +1399,6 @@ func _ready() -> void:
 	#Find collision points. Run this after children
 	#setup so that the raycasts can be placed properly.
 	setup_collision()
-	
-	#After all, why [i]not[/i] use our own API?
-	connect(&"contact_air", enter_air)
-	connect(&"contact_ground", land_on_ground)
 	
 	anim_run_sorted_keys = load_dictionary(anim_run)
 	anim_skid_sorted_keys = load_dictionary(anim_skid)
