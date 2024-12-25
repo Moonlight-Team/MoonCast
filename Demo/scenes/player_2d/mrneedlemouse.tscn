@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://fqh0i1dgi84m"]
+[gd_scene load_steps=26 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Framework/abilities/sonic_standard/classic_physics.tres" id="2_b6fdh"]
@@ -10,6 +10,7 @@
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_xm06n"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_msc3m"]
 [ext_resource type="SpriteFrames" uid="uid://csph0fs33wav5" path="res://Demo/assets/player/classic_sonic/classic_sonic_spriteframes.tres" id="9_8yeox"]
+[ext_resource type="Script" uid="uid://dh21r7jthua87" path="res://Framework/abilities/sonic_standard/spindash.gd" id="11_0k2go"]
 
 [sub_resource type="Resource" id="Resource_3acpp"]
 script = ExtResource("4_2p7v6")
@@ -253,6 +254,27 @@ rotation_smooth = true
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dhi"]
 size = Vector2(20, 39)
 
+[sub_resource type="Resource" id="Resource_gjoh5"]
+script = ExtResource("4_2p7v6")
+animation = &"spindash"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_2p7v6")
+
 [node name="mrneedlemouse" type="CharacterBody2D"]
 floor_stop_on_slope = false
 floor_constant_speed = true
@@ -287,3 +309,8 @@ shape = SubResource("RectangleShape2D_r0dhi")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("9_8yeox")
 animation = &"balance"
+
+[node name="SpindashAbility" type="Node" parent="."]
+script = ExtResource("11_0k2go")
+spindash_animation = SubResource("Resource_gjoh5")
+metadata/_custom_type_script = ExtResource("11_0k2go")
