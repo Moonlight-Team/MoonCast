@@ -757,7 +757,7 @@ func process_air() -> void:
 	if not Input.is_action_pressed(controls.action_jump) and is_jumping:
 		space_velocity.y = maxf(space_velocity.y, -physics.jump_short_limit)
 	
-	#only move if the player does not have the roll lock and is rolling to cause it 
+	#only move if the player does not have the roll lock or has it and is not rolling in a jump
 	if not physics.control_jump_roll_lock or (physics.control_jump_roll_lock and (is_jumping != is_rolling)):
 		#Only let the player move in midair if they aren't already at max speed
 		if signf(space_velocity.x) != signf(input_direction) or absf(space_velocity.x) < physics.ground_top_speed:
