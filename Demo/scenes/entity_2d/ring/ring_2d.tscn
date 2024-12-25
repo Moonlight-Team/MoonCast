@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dixb7i3244tmp"]
+
+[ext_resource type="Script" uid="uid://8jmbyf1v6lag" path="res://MoonCast/MC_entity_direct_2d.gd" id="1_ncsrk"]
+
+[node name="Ring2D" type="Node2D"]
+script = ExtResource("1_ncsrk")

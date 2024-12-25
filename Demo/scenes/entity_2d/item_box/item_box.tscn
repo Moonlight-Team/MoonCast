@@ -4,8 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://vt13hj1j3mjh" path="res://Demo/assets/global_objects/item_monitor.tres" id="2_7qcly"]
 [ext_resource type="Texture2D" uid="uid://bx74255egkj2g" path="res://Demo/assets/global_objects/overlay_blank.tres" id="3_qwmmx"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_cuh63"]
-size = Vector2(32, 32)
+[sub_resource type="CircleShape2D" id="CircleShape2D_iybcx"]
+radius = 19.1638
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jho4s"]
 size = Vector2(26, 25)
@@ -15,7 +15,8 @@ texture_filter = 1
 script = ExtResource("1_yd0n6")
 
 [node name="DetectionArea" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_cuh63")
+position = Vector2(0, 3.5)
+shape = SubResource("CircleShape2D_iybcx")
 
 [node name="CollisionArea" type="Area2D" parent="."]
 
@@ -30,5 +31,3 @@ texture = ExtResource("2_7qcly")
 
 [node name="ItemType" type="Sprite2D" parent="."]
 texture = ExtResource("3_qwmmx")
-
-[connection signal="body_entered" from="CollisionArea" to="." method="_on_collision_area_body_entered"]

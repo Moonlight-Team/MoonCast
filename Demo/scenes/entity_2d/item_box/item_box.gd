@@ -34,9 +34,9 @@ func _ready() -> void:
 	else:
 		un_pop_monitor()
 
-#func _process(delta: float) -> void:
-	#if Engine.is_editor_hint():
-		#_ready()
+func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 
 func _on_vertical_player_contact(player:MoonCastPlayer2D) -> void:
 	if not popped and player.is_attacking:

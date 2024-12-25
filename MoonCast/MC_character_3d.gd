@@ -249,10 +249,9 @@ func setup_children() -> void:
 			abilities.append(nodes.name)
 			nodes.call(&"setup_ability_3D", self)
 	
-	physics.connect_timers(Timer.new(), Timer.new(), Timer.new())
+	physics.connect_timers(Timer.new(), Timer.new())
 	add_child(physics.jump_timer)
 	add_child(physics.control_lock_timer)
-	add_child(physics.ground_snap_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)

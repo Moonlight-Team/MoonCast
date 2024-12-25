@@ -233,31 +233,8 @@ func _physics_process(delta: float) -> void:
 	
 	velocity = raw_velocity
 	
-	move_and_slide()
-	
-	#Make checks to see if the player should recieve physics engine feedback
-	#We can't have it feed back every time, since otherwise, it breaks slope landing physics.
-	var feedback_physics:bool = not wall_data.is_empty()
-	
-	if get_slide_collision_count() > 0:
-		for bodies:int in get_slide_collision_count():
-			var body:KinematicCollision2D = get_slide_collision(bodies)
-			var body_mode:PhysicsServer2D.BodyMode = PhysicsServer2D.body_get_mode(body.get_collider_rid())
-			
-			if body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID or body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID_LINEAR:
-				if not body.get_collider_velocity().is_zero_approx():
-					feedback_physics = true
-				elif not body.get_remainder().is_zero_approx():
-					feedback_physics = true
-				
-				PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), raw_velocity * physics.physics_collision_power)
-	
-	if feedback_physics:
-		var adjusted:Vector2 = velocity / physics_adjust
-		physics.space_velocity.z = adjusted.x
-		physics.space_velocity.y = adjusted.y
-		
-		#TODO: Ground physics feedback
+	#move_and_slide()
+	mooncast_move_and_slide(delta)
 	
 	update_animations()
 	
@@ -378,8 +355,7 @@ func scan_children() -> void:
 func setup_internal_children() -> void:
 	add_child(jump_timer)
 	add_child(control_lock_timer)
-	add_child(ground_snap_timer)
-	physics.connect_timers(jump_timer, control_lock_timer, ground_snap_timer)
+	physics.connect_timers(jump_timer, control_lock_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)
@@ -598,6 +574,286 @@ func limitAngle(input_angle:float) -> float:
 	if is_equal_approx(absf(return_angle), PI) or is_zero_approx(return_angle):
 		return_angle = -return_angle
 	return return_angle
+
+var on_floor:bool
+var on_wall:bool
+var on_ceiling:bool
+
+var floor_normal:Vector2
+var wall_normal:Vector2 
+
+var platform_velocity:Vector2
+var platform_rid:RID
+var platform_object_id:int
+var platform_layer:int
+
+var last_motion:Vector2
+var motion_results:Array[KinematicCollision2D]
+
+var real_velocity:Vector2
+
+const FLOOR_ANGLE_THRESHOLD:float = 0.01
+
+func _set_collision_direction(result:KinematicCollision2D) -> void:
+	if motion_mode == MOTION_MODE_GROUNDED and result.get_angle(up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+		on_floor = true
+		floor_normal = result.get_normal()
+		_set_platform_data(result)
+	elif motion_mode == MOTION_MODE_GROUNDED and result.get_angle(-up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+		on_ceiling = true
+	else:
+		on_wall = true
+		wall_normal = result.get_normal()
+		if instance_from_id(result.get_collider_id()) as CharacterBody2D == null:
+			_set_platform_data(result)
+
+func _set_platform_data(result:KinematicCollision2D) -> void:
+	platform_rid = result.get_collider_rid()
+	platform_object_id = result.get_collider_id()
+	platform_velocity = result.get_collider_velocity()
+	platform_layer = PhysicsServer2D.body_get_collision_layer(platform_rid)
+
+func _snap_on_floor(p_was_on_floor:bool, p_vel_dir_facing_up:bool, p_wall_as_floor:bool = false):
+	if on_floor or not p_wall_as_floor or p_vel_dir_facing_up:
+		return
+	
+	_apply_floor_snap(p_was_on_floor)
+
+func _on_floor_if_snapped(was_on_floor:bool, vel_dir_facing_up:bool) -> bool:
+	if up_direction == Vector2() or on_floor or not was_on_floor or vel_dir_facing_up:
+		return false
+	
+	var length:float = maxf(floor_snap_length, safe_margin)
+	
+	var result:KinematicCollision2D = move_and_collide(-up_direction * length, false, safe_margin, true)
+	
+	if result:
+		if result.get_angle(up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+			return true
+	
+	return false
+
+func _apply_floor_snap(wall_as_floor:bool) -> void:
+	if on_floor:
+		return
+	
+	var length:float = maxf(floor_snap_length, safe_margin)
+	
+	var result:KinematicCollision2D = move_and_collide(-up_direction * length, false, safe_margin, true)
+	if result:
+		if result.get_angle(up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD or \
+		wall_as_floor and result.get_angle(-up_direction) > floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+			on_floor = true
+			floor_normal = result.get_normal()
+			_set_platform_data(result)
+			
+			if floor_stop_on_slope:
+				if result.get_travel().length() > safe_margin:
+					#result.travel = up_direction * up_direction.dot(result.get_travel())
+					pass
+				else:
+					#result.travel = Vector2()
+					pass
+
+func mooncast_move_and_slide(delta:float) -> void:
+	#move_and_slide
+	var current_platform_velocity:Vector2 = platform_velocity
+	var previous_position:Vector2 = global_position
+	
+	if (on_floor or on_wall) and platform_rid.is_valid():
+		var excluded:bool = false
+		if on_floor:
+			excluded = platform_floor_layers & platform_layer == 0
+		elif on_wall:
+			excluded = platform_wall_layers & platform_layer == 0
+		
+		if not excluded:
+			var bs:PhysicsDirectBodyState2D = PhysicsServer2D.body_get_direct_state(platform_rid)
+			
+			if bs:
+				var local_position:Vector2 = global_position - bs.transform.origin
+				current_platform_velocity = bs.get_velocity_at_local_position(local_position)
+			else:
+				current_platform_velocity = Vector2.ZERO
+				platform_rid = RID()
+		else:
+			current_platform_velocity = Vector2.ZERO
+	
+	motion_results.clear()
+	last_motion = Vector2.ZERO
+	
+	var was_on_floor:bool = on_floor
+	on_floor = false
+	on_ceiling = false
+	on_wall = false
+	
+	if not current_platform_velocity.is_zero_approx():
+		PhysicsServer2D.body_add_collision_exception(get_rid(), platform_rid)
+		
+		var floor_result:KinematicCollision2D = move_and_collide(current_platform_velocity * delta, false, safe_margin, true)
+		
+		if floor_result:
+			motion_results.push_back(floor_result)
+			_set_collision_direction(floor_result)
+	
+	#_move_and_slide_grounded
+	var motion:Vector2 = velocity * delta
+	var motion_slide_up:Vector2 = motion.slide(up_direction)
+	
+	var prev_floor_normal:Vector2 = floor_normal
+	
+	platform_rid = RID()
+	platform_object_id = 0
+	floor_normal = Vector2.ZERO
+	platform_velocity = Vector2.ZERO
+	
+	var sliding_enabled:bool = not floor_stop_on_slope
+	var can_apply_constant_speed: bool = sliding_enabled
+	var apply_ceiling_velocity:bool = false
+	var first_slide:bool = true
+	var vel_dir_facing_up:bool = velocity.dot(up_direction) > 0
+	var last_travel:Vector2
+	
+	const CMP_EPSILON:float = 0.00001
+	
+	for iteration:int in max_slides:
+		var result:KinematicCollision2D = move_and_collide(motion, false, safe_margin, true)
+		
+		last_motion = result.get_travel()
+		
+		var collided:bool = result.get_collider_rid().is_valid()
+		
+		if collided:
+			motion_results.push_back(result)
+			_set_collision_direction(result)
+			
+			if on_ceiling and result.get_collider_velocity() != Vector2.ZERO and \
+			result.get_collider_velocity().dot(up_direction) < 0:
+				
+				if not slide_on_ceiling or motion.dot(up_direction) < 0 or (result.get_normal() + up_direction).length() < 0.01:
+					apply_ceiling_velocity = true
+					var ceiling_vertical_velocity:Vector2 = up_direction * up_direction.dot(result.get_collider_velocity())
+					var motion_vertical_velocity:Vector2 = up_direction * up_direction.dot(velocity)
+					if motion_vertical_velocity.dot(up_direction) > 0 or ceiling_vertical_velocity.length_squared() > motion_vertical_velocity.length_squared():
+						velocity = ceiling_vertical_velocity + velocity.slide(up_direction)
+				
+				if on_floor and floor_stop_on_slope and (velocity.normalized() + up_direction).length() < 0.01:
+					if result.get_travel().length() < safe_margin + CMP_EPSILON:
+						global_position -= result.get_travel()
+					velocity = Vector2.ZERO
+					last_motion = Vector2.ZERO
+					motion = Vector2.ZERO
+					break
+				
+				if result.get_remainder().is_zero_approx():
+					motion = Vector2.ZERO
+					break
+				
+				if floor_block_on_wall and on_wall and motion_slide_up.dot(result.get_normal()) <= 0:
+					if was_on_floor and not on_floor and vel_dir_facing_up:
+						if result.get_travel().length() <= safe_margin + CMP_EPSILON:
+							global_position -= result.get_travel()
+						
+						_snap_on_floor(true, false, true)
+						velocity = Vector2.ZERO
+						last_motion = Vector2.ZERO
+						motion = Vector2.ZERO
+						break
+					
+					elif not on_floor:
+						motion = up_direction * up_direction.dot(result.get_remainder())
+						motion = motion.slide(result.get_normal())
+					else:
+						motion = result.get_remainder()
+				
+				elif floor_constant_speed and is_on_floor_only() and can_apply_constant_speed and was_on_floor and motion.dot(result.get_normal()) < 0:
+					can_apply_constant_speed = false
+					var motion_slide_norm:Vector2 = result.get_remainder().slide(result.get_normal()).normalized()
+					motion = motion_slide_norm * (motion_slide_up.length() - result.get_travel().slide(up_direction).length() - last_travel.slide(up_direction).length())
+				
+				elif (sliding_enabled or not on_floor) and (not on_ceiling or slide_on_ceiling or not vel_dir_facing_up) and not apply_ceiling_velocity:
+					var slide_motion:Vector2 = result.get_remainder().slide(result.get_normal())
+					if slide_motion.dot(velocity) > 0.0:
+						motion = slide_motion
+					else:
+						motion = Vector2.ZERO
+					
+					if vel_dir_facing_up:
+						velocity = velocity.slide(result.get_normal())
+					else:
+						velocity = up_direction * up_direction.dot(velocity)
+				
+				else:
+					motion = result.get_remainder()
+					if on_ceiling and not slide_on_ceiling and vel_dir_facing_up:
+						velocity = velocity.slide(up_direction)
+						motion = motion.slide(up_direction)
+				
+				last_travel = result.get_travel()
+		elif floor_constant_speed and first_slide and _on_floor_if_snapped(was_on_floor, vel_dir_facing_up):
+			can_apply_constant_speed = false
+			sliding_enabled = true
+			global_position = previous_position
+			
+			var motion_slide_norm:Vector2 = motion.slide(prev_floor_normal).normalized()
+			motion = motion_slide_norm * motion_slide_up.length()
+			collided = true
+		
+		can_apply_constant_speed = not can_apply_constant_speed and not sliding_enabled
+		sliding_enabled = true
+		first_slide = false
+		
+		if not collided or motion.is_zero_approx():
+			break
+	
+	_snap_on_floor(was_on_floor, vel_dir_facing_up)
+	
+	if is_on_wall_only() and motion_slide_up.dot(motion_results.get(0).get_normal()) < 0:
+		var slide_motion:Vector2 = velocity.slide(motion_results.get(0).get_normal())
+		if motion_slide_up.dot(slide_motion) < 0:
+			velocity = up_direction * up_direction.dot(velocity)
+		else:
+			velocity = up_direction * up_direction.dot(velocity) + slide_motion.slide(up_direction)
+	
+	if on_floor and not vel_dir_facing_up:
+		velocity = velocity.slide(up_direction)
+	
+	#move_and_slide 2
+	real_velocity = (global_position - previous_position) / delta
+	
+	if platform_on_leave != PLATFORM_ON_LEAVE_DO_NOTHING:
+		if not on_floor and not on_wall:
+			if platform_on_leave == PLATFORM_ON_LEAVE_ADD_UPWARD_VELOCITY and current_platform_velocity.dot(up_direction) < 0:
+				current_platform_velocity = current_platform_velocity.slide(up_direction)
+			velocity += current_platform_velocity
+	
+	#physics feedback to the player
+	const physics_adjust:float = 60.0
+	var raw_velocity:Vector2 = Vector2(physics.space_velocity.z, physics.space_velocity.y) * physics_adjust
+	
+	#Make checks to see if the player should recieve physics engine feedback
+	#We can't have it feed back every time, since otherwise, it breaks slope landing physics.
+	var feedback_physics:bool = not wall_data.is_empty()
+	
+	if get_slide_collision_count() > 0:
+		for bodies:int in get_slide_collision_count():
+			var body:KinematicCollision2D = get_slide_collision(bodies)
+			var body_mode:PhysicsServer2D.BodyMode = PhysicsServer2D.body_get_mode(body.get_collider_rid())
+			
+			if body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID or body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID_LINEAR:
+				if not body.get_collider_velocity().is_zero_approx():
+					feedback_physics = true
+				elif not body.get_remainder().is_zero_approx():
+					feedback_physics = true
+				
+				PhysicsServer2D.body_apply_central_impulse(body.get_collider_rid(), raw_velocity * physics.physics_collision_power)
+	
+	if feedback_physics:
+		var adjusted:Vector2 = velocity / physics_adjust
+		physics.space_velocity.z = adjusted.x
+		physics.space_velocity.y = adjusted.y
+		
+		#TODO: Ground physics feedback
 
 #this is likely the most complicated part of this whole codebase LOL
 ##Update collision and rotation.

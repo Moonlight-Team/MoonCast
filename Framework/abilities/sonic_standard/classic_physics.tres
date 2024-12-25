@@ -1,16 +1,30 @@
 [gd_resource type="Resource" script_class="MoonCastPhysicsTable" load_steps=2 format=3 uid="uid://d2yobkva31ruc"]
 
-[ext_resource type="Script" path="res://MoonCast/MC_physics_table.gd" id="1_yx77b"]
+[ext_resource type="Script" uid="uid://rkrxyjvaqm8f" path="res://MoonCast/MC_physics_table.gd" id="1_yx77b"]
 
 [resource]
 script = ExtResource("1_yx77b")
+control_3d_turn_around_threshold = 0.392699
+control_roll_move_lock = true
+control_roll_enabled = true
+control_roll_midair_activate = false
+control_jump_is_vulnerable = false
+control_jump_roll_lock = false
+control_jump_hold_repeat = false
+absolute_speed_cap = Vector2(16, 16)
+default_up_direction = Vector3(0, 1, 0)
+physics_collision_power = 1.0
+physics_weight = 1.0
 ground_min_speed = 0.2
 ground_stick_speed = 0.4
+ground_slip_time = 0.5
 ground_top_speed = 6.0
 ground_acceleration = 0.046875
 ground_deceleration = 0.046875
 ground_skid_speed = 0.25
 ground_slope_factor = 0.125
+ground_speed_cap = 16.0
+air_custom_gravity = true
 air_top_speed = 6.0
 air_acceleration = 0.09375
 air_gravity_strength = 0.21875
@@ -22,9 +36,3 @@ rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
 jump_short_limit = 4.0
 jump_spam_timer = 0.4
-button_up = &"up"
-button_down = &"down"
-button_left = &"left"
-button_right = &"right"
-button_jump = &"jump"
-button_roll = &"down"

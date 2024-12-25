@@ -151,7 +151,6 @@ var jump_timer:Timer = Timer.new()
 ##The timer for the player's ability to move directionally.
 var control_lock_timer:Timer = Timer.new()
 ##The timer for the player to be able to stick to the floor.
-var ground_snap_timer:Timer = Timer.new()
 
 var camera:Camera2D
 
@@ -398,10 +397,6 @@ func setup_children() -> void:
 	control_lock_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	jump_timer.one_shot = true
 	add_child(control_lock_timer)
-	ground_snap_timer.name = "GroundSnapTimer"
-	ground_snap_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
-	ground_snap_timer.one_shot = true
-	add_child(ground_snap_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)
@@ -1391,6 +1386,7 @@ func _ready() -> void:
 	
 	#everything past here should NOT happen in the editor
 	if Engine.is_editor_hint():
+		notify_property_list_changed()
 		return
 	
 	set_meta(&"is_player", true)
@@ -1425,6 +1421,19 @@ func _get_configuration_warnings() -> PackedStringArray:
 			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
 	return warnings
 
+func _validate_property(property: Dictionary) -> void:
+	const var_blacklist:PackedStringArray = [
+		"motion_mode",
+		"slide_on_ceiling",
+		"floor_stop_on_slope",
+		"floor_constant_speed",
+		"floor_block_on_wall", 
+	]
+	var var_name:String = property.get("name", "")
+	if var_blacklist.has(var_name):
+		var current_usage:int = property.get("usage", 0)
+		property.set("usage", current_usage | PROPERTY_USAGE_NO_EDITOR)
+
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_DRAW:
@@ -1434,7 +1443,9 @@ func _notification(what: int) -> void:
 				else:
 					RenderingServer.canvas_item_clear(get_canvas_item())
 		NOTIFICATION_ENTER_TREE:
-			if not Engine.is_editor_hint():
+			if Engine.is_editor_hint():
+				notify_property_list_changed()
+			else:
 				setup_performance_monitors()
 		NOTIFICATION_EXIT_TREE:
 			if not Engine.is_editor_hint():

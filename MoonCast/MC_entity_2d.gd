@@ -3,10 +3,10 @@ extends Area2D
 class_name MoonCastEntity2D
 
 func _init() -> void:
-	connect(&"body_entered", validate_player_contact)
+	connect(&"body_shape_entered", validate_player_contact)
 
 ##Internal function used by 
-func validate_player_contact(contact:Node2D) -> void:
+func validate_player_contact(body_rid:RID, contact:Node2D, body_shape_index:int, local_shape_index:int) -> void:
 	#this is a roundabout check to get around GDScript classes not being recognized
 	#by get_class()
 	if contact.has_meta(&"is_player"):

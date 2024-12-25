@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://fqh0i1dgi84m"]
+[gd_scene load_steps=24 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Framework/abilities/sonic_standard/classic_physics.tres" id="2_b6fdh"]
@@ -6,13 +6,146 @@
 [ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/assets/audio/Sonic 2/jump.wav" id="3_i5f3k"]
 [ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_2p7v6"]
 [ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/assets/audio/SFX/roll.wav" id="4_usa1h"]
+[ext_resource type="Script" uid="uid://dwwqwut5sssky" path="res://Framework/animations/speed_varied_anim.gd" id="5_2p7v6"]
 [ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/assets/audio/Sonic 2/skid.wav" id="5_xm06n"]
 [ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/assets/audio/Sonic 2/ouch.wav" id="6_msc3m"]
 [ext_resource type="SpriteFrames" uid="uid://csph0fs33wav5" path="res://Demo/assets/player/classic_sonic/classic_sonic_spriteframes.tres" id="9_8yeox"]
 
-[sub_resource type="Resource" id="Resource_0k2go"]
+[sub_resource type="Resource" id="Resource_3acpp"]
 script = ExtResource("4_2p7v6")
-animation = &""
+animation = &"stand"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_dq01h"]
+script = ExtResource("4_2p7v6")
+animation = &"look_up"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_u65ga"]
+script = ExtResource("4_2p7v6")
+animation = &"balance"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_0ckvv"]
+script = ExtResource("4_2p7v6")
+animation = &"crouch"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_llvs5"]
+radius = 15.0
+
+[sub_resource type="Resource" id="Resource_afh81"]
+script = ExtResource("5_2p7v6")
+walk_min_speed = 0.3
+speed_scale = 2.0
+animation = &"roll"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = true
+collision_center = Vector2(0, 4)
+collision_shape_2D = SubResource("CircleShape2D_llvs5")
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+collision_center = Vector2(0, 4)
+collision_shape_2D = SubResource("CircleShape2D_llvs5")
+metadata/_custom_type_script = ExtResource("5_2p7v6")
+
+[sub_resource type="Resource" id="Resource_gxmxh"]
+script = ExtResource("5_2p7v6")
+walk_min_speed = 0.3
+speed_scale = 2.0
+animation = &"walk"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("5_2p7v6")
+
+[sub_resource type="Resource" id="Resource_y3ao1"]
+script = ExtResource("4_2p7v6")
+animation = &"run"
 speed = 1.0
 can_turn_vertically = true
 can_turn_horizontal = true
@@ -31,7 +164,53 @@ rotation_snap = 0.523599
 rotation_smooth = true
 metadata/_custom_type_script = ExtResource("4_2p7v6")
 
-[sub_resource type="Resource" id="Resource_gjoh5"]
+[sub_resource type="Resource" id="Resource_rtua2"]
+script = ExtResource("4_2p7v6")
+animation = &"push"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+
+[sub_resource type="Resource" id="Resource_0wcwc"]
+script = ExtResource("5_2p7v6")
+walk_min_speed = 0.3
+speed_scale = 2.0
+animation = &"roll"
+speed = 1.0
+can_turn_vertically = false
+can_turn_horizontal = true
+override_rotation = false
+override_collision = true
+collision_center = Vector2(0, 4)
+collision_shape_2D = SubResource("CircleShape2D_llvs5")
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+collision_center = Vector2(0, 4)
+collision_shape_2D = SubResource("CircleShape2D_llvs5")
+metadata/_custom_type_script = ExtResource("5_2p7v6")
+
+[sub_resource type="Resource" id="Resource_0bvxg"]
 script = ExtResource("4_2p7v6")
 animation = &""
 speed = 1.0
@@ -51,127 +230,7 @@ collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
 
-[sub_resource type="Resource" id="Resource_5e6kq"]
-script = ExtResource("4_2p7v6")
-animation = &""
-speed = 1.0
-can_turn_vertically = true
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-
-[sub_resource type="Resource" id="Resource_qpctf"]
-script = ExtResource("4_2p7v6")
-animation = &""
-speed = 1.0
-can_turn_vertically = true
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-
-[sub_resource type="Resource" id="Resource_f3qyl"]
-script = ExtResource("4_2p7v6")
-animation = &""
-speed = 1.0
-can_turn_vertically = true
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-
-[sub_resource type="Resource" id="Resource_xlgiw"]
-script = ExtResource("4_2p7v6")
-animation = &""
-speed = 1.0
-can_turn_vertically = true
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-
-[sub_resource type="Resource" id="Resource_cull0"]
-script = ExtResource("4_2p7v6")
-animation = &""
-speed = 1.0
-can_turn_vertically = true
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-
-[sub_resource type="Resource" id="Resource_sy2h6"]
-script = ExtResource("4_2p7v6")
-animation = &""
-speed = 1.0
-can_turn_vertically = true
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-
-[sub_resource type="Resource" id="Resource_tw8rf"]
+[sub_resource type="Resource" id="Resource_irmiy"]
 script = ExtResource("4_2p7v6")
 animation = &""
 speed = 1.0
@@ -192,6 +251,7 @@ rotation_snap = 0.523599
 rotation_smooth = true
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dhi"]
+size = Vector2(20, 39)
 
 [node name="mrneedlemouse" type="CharacterBody2D"]
 floor_stop_on_slope = false
@@ -201,27 +261,29 @@ floor_snap_length = 15.0
 script = ExtResource("1_4odp6")
 physics = ExtResource("2_b6fdh")
 controls = ExtResource("3_8yeox")
-rotation_static_collision = true
 rotation_classic_snap = true
-anim_stand = SubResource("Resource_0k2go")
-anim_look_up = SubResource("Resource_gjoh5")
-anim_balance = SubResource("Resource_5e6kq")
-anim_crouch = SubResource("Resource_qpctf")
-anim_roll = SubResource("Resource_f3qyl")
-anim_push = SubResource("Resource_xlgiw")
-anim_jump = SubResource("Resource_cull0")
-anim_free_fall = SubResource("Resource_sy2h6")
-anim_death = SubResource("Resource_tw8rf")
+anim_stand = SubResource("Resource_3acpp")
+anim_look_up = SubResource("Resource_dq01h")
+anim_balance = SubResource("Resource_u65ga")
+anim_crouch = SubResource("Resource_0ckvv")
+anim_roll = SubResource("Resource_afh81")
+anim_run = Dictionary[float, ExtResource("4_2p7v6")]({
+0.01: SubResource("Resource_gxmxh"),
+1.0: SubResource("Resource_y3ao1")
+})
+anim_push = SubResource("Resource_rtua2")
+anim_jump = SubResource("Resource_0wcwc")
+anim_free_fall = SubResource("Resource_0bvxg")
+anim_death = SubResource("Resource_irmiy")
 sfx_jump = ExtResource("3_i5f3k")
 sfx_roll = ExtResource("4_usa1h")
 sfx_skid = ExtResource("5_xm06n")
 sfx_hurt = ExtResource("6_msc3m")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_r0dhi")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("9_8yeox")
-animation = &"push"
-frame = 3
-frame_progress = 0.587718
+animation = &"balance"

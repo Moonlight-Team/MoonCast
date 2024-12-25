@@ -33,6 +33,21 @@ enum AnimationTypes {
 	SKID,
 }
 
+##A collection of implementation-defined flags that need to be passed in to 
+##new_update_collision_rotation() every frame
+enum CollisionUpdateFlags {
+	##The player is being launched off a slope and thus should not stick to the 
+	##floor.
+	SLOPE_LAUNCH = 0b0000_0001,
+	##The player is turning around.
+	SKIDDING = 0b000_0010,
+	##The player is on a wall.
+	ON_WALL = 0b0000_0100,
+	##The player is on a wall, but not on the floor
+	ON_WALL_ONLY = 0b0000_1000,
+	
+}
+
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
@@ -63,6 +78,12 @@ const perf_state:StringName = &"Player State"
 @export var absolute_speed_cap:Vector2 = Vector2(16.0, 16.0)
 ##The default up direction for the player.
 @export var default_up_direction:Vector3 = Vector3.UP
+##The percentage of the player's speed that becomes the force exerted on rigid physics 
+##bodies in the engine when colliding with them.
+@export var physics_collision_power:float = 1.0
+##The weight of the player percieved by the physics engine, in kilograms. 
+##This does not affect the control feel of the player's movement.
+@export var physics_weight:float = 1.0
 @export_group("")
 
 @export_group("Ground", "ground_")
@@ -91,6 +112,9 @@ const perf_state:StringName = &"Player State"
 @export var ground_speed_cap:float = 16.0
 
 @export_group("Air", "air_")
+##If true, the player will use their own arbitary gravity instead of the "ambient gravity"
+@export var air_custom_gravity:bool = true
+
 ##The top horizontal speed the player can reach in the air by input alone.
 @export var air_top_speed:float = 6.0
 ##How much the player will accelerate in the air each physics frame.
@@ -119,17 +143,11 @@ const perf_state:StringName = &"Player State"
 ##next be able to jump
 @export var jump_spam_timer:float = 0.15
 
-@export_group("Misc")
-##The percentage of the player's speed that becomes the force exerted on rigid physics 
-##bodies in the engine when colliding with them.
-@export var physics_collision_power:float = 1.0
-
 ##The timer for the player's ability to jump after landing.
 var jump_timer:Timer = Timer.new()
 ##The timer for the player's ability to move directionally.
 var control_lock_timer:Timer = Timer.new()
 ##The timer for the player to be able to stick to the floor.
-var ground_snap_timer:Timer = Timer.new()
 
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
@@ -241,35 +259,41 @@ var self_perf_ground_angle:StringName
 var self_perf_state:StringName
 
 ##Emitted when the player makes contact with the ground
-signal contact_ground(player:MoonCastPlayer2D)
+signal contact_ground(physics:MoonCastPhysicsTable)
 ##Emitted when the player makes contact with a wall
-signal contact_wall(player:MoonCastPlayer2D)
+signal contact_wall(physics:MoonCastPhysicsTable)
 ##Emitted when the player is now airborne
-signal contact_air(player:MoonCastPlayer2D)
+signal contact_air(physics:MoonCastPhysicsTable)
 ##Emitted every frame when the player is touching the ground
-signal state_ground(player:MoonCastPlayer2D)
+signal state_ground(physics:MoonCastPhysicsTable)
 ##Emitted every frame when the player is in the air
-signal state_air(player:MoonCastPlayer2D)
+signal state_air(physics:MoonCastPhysicsTable)
 
 func _init() -> void:
-	connect_timers(Timer.new(), Timer.new(), Timer.new())
+	if not Engine.is_editor_hint() and Engine.get_main_loop() is SceneTree:
+		var tree:SceneTree = Engine.get_main_loop() as SceneTree
+		
+		var new_jump_timer:Timer = Timer.new()
+		var new_control_lock_timer:Timer = Timer.new()
+		
+		connect_timers(new_jump_timer, new_control_lock_timer)
+		if is_instance_valid(tree.current_scene):
+			tree.current_scene.add_child(new_jump_timer)
+			tree.current_scene.add_child(new_control_lock_timer)
+	else:
+		connect_timers(Timer.new(), Timer.new())
 
-func connect_timers(jump:Timer, control_lock:Timer, ground_snap:Timer) -> void:
+func connect_timers(jump:Timer, control_lock:Timer) -> void:
 	disconnect_timers()
 	jump_timer = jump
-	jump_timer.name = "JumpTimer"
+	jump_timer.name = resource_name + "JumpTimer"
 	jump_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	jump_timer.one_shot = true
 	
 	control_lock_timer = control_lock
-	control_lock_timer.name = "ControlLockTimer"
+	control_lock_timer.name = resource_name + "ControlLockTimer"
 	control_lock_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 	control_lock_timer.one_shot = true
-	
-	ground_snap_timer = ground_snap
-	ground_snap_timer.name = "GroundSnapTimer"
-	ground_snap_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
-	ground_snap_timer.one_shot = true
 
 func disconnect_timers(free:bool = false) -> void:
 	if free:
@@ -277,12 +301,9 @@ func disconnect_timers(free:bool = false) -> void:
 			jump_timer.queue_free()
 		if is_instance_valid(control_lock_timer):
 			control_lock_timer.queue_free()
-		if is_instance_valid(ground_snap_timer):
-			ground_snap_timer.queue_free()
 	
 	jump_timer = null
 	control_lock_timer = null
-	ground_snap_timer = null
 
 func setup_performance_monitors(name:StringName) -> void:
 	self_perf_ground_angle = name + &"/" + perf_ground_angle
@@ -314,6 +335,17 @@ func roll_checks() -> bool:
 	else:
 		can_roll = false
 	return can_roll
+
+func process_movement() -> void:
+	if is_grounded:
+		process_ground()
+		if is_grounded:
+			state_ground.emit(self)
+	else:
+		process_air()
+		if not is_grounded:
+			state_air.emit(self)
+
 
 func process_air() -> void:
 	#only move if the player does not have the roll lock and is rolling to cause it 
@@ -444,7 +476,7 @@ func update_wall_contact(is_contacting:bool, is_on_wall_only:bool) -> void:
 			is_pushing = input_direction > 0.0
 		
 		if not was_pushing and is_pushing:
-			contact_wall.emit()
+			contact_wall.emit(self)
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
@@ -578,6 +610,11 @@ func update_collision_rotation(rotation_angle:float, contact_point_count:int, ha
 	
 	#sprites_set_rotation(sprite_rotation)
 	return apply_floor_snap
+
+func new_update_collision_rotation(flags:CollisionUpdateFlags) -> int:
+	var ret_flags:int = int(flags)
+	
+	return ret_flags
 
 ##Determine which animation should be playing for the player based on their physics state. 
 ##This does not include custom animations. This returns a value from [AnimationTypes].
