@@ -19,6 +19,8 @@ font_size = 40
 [sub_resource type="AudioStreamPolyphonic" id="AudioStreamPolyphonic_im4cm"]
 
 [node name="PauseMenu" type="CanvasLayer"]
+layer = 10
+visible = false
 script = ExtResource("1_opu2g")
 pause_button = &"start"
 sfx_button_move = ExtResource("2_xqvs1")

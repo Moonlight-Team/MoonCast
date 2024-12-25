@@ -21,6 +21,10 @@ boot_splash/image="uid://eafx8rhd3haw"
 boot_splash/fullsize=false
 config/icon="uid://0ym8sn1yp7br"
 
+[autoload]
+
+GlobalsInjector="*res://Framework/globals_injector.gd"
+
 [display]
 
 window/size/viewport_width=424

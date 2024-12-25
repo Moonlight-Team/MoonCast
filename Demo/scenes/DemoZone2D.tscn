@@ -1,6 +1,5 @@
-[gd_scene load_steps=13 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=12 format=4 uid="uid://bytxq44ex4la0"]
 
-[ext_resource type="PackedScene" uid="uid://dgbkwdyscsahk" path="res://Demo/scenes/gui/pause_menu.tscn" id="1_ntp3g"]
 [ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/assets/audio/Music/2DStage.ogg" id="2_8djix"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="3_p8adb"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="4_vamuc"]
@@ -23,9 +22,6 @@ size = Vector2(64, 16)
 
 [node name="SakuraHill1" type="Node2D"]
 texture_filter = 1
-
-[node name="PauseMenu" parent="." instance=ExtResource("1_ntp3g")]
-visible = false
 
 [node name="StageMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("2_8djix")
