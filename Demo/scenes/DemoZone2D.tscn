@@ -58,6 +58,7 @@ editor_draw_drag_margin = true
 metadata/_edit_use_anchors_ = true
 
 [node name="Background" parent="." instance=ExtResource("5_bedyd")]
+z_index = -3
 
 [node name="CollisionGeometryPieces" type="StaticBody2D" parent="."]
 
