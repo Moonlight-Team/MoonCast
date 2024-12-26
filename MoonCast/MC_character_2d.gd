@@ -997,10 +997,14 @@ func update_collision_rotation() -> void:
 		if ray_wall_left.is_colliding():
 			#they are pushing if they're pressing left
 			is_pushing = input_direction < 0.0
+			
+			ground_velocity = maxf(ground_velocity, 0.0)
 		
 		if ray_wall_right.is_colliding():
 			#they are pushing if they're pressing right
 			is_pushing = input_direction > 0.0
+			
+			ground_velocity = minf(ground_velocity, 0.0)
 		
 		if not was_pushing and is_pushing:
 			contact_wall.emit()

@@ -1,9 +1,8 @@
-[gd_scene load_steps=14 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=13 format=4 uid="uid://bytxq44ex4la0"]
 
-[ext_resource type="AudioStream" uid="uid://dhfxs23mgoltt" path="res://Demo/assets/audio/Music/2DStage.ogg" id="2_8djix"]
-[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/scenes/player_2d/mrmooncastmouse.tscn" id="3_p8adb"]
+[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/scenes/player_2d/mrneedlemouse.tscn" id="2_0blm6"]
+[ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/assets/audio/Music/2DStage.ogg" id="2_8djix"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="4_vamuc"]
-[ext_resource type="PackedScene" uid="uid://depkq6ebpq4yo" path="res://Demo/scenes/gui/Hud.tscn" id="5_0blm6"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/scenes/2d_background.tscn" id="5_bedyd"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/assets/levels/demo_zone_tiles.tres" id="12_gj4r1"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/scenes/entity_2d/item_box/item_box.tscn" id="13_njlsf"]
@@ -35,27 +34,23 @@ volume_db = -7.72
 autoplay = true
 bus = &"Music"
 
-[node name="mrmooncastmouse" parent="." instance=ExtResource("3_p8adb")]
+[node name="mrneedlemouse" parent="." instance=ExtResource("2_0blm6")]
 position = Vector2(-4, 27)
 
-[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse"]
+[node name="MoonCastDebugMode" type="Node" parent="mrneedlemouse"]
 script = ExtResource("4_vamuc")
 button_enable_debug = &"x"
 button_scene_pause = &"y"
 button_scene_frame_advance = &"z"
+metadata/_custom_type_script = ExtResource("4_vamuc")
 
-[node name="Cam" type="Camera2D" parent="mrmooncastmouse"]
+[node name="Cam" type="Camera2D" parent="mrneedlemouse"]
 limit_left = -256
 position_smoothing_speed = 20.0
 drag_vertical_enabled = true
 drag_bottom_margin = 0.1
 editor_draw_limits = true
 editor_draw_drag_margin = true
-
-[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/Cam"]
-
-[node name="HudPLacholder" parent="mrmooncastmouse/Cam/CanvasLayer" instance=ExtResource("5_0blm6")]
-metadata/_edit_use_anchors_ = true
 
 [node name="Background" parent="." instance=ExtResource("5_bedyd")]
 z_index = -3
