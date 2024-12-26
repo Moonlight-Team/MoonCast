@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=45 format=3 uid="uid://csph0fs33wav5"]
+[gd_resource type="SpriteFrames" load_steps=50 format=3 uid="uid://csph0fs33wav5"]
 
 [ext_resource type="Texture2D" uid="uid://diur4238vh4p8" path="res://Demo/assets/player/classic_sonic/misc/balance_1.tres" id="1_rvn81"]
 [ext_resource type="Texture2D" uid="uid://wc8r5v308gjb" path="res://Demo/assets/player/classic_sonic/misc/balance_2.tres" id="2_a76qr"]
@@ -36,6 +36,11 @@
 [ext_resource type="Texture2D" uid="uid://c1olsokghnsow" path="res://Demo/assets/player/classic_sonic/walk_run/run_mach_2.tres" id="28_i3127"]
 [ext_resource type="Texture2D" uid="uid://7o7qcx4h6xxp" path="res://Demo/assets/player/classic_sonic/walk_run/run_mach_3.tres" id="29_int6g"]
 [ext_resource type="Texture2D" uid="uid://dyo0g2pgrrirf" path="res://Demo/assets/player/classic_sonic/walk_run/run_mach_4.tres" id="30_mvsoq"]
+[ext_resource type="Texture2D" uid="uid://ddvl7mn7c3hm0" path="res://Demo/assets/player/classic_sonic/walk_run/skid_1.tres" id="31_ieyeb"]
+[ext_resource type="Texture2D" uid="uid://b5ck4vrrta1fc" path="res://Demo/assets/player/classic_sonic/walk_run/skid_2.tres" id="32_fvjt2"]
+[ext_resource type="Texture2D" uid="uid://bivtmuqyn5blj" path="res://Demo/assets/player/classic_sonic/walk_run/skid_3.tres" id="33_i3127"]
+[ext_resource type="Texture2D" uid="uid://i7vcfpporcb8" path="res://Demo/assets/player/classic_sonic/walk_run/skid_turn_1.tres" id="34_int6g"]
+[ext_resource type="Texture2D" uid="uid://m34gtrvtkd02" path="res://Demo/assets/player/classic_sonic/walk_run/skid_turn_2.tres" id="35_mvsoq"]
 [ext_resource type="Texture2D" uid="uid://dfnde526khsau" path="res://Demo/assets/player/classic_sonic/walk_run/walk_1.tres" id="37_ymobj"]
 [ext_resource type="Texture2D" uid="uid://csajnht0q8rjj" path="res://Demo/assets/player/classic_sonic/walk_run/walk_2.tres" id="38_m1ed2"]
 [ext_resource type="Texture2D" uid="uid://dtcac2ihpdfae" path="res://Demo/assets/player/classic_sonic/walk_run/walk_3.tres" id="39_hqbit"]
@@ -196,6 +201,31 @@ animations = [{
 "loop": true,
 "name": &"run_mach",
 "speed": 16.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("31_ieyeb")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_fvjt2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33_i3127")
+}],
+"loop": true,
+"name": &"skid",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("34_int6g")
+}, {
+"duration": 1.0,
+"texture": ExtResource("35_mvsoq")
+}],
+"loop": true,
+"name": &"skid_turn",
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,

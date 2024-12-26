@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://fqh0i1dgi84m"]
+[gd_scene load_steps=28 format=3 uid="uid://fqh0i1dgi84m"]
 
 [ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_4odp6"]
 [ext_resource type="Resource" uid="uid://d2yobkva31ruc" path="res://Framework/abilities/sonic_standard/classic_physics.tres" id="2_b6fdh"]
@@ -165,6 +165,48 @@ rotation_snap = 0.523599
 rotation_smooth = true
 metadata/_custom_type_script = ExtResource("4_2p7v6")
 
+[sub_resource type="Resource" id="Resource_0k2go"]
+script = ExtResource("4_2p7v6")
+animation = &"skid"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_2p7v6")
+
+[sub_resource type="Resource" id="Resource_5e6kq"]
+script = ExtResource("4_2p7v6")
+animation = &"skid_turn"
+speed = 1.0
+can_turn_vertically = true
+can_turn_horizontal = true
+override_rotation = false
+override_collision = false
+collision_center = Vector2(0, 0)
+colision_2d_left = Vector2(0, 0)
+collision_2d_center = Vector2(0, 0)
+collision_2d_right = Vector2(0, 0)
+collision_3d_ahead = Vector3(0, 0, 0)
+collision_3d_back = Vector3(0, 0, 0)
+collision_3d_left = Vector3(0, 0, 0)
+collision_3d_right = Vector3(0, 0, 0)
+collision_3d_center = Vector3(0, 0, 0)
+rotation_snap = 0.523599
+rotation_smooth = true
+metadata/_custom_type_script = ExtResource("4_2p7v6")
+
 [sub_resource type="Resource" id="Resource_rtua2"]
 script = ExtResource("4_2p7v6")
 animation = &"push"
@@ -293,6 +335,10 @@ anim_run = Dictionary[float, ExtResource("4_2p7v6")]({
 0.01: SubResource("Resource_gxmxh"),
 1.0: SubResource("Resource_y3ao1")
 })
+anim_skid = Dictionary[float, ExtResource("4_2p7v6")]({
+0.01: SubResource("Resource_5e6kq"),
+0.4: SubResource("Resource_0k2go")
+})
 anim_push = SubResource("Resource_rtua2")
 anim_jump = SubResource("Resource_0wcwc")
 anim_free_fall = SubResource("Resource_0bvxg")
@@ -308,6 +354,9 @@ shape = SubResource("RectangleShape2D_r0dhi")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("9_8yeox")
+animation = &"skid"
+frame = 2
+frame_progress = 0.0798058
 
 [node name="SpindashAbility" type="Node" parent="."]
 script = ExtResource("11_0k2go")
