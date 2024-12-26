@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_pfiy8"]
 [ext_resource type="Script" uid="uid://bsijqywm6rvv0" path="res://Framework/abilities/bonus/rolling_plus.gd" id="5_hlu7c"]
 [ext_resource type="Script" uid="uid://kv6fjiweqpvg" path="res://Framework/abilities/bonus/dynamic_camera.gd" id="6_qevq0"]
-[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
+[ext_resource type="Texture2D" uid="uid://xune2di5dcrx" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)
