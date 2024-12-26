@@ -308,7 +308,6 @@ shape = SubResource("RectangleShape2D_r0dhi")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("9_8yeox")
-animation = &"balance"
 
 [node name="SpindashAbility" type="Node" parent="."]
 script = ExtResource("11_0k2go")
