@@ -1,11 +1,11 @@
 [gd_scene load_steps=12 format=3 uid="uid://bgfhovmrj5mn1"]
 
 [ext_resource type="Script" uid="uid://duft4hid3q220" path="res://Framework/objects/slope_inator.gd" id="2_nmrp3"]
-[ext_resource type="Texture2D" uid="uid://dlqbd5s6eq0b1" path="res://Demo/assets/levels/3DtestLevel/Textures/grid.png" id="4_vudd8"]
+[ext_resource type="Texture2D" uid="uid://gcdwvtva38tf" path="res://Demo/assets/levels/3DtestLevel/Textures/grid.png" id="4_vudd8"]
 [ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="5_kiok0"]
-[ext_resource type="Texture2D" uid="uid://bfxhgikdlju4r" path="res://Demo/assets/levels/3DtestLevel/Textures/backdropgrid.png" id="5_x8m3d"]
-[ext_resource type="PackedScene" uid="uid://h5b7bs6th3qc" path="res://Demo/scenes/player_2d/classic_sonic.tscn" id="6_7gksw"]
+[ext_resource type="Texture2D" uid="uid://cahjfxgko7cxk" path="res://Demo/assets/levels/3DtestLevel/Textures/backdropgrid.png" id="5_x8m3d"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/scenes/2d_background.tscn" id="7_vudd8"]
+[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/scenes/player_2d/mrneedlemouse.tscn" id="7_x8m3d"]
 
 [sub_resource type="GDScript" id="GDScript_5lvg2"]
 resource_name = "slope-inator-test"
@@ -106,6 +106,6 @@ metadata/_custom_type_script = ExtResource("2_nmrp3")
 
 [node name="Background2" parent="." instance=ExtResource("7_vudd8")]
 
-[node name="mrneedlemouse" parent="." instance=ExtResource("6_7gksw")]
+[node name="mrneedlemouse" parent="." instance=ExtResource("7_x8m3d")]
 
-[node name="Camera2D2" type="Camera2D" parent="mrneedlemouse"]
+[node name="Camera2D" type="Camera2D" parent="mrneedlemouse"]
