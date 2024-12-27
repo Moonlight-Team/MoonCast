@@ -660,6 +660,7 @@ func mooncast_move_and_slide(delta:float) -> void:
 	var current_platform_velocity:Vector2 = platform_velocity
 	var previous_position:Vector2 = global_position
 	
+	#handle platform collision
 	if (on_floor or on_wall) and platform_rid.is_valid():
 		var excluded:bool = false
 		if on_floor:
