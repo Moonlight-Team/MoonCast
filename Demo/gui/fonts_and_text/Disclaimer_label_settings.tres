@@ -1,0 +1,11 @@
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://bn8k114i30be4"]
+
+[ext_resource type="FontFile" uid="uid://c2fg6pxtsqhft" path="res://Demo/gui/fonts_and_text/Rodin-Italic.ttf" id="1_7lxxf"]
+
+[resource]
+line_spacing = 1.0
+font = ExtResource("1_7lxxf")
+font_size = 7
+font_color = Color(0.957269, 0.951978, 1, 1)
+shadow_size = 2
+shadow_color = Color(0, 0, 0, 1)

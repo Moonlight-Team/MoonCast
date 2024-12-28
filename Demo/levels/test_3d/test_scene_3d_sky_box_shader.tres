@@ -1,0 +1,17 @@
+[gd_resource type="Sky" load_steps=4 format=3 uid="uid://pav31e23stv"]
+
+[ext_resource type="Shader" uid="uid://cm5v7ajq5vv66" path="res://Demo/levels/test_3d/3Dskybox.gdshader" id="1_ab7jf"]
+[ext_resource type="Texture2D" uid="uid://bel1n7ny2o8t0" path="res://Demo/levels/test_3d/3DtestLevel/Textures/skyboxnight.png" id="2_01jmu"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_frwh0"]
+render_priority = 0
+shader = ExtResource("1_ab7jf")
+shader_parameter/sky_texture = ExtResource("2_01jmu")
+shader_parameter/lock_aspect = false
+shader_parameter/aspect_ratio = 1.33333
+shader_parameter/fov = Vector2(180, 90)
+shader_parameter/tiling = Vector2i(1, 1)
+shader_parameter/offset = Vector2(0, 0)
+
+[resource]
+sky_material = SubResource("ShaderMaterial_frwh0")

@@ -1,9 +1,0 @@
-[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://bwf6ggqpwd0lv"]
-
-[ext_resource type="Texture2D" uid="uid://4cgokjbonp65" path="res://Demo/assets/player/mooncast_sonic_2d/spritesheet_moon.png" id="1_qgff4"]
-
-[resource]
-atlas = ExtResource("1_qgff4")
-region = Rect2(1, 5, 32, 40)
-margin = Rect2(0, 1, 5, 0)
-filter_clip = true

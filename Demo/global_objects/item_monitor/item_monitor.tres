@@ -1,0 +1,8 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://vt13hj1j3mjh"]
+
+[ext_resource type="Texture2D" uid="uid://ettcjw3ohiqt" path="res://Demo/global_objects/items_checkpoint.png" id="1_pef63"]
+
+[resource]
+atlas = ExtResource("1_pef63")
+region = Rect2(3, 7, 26, 26)
+margin = Rect2(3, 7, 6, 6)

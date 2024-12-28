@@ -1,0 +1,141 @@
+[gd_scene load_steps=8 format=3 uid="uid://depkq6ebpq4yo"]
+
+[ext_resource type="LabelSettings" uid="uid://cfup4uq7hlb1w" path="res://Demo/gui/fonts_and_text/Hud_label_settings.tres" id="1_1epmb"]
+[ext_resource type="Script" uid="uid://cxqx2gqwq1nn2" path="res://Demo/gui/hud.gd" id="1_4yg4n"]
+[ext_resource type="LabelSettings" uid="uid://bn8k114i30be4" path="res://Demo/gui/fonts_and_text/Disclaimer_label_settings.tres" id="3_2ok7i"]
+[ext_resource type="LabelSettings" uid="uid://das3ndyn8rdyn" path="res://Demo/gui/fonts_and_text/Hud_info_label_settings.tres" id="3_mvpr0"]
+[ext_resource type="Texture2D" uid="uid://dcd3qxe71wrjq" path="res://Demo/gui/icon.png" id="3_p7vns"]
+[ext_resource type="FontFile" uid="uid://bpfhcx0t0nlo7" path="res://Demo/gui/fonts_and_text/GreenHillSans.ttf" id="4_mvpr0"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_1epmb"]
+font = ExtResource("4_mvpr0")
+font_size = 6
+shadow_color = Color(0, 0, 0, 1)
+
+[node name="CanvasLayer" type="CanvasLayer"]
+layer = 5
+
+[node name="HUD" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_4yg4n")
+
+[node name="Margins" type="MarginContainer" parent="HUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+metadata/_edit_use_anchors_ = true
+
+[node name="Everything" type="VBoxContainer" parent="HUD/Margins"]
+layout_mode = 2
+
+[node name="MainInfo" type="VBoxContainer" parent="HUD/Margins/Everything"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Score" type="HBoxContainer" parent="HUD/Margins/Everything/MainInfo"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="Label" type="Label" parent="HUD/Margins/Everything/MainInfo/Score"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Score"
+label_settings = ExtResource("1_1epmb")
+
+[node name="Info" type="Label" parent="HUD/Margins/Everything/MainInfo/Score"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "0"
+label_settings = ExtResource("3_mvpr0")
+horizontal_alignment = 2
+
+[node name="Time" type="HBoxContainer" parent="HUD/Margins/Everything/MainInfo"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="Label" type="Label" parent="HUD/Margins/Everything/MainInfo/Time"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Time"
+label_settings = ExtResource("1_1epmb")
+
+[node name="Info" type="Label" parent="HUD/Margins/Everything/MainInfo/Time"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "0:00"
+label_settings = ExtResource("3_mvpr0")
+horizontal_alignment = 2
+
+[node name="Rings" type="HBoxContainer" parent="HUD/Margins/Everything/MainInfo"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="Label" type="Label" parent="HUD/Margins/Everything/MainInfo/Rings"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Rings"
+label_settings = ExtResource("1_1epmb")
+
+[node name="Info" type="Label" parent="HUD/Margins/Everything/MainInfo/Rings"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "0"
+label_settings = ExtResource("3_mvpr0")
+horizontal_alignment = 2
+
+[node name="Bottom" type="HBoxContainer" parent="HUD/Margins/Everything"]
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="Lives" type="HBoxContainer" parent="HUD/Margins/Everything/Bottom"]
+layout_mode = 2
+size_flags_horizontal = 2
+
+[node name="Icon" type="TextureRect" parent="HUD/Margins/Everything/Bottom/Lives"]
+layout_mode = 2
+size_flags_vertical = 8
+texture = ExtResource("3_p7vns")
+stretch_mode = 2
+
+[node name="X" type="Label" parent="HUD/Margins/Everything/Bottom/Lives"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "x"
+label_settings = SubResource("LabelSettings_1epmb")
+
+[node name="Count" type="Label" parent="HUD/Margins/Everything/Bottom/Lives"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "3"
+label_settings = SubResource("LabelSettings_1epmb")
+
+[node name="Pre-Release Disclaimer" type="Label" parent="HUD/Margins/Everything/Bottom"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "MoonCast Engine version {version}: Everything in footage is subject to change"
+label_settings = ExtResource("3_2ok7i")
+horizontal_alignment = 1
+vertical_alignment = 2
+autowrap_mode = 2

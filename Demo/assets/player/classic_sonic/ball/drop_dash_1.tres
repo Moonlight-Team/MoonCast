@@ -1,7 +1,0 @@
-[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://2to6e3ewirys"]
-
-[ext_resource type="Texture2D" uid="uid://q5thi20c5oyo" path="res://Demo/assets/player/classic_sonic/Sonic.png" id="1_05e4c"]
-
-[resource]
-atlas = ExtResource("1_05e4c")
-region = Rect2(48, 240, 48, 48)

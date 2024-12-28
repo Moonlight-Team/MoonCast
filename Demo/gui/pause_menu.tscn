@@ -1,0 +1,116 @@
+[gd_scene load_steps=11 format=3 uid="uid://dgbkwdyscsahk"]
+
+[ext_resource type="Script" uid="uid://bs65vxrvd54pr" path="res://Demo/gui/pause_menu.gd" id="1_opu2g"]
+[ext_resource type="FontFile" uid="uid://dj7adu3cf3vuc" path="res://Demo/gui/fonts_and_text/Rodin-Bold.ttf" id="2_67olp"]
+[ext_resource type="Theme" uid="uid://cc45jjppij0nc" path="res://Demo/gui/pause_menu_buttons.tres" id="2_j3bkn"]
+[ext_resource type="AudioStream" uid="uid://brx6w374bgcc2" path="res://Demo/audio/gui/Dreamcast Sounds/SELECT.wav" id="2_xqvs1"]
+[ext_resource type="AudioStream" uid="uid://d2eghet26sb7y" path="res://Demo/audio/gui/Dreamcast Sounds/CONFIRMATION.wav" id="3_py2i4"]
+[ext_resource type="AudioStream" uid="uid://buepbxvb6tmfo" path="res://Demo/audio/gui/Dreamcast Sounds/BACK.wav" id="4_mmtby"]
+
+[sub_resource type="Theme" id="Theme_mu0qj"]
+Button/fonts/font = ExtResource("2_67olp")
+Label/fonts/font = ExtResource("2_67olp")
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_24jk4"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_t8ujy"]
+font_size = 40
+
+[sub_resource type="AudioStreamPolyphonic" id="AudioStreamPolyphonic_im4cm"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 10
+visible = false
+script = ExtResource("1_opu2g")
+pause_button = &"start"
+sfx_button_move = ExtResource("2_xqvs1")
+sfx_button_select = ExtResource("3_py2i4")
+sfx_button_exit = ExtResource("4_mmtby")
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_mu0qj")
+
+[node name="Margins" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="Sections" type="TabContainer" parent="Panel/Margins"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_24jk4")
+current_tab = 0
+tabs_visible = false
+
+[node name="Main" type="HBoxContainer" parent="Panel/Margins/Sections"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="Info" type="VBoxContainer" parent="Panel/Margins/Sections/Main"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MoonCast" type="Label" parent="Panel/Margins/Sections/Main/Info"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
+text = "MoonCast"
+label_settings = SubResource("LabelSettings_t8ujy")
+clip_text = true
+
+[node name="Version" type="Label" parent="Panel/Margins/Sections/Main/Info"]
+layout_mode = 2
+size_flags_vertical = 10
+text = "Version: "
+
+[node name="menu" type="VBoxContainer" parent="Panel/Margins/Sections/Main"]
+layout_mode = 2
+size_flags_horizontal = 10
+theme = ExtResource("2_j3bkn")
+
+[node name="resume" type="Button" parent="Panel/Margins/Sections/Main/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Resume"
+
+[node name="restart" type="Button" parent="Panel/Margins/Sections/Main/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Restart"
+
+[node name="options" type="Button" parent="Panel/Margins/Sections/Main/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Settings"
+
+[node name="quit" type="Button" parent="Panel/Margins/Sections/Main/menu"]
+layout_mode = 2
+size_flags_vertical = 3
+action_mode = 0
+text = "Quit"
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = SubResource("AudioStreamPolyphonic_im4cm")
+
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/resume" to="." method="button_movement"]
+[connection signal="pressed" from="Panel/Margins/Sections/Main/menu/resume" to="." method="_on_resume_pressed"]
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/restart" to="." method="button_movement"]
+[connection signal="pressed" from="Panel/Margins/Sections/Main/menu/restart" to="." method="_on_restart_pressed"]
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/options" to="." method="button_movement"]
+[connection signal="pressed" from="Panel/Margins/Sections/Main/menu/options" to="." method="_on_options_pressed"]
+[connection signal="focus_entered" from="Panel/Margins/Sections/Main/menu/quit" to="." method="button_movement"]
+[connection signal="pressed" from="Panel/Margins/Sections/Main/menu/quit" to="." method="_on_quit_pressed"]

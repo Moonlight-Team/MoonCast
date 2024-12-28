@@ -1,0 +1,294 @@
+[gd_scene load_steps=30 format=3 uid="uid://l6j7c0hm73c"]
+
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="2_43wwi"]
+[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_pfiy8"]
+[ext_resource type="Script" uid="uid://bsijqywm6rvv0" path="res://Framework/abilities/bonus/rolling_plus.gd" id="5_hlu7c"]
+[ext_resource type="Script" uid="uid://kv6fjiweqpvg" path="res://Framework/abilities/bonus/dynamic_camera.gd" id="6_qevq0"]
+[ext_resource type="Texture2D" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
+size = Vector2(790, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_51agt"]
+size = Vector2(474.549, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6cpsv"]
+size = Vector2(800, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_drx2y"]
+size = Vector2(200, 237)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ttkpr"]
+size = Vector2(334.253, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bdxha"]
+size = Vector2(100, 100)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4tqnp"]
+size = Vector2(534, 20)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_c2r0n"]
+radius = 65.0
+height = 250.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2i3up"]
+size = Vector2(85, 265)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_biyhv"]
+size = Vector2(400, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r0dbk"]
+size = Vector2(89.0943, 20)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_h5hul"]
+radius = 11.9346
+height = 113.153
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_w552m"]
+radius = 14.0
+height = 158.0
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_dtehr"]
+normal = Vector2(0, 1)
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ir8kw"]
+normal = Vector2(-1, 0)
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_uqlnw"]
+normal = Vector2(1, 0)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_b41kx"]
+radius = 100.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tiyrh"]
+radius = 50.0
+height = 169.0
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_vayao"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_d8jta"]
+size = Vector2(119.75, 20)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_aalw2"]
+friction = 0.0
+rough = true
+bounce = 1.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_320si"]
+radius = 15.0
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_ao618"]
+friction = 0.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ao618"]
+size = Vector2(40, 40)
+
+[node name="TestScene" type="Node2D"]
+metadata/movie_file = "res://test_scene_2d.avi"
+
+[node name="Static Layout" type="Node2D" parent="."]
+
+[node name="Floor" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(850, 513)
+rotation = -0.16057
+
+[node name="LowerFloor" type="CollisionShape2D" parent="Static Layout/Floor"]
+position = Vector2(-740.581, -62.205)
+rotation = 0.16057
+shape = SubResource("RectangleShape2D_fahr2")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="SlightSlope" type="CollisionShape2D" parent="Static Layout/Floor"]
+position = Vector2(-115.362, 0.521973)
+shape = SubResource("RectangleShape2D_51agt")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="RightUpperFloor" type="CollisionShape2D" parent="Static Layout/Floor"]
+position = Vector2(876.945, 114.682)
+rotation = 0.16057
+shape = SubResource("RectangleShape2D_6cpsv")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="LeftUpperFloor" type="CollisionShape2D" parent="Static Layout/Floor"]
+position = Vector2(-1211.87, -248.45)
+rotation = 0.16057
+shape = SubResource("RectangleShape2D_drx2y")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Static Layout/Floor"]
+position = Vector2(286.409, -26.6683)
+rotation = -0.162316
+shape = SubResource("RectangleShape2D_ttkpr")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="SlopePolygon" type="CollisionPolygon2D" parent="Static Layout/Floor"]
+position = Vector2(-1092.38, -129.314)
+rotation = 0.16057
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
+
+[node name="PlatformingBlocks" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(2084, 189)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Static Layout/PlatformingBlocks"]
+shape = SubResource("RectangleShape2D_bdxha")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Static Layout/PlatformingBlocks"]
+position = Vector2(-222, -77)
+shape = SubResource("RectangleShape2D_bdxha")
+
+[node name="RoundTopPlatform" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(1297, -85)
+
+[node name="Floor" type="CollisionShape2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(277, 90)
+shape = SubResource("RectangleShape2D_4tqnp")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="Top" type="CollisionShape2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(50, -165)
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_c2r0n")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="Wall" type="CollisionShape2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(-32.5, -32.5)
+shape = SubResource("RectangleShape2D_2i3up")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="UpperCornerSlop" type="CollisionPolygon2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(10, -63)
+rotation = 1.5708
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
+
+[node name="LowerCornerSlope" type="CollisionPolygon2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(47, 80)
+polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
+
+[node name="UglySlide" type="CollisionPolygon2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(412, 22)
+polygon = PackedVector2Array(30, -134, 29, -83, 52, -83, 52, -17, 84, -17, 84, 58, -153, 58, -128, 53, -101, 42, -75, 23, -59, -16, -51, -79, -46, -106, -28, -127, -5, -134)
+
+[node name="YeetInator" type="CollisionPolygon2D" parent="Static Layout/RoundTopPlatform"]
+position = Vector2(-82, 77)
+polygon = PackedVector2Array(-13, -47, 7, -109, 7, 23, -94, 58, -206, -3, -235, -110, -194, -50, -152, -20, -116, -2, -68, -1, -35, -20)
+
+[node name="FloatingSteeperSlopeLeft" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(992, 221)
+rotation = 0.322886
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Static Layout/FloatingSteeperSlopeLeft"]
+shape = SubResource("RectangleShape2D_biyhv")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="46DegreeSlope" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(1319, 356)
+rotation = -0.802851
+
+[node name="Slope46Deg" type="CollisionShape2D" parent="Static Layout/46DegreeSlope"]
+position = Vector2(-5.6189, -2.10864)
+shape = SubResource("RectangleShape2D_r0dbk")
+debug_color = Color(0, 0.6, 0.701961, 1)
+
+[node name="ConveyerBelt" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(295, 478)
+constant_linear_velocity = Vector2(20, 0)
+
+[node name="45Deg" type="CollisionShape2D" parent="Static Layout/ConveyerBelt"]
+position = Vector2(98, -30)
+rotation = 0.785398
+shape = SubResource("CapsuleShape2D_h5hul")
+debug_color = Color(0.404511, 0.404511, 0.404511, 1)
+
+[node name="Flat" type="CollisionShape2D" parent="Static Layout/ConveyerBelt"]
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_w552m")
+debug_color = Color(0.404511, 0.404511, 0.404511, 1)
+
+[node name="StageBounds" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(2105, -296)
+
+[node name="Top" type="CollisionShape2D" parent="Static Layout/StageBounds"]
+position = Vector2(-1443.74, -897.76)
+shape = SubResource("WorldBoundaryShape2D_dtehr")
+disabled = true
+debug_color = Color(1, 1, 1, 1)
+
+[node name="Right" type="CollisionShape2D" parent="Static Layout/StageBounds"]
+shape = SubResource("WorldBoundaryShape2D_ir8kw")
+debug_color = Color(1, 1, 1, 1)
+
+[node name="Left" type="CollisionShape2D" parent="Static Layout/StageBounds"]
+position = Vector2(-2568, 101)
+shape = SubResource("WorldBoundaryShape2D_uqlnw")
+debug_color = Color(1, 1, 1, 1)
+
+[node name="SpinnyCircle" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(-63, 345)
+constant_angular_velocity = 0.261799
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Static Layout/SpinnyCircle"]
+shape = SubResource("CircleShape2D_b41kx")
+debug_color = Color(0.964706, 0, 0, 1)
+
+[node name="SpinnyCapsule" type="StaticBody2D" parent="Static Layout"]
+position = Vector2(283, 210)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Static Layout/SpinnyCapsule"]
+rotation = 0.820305
+shape = SubResource("CapsuleShape2D_tiyrh")
+debug_color = Color(1, 0, 0, 1)
+
+[node name="Movable Objects" type="Node2D" parent="."]
+
+[node name="BouncyPlatform" type="AnimatableBody2D" parent="Movable Objects"]
+position = Vector2(679, 379)
+physics_material_override = SubResource("PhysicsMaterial_vayao")
+constant_linear_velocity = Vector2(0, -100)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/BouncyPlatform"]
+shape = SubResource("RectangleShape2D_d8jta")
+debug_color = Color(0.823529, 0.721569, 0, 1)
+
+[node name="BouncyBall" type="RigidBody2D" parent="Movable Objects"]
+position = Vector2(673, 282)
+physics_material_override = SubResource("PhysicsMaterial_aalw2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/BouncyBall"]
+shape = SubResource("CircleShape2D_320si")
+
+[node name="PushableBox" type="RigidBody2D" parent="Movable Objects"]
+position = Vector2(1536, 200)
+mass = 200.0
+physics_material_override = SubResource("PhysicsMaterial_ao618")
+linear_damp = 1.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Movable Objects/PushableBox"]
+shape = SubResource("RectangleShape2D_ao618")
+
+[node name="Parallax2D" type="Parallax2D" parent="."]
+modulate = Color(0.369107, 0.369107, 0.369107, 1)
+show_behind_parent = true
+repeat_size = Vector2(636, 356)
+repeat_times = 6
+
+[node name="Run" type="Sprite2D" parent="Parallax2D"]
+show_behind_parent = true
+texture = ExtResource("7_2q626")
+
+[node name="mrmooncastmouse" parent="." instance=ExtResource("2_43wwi")]
+
+[node name="Camera2D" type="Camera2D" parent="mrmooncastmouse"]
+
+[node name="DebugMode" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("3_pfiy8")
+button_enable_debug = &"x"
+button_scene_pause = &"start"
+button_scene_frame_advance = &"z"
+
+[node name="DynamicCam" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("6_qevq0")
+zoom_speed = 0.01
+
+[node name="RollingControlsPlus" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("5_hlu7c")
+uncurl_button = &"up"

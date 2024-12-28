@@ -1,0 +1,8 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://ckit4h3sxgbuj"]
+
+[ext_resource type="Texture2D" uid="uid://4cgokjbonp65" path="res://Demo/player/mooncast_sonic_2d/spritesheet_moon.png" id="1_rfefa"]
+
+[resource]
+atlas = ExtResource("1_rfefa")
+region = Rect2(33, 237, 30, 38)
+margin = Rect2(8, 11, 8, 0)

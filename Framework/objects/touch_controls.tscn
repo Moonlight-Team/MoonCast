@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3 uid="uid://81vx8lyybmm7"]
 
-[ext_resource type="Texture2D" uid="uid://ddgdl5td13ano" path="res://Demo/assets/gui/VirtualDPad.png" id="1_im56b"]
+[ext_resource type="Texture2D" uid="uid://ddgdl5td13ano" path="res://Demo/gui/VirtualDPad.png" id="1_im56b"]
 
 [sub_resource type="GDScript" id="GDScript_3wfac"]
 resource_name = "touch_controls"
