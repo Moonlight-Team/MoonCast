@@ -1,12 +1,12 @@
 [gd_scene load_steps=8 format=3 uid="uid://c5or4rx5y00el"]
 
-[ext_resource type="Script" uid="uid://bk7d21p4johr7" path="res://Demo/assets/levels/parallax_layers/water_generation.gd" id="1_ctt8c"]
-[ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/parallax_layers/water.tres" id="2_uv6pj"]
-[ext_resource type="Texture2D" uid="uid://doxoffm5241gn" path="res://Demo/assets/levels/parallax_layers/blue_sky.tres" id="3_3vrs1"]
-[ext_resource type="Texture2D" uid="uid://bmj8ofs8l5i2t" path="res://Demo/assets/levels/parallax_layers/sunset_fade.tres" id="4_kac4q"]
-[ext_resource type="Texture2D" uid="uid://dfdbx4jniuil" path="res://Demo/assets/levels/parallax_layers/far_mountains.tres" id="5_hn2jm"]
-[ext_resource type="Texture2D" uid="uid://bspuebvwnfn0b" path="res://Demo/assets/levels/parallax_layers/green_forest.tres" id="6_i6ovr"]
-[ext_resource type="Texture2D" uid="uid://l2l5vfa2566j" path="res://Demo/assets/levels/parallax_layers/near_mountains.tres" id="7_mpoed"]
+[ext_resource type="Script" uid="uid://bk7d21p4johr7" path="res://Demo/assets/levels/demo_2d/parallax_layers/water_generation.gd" id="1_ctt8c"]
+[ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/assets/levels/demo_2d/parallax_layers/water.tres" id="2_uv6pj"]
+[ext_resource type="Texture2D" uid="uid://doxoffm5241gn" path="res://Demo/assets/levels/demo_2d/parallax_layers/blue_sky.tres" id="3_3vrs1"]
+[ext_resource type="Texture2D" uid="uid://bmj8ofs8l5i2t" path="res://Demo/assets/levels/demo_2d/parallax_layers/sunset_fade.tres" id="4_kac4q"]
+[ext_resource type="Texture2D" uid="uid://dfdbx4jniuil" path="res://Demo/assets/levels/demo_2d/parallax_layers/far_mountains.tres" id="5_hn2jm"]
+[ext_resource type="Texture2D" uid="uid://bspuebvwnfn0b" path="res://Demo/assets/levels/demo_2d/parallax_layers/green_forest.tres" id="6_i6ovr"]
+[ext_resource type="Texture2D" uid="uid://l2l5vfa2566j" path="res://Demo/assets/levels/demo_2d/parallax_layers/near_mountains.tres" id="7_mpoed"]
 
 [node name="Background" type="Node2D"]
 z_index = -1

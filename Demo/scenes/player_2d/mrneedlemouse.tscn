@@ -165,9 +165,9 @@ rotation_snap = 0.523599
 rotation_smooth = true
 metadata/_custom_type_script = ExtResource("4_2p7v6")
 
-[sub_resource type="Resource" id="Resource_0k2go"]
+[sub_resource type="Resource" id="Resource_5e6kq"]
 script = ExtResource("4_2p7v6")
-animation = &"skid"
+animation = &"skid_turn"
 speed = 1.0
 can_turn_vertically = true
 can_turn_horizontal = true
@@ -186,9 +186,9 @@ rotation_snap = 0.523599
 rotation_smooth = true
 metadata/_custom_type_script = ExtResource("4_2p7v6")
 
-[sub_resource type="Resource" id="Resource_5e6kq"]
+[sub_resource type="Resource" id="Resource_0k2go"]
 script = ExtResource("4_2p7v6")
-animation = &"skid_turn"
+animation = &"skid"
 speed = 1.0
 can_turn_vertically = true
 can_turn_horizontal = true

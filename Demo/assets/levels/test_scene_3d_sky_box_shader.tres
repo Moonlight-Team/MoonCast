@@ -1,6 +1,6 @@
 [gd_resource type="Sky" load_steps=4 format=3 uid="uid://pav31e23stv"]
 
-[ext_resource type="Shader" uid="uid://cm5v7ajq5vv66" path="res://Demo/scenes/3Dskybox.gdshader" id="1_ab7jf"]
+[ext_resource type="Shader" uid="uid://cm5v7ajq5vv66" path="res://Demo/assets/levels/3Dskybox.gdshader" id="1_ab7jf"]
 [ext_resource type="Texture2D" uid="uid://bel1n7ny2o8t0" path="res://Demo/assets/levels/3DtestLevel/Textures/skyboxnight.png" id="2_01jmu"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_frwh0"]

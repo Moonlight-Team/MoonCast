@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/scenes/player_3d/player_3d.tscn" id="1_73jpb"]
 [ext_resource type="Texture2D" uid="uid://beba5e0x6inxn" path="res://Demo/assets/levels/3DtestLevel/Textures/4435f9ba.png" id="5_3m87s"]
 [ext_resource type="Texture2D" uid="uid://b8sjw50jqxtyq" path="res://Demo/assets/levels/3DtestLevel/Textures/5a67bd19.png" id="6_1pam8"]
-[ext_resource type="Shader" uid="uid://c5tbcwf8ixnu4" path="res://Demo/scenes/skybox.gdshader" id="7_frwh0"]
+[ext_resource type="Shader" uid="uid://c5tbcwf8ixnu4" path="res://Demo/assets/levels/skybox.gdshader" id="7_frwh0"]
 [ext_resource type="Texture2D" uid="uid://dytwhpg8uneaf" path="res://Demo/assets/levels/3DtestLevel/Textures/da0bee91.png" id="7_yv7s5"]
 [ext_resource type="ArrayMesh" uid="uid://dolqrmex1a0oh" path="res://Demo/assets/levels/3DtestLevel/Skyboxstuff/Skyboxmesh.res" id="8_3vjrc"]
 [ext_resource type="Texture2D" uid="uid://dfric5scx2gfm" path="res://Demo/assets/levels/3DtestLevel/Textures/25822719.png" id="8_ffqxn"]

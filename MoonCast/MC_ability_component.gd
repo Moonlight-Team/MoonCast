@@ -61,7 +61,7 @@ func setup_ability_2D(parent:MoonCastPlayer2D) -> void:
 		parent.connect(&"state_air", _air_state_2D)
 	
 	_ground_contact_2D(parent)
-	if _active_ground_contact and not parent.is_connected(&"contact_ground", _ground_state_2D):
+	if _active_ground_contact and not parent.is_connected(&"contact_ground", _ground_contact_2D):
 		parent.connect(&"contact_ground", _ground_contact_2D)
 	_ground_state_2D(parent)
 	if _active_ground_state and not parent.is_connected(&"state_ground", _ground_state_2D):

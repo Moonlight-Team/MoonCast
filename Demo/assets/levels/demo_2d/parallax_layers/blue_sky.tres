@@ -1,6 +1,6 @@
 [gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://doxoffm5241gn"]
 
-[ext_resource type="Texture2D" uid="uid://crmdkeik1jhwi" path="res://Demo/assets/levels/parallax_layers/SHZ_parallax_raw.png" id="1_jb65b"]
+[ext_resource type="Texture2D" uid="uid://crmdkeik1jhwi" path="res://Demo/assets/levels/demo_2d/parallax_layers/SHZ_parallax_raw.png" id="1_jb65b"]
 
 [resource]
 atlas = ExtResource("1_jb65b")
