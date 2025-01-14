@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="2_u7ekt"]
 [ext_resource type="Script" uid="uid://dngbkto8dafn8" path="res://Framework/abilities/sonic_standard/drop_dash.gd" id="3_musv3"]
 [ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_dnqel"]
-[ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/audio/Music/2DStage.ogg" id="5_867ew"]
+[ext_resource type="PackedScene" uid="uid://cuyd1qv0pn26e" path="res://midi/addons/midi/MidiPlayer.tscn" id="5_a8hy1"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/levels/demo_2d/2d_background.tscn" id="6_762on"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/levels/demo_2d/demo_zone_tiles.tres" id="7_hbk0i"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/global_objects/item_monitor/item_box.tscn" id="8_m2338"]
@@ -78,11 +78,14 @@ charge_button = &"jump"
 anim_charge = SubResource("Resource_dqorc")
 metadata/_custom_type_script = ExtResource("3_musv3")
 
-[node name="StageMusic" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("5_867ew")
-volume_db = -7.72
-autoplay = true
-bus = &"Music"
+[node name="MidiPlayer" parent="mrmooncastmouse" instance=ExtResource("5_a8hy1")]
+max_polyphony = 256
+file = "res://midi/test song/zonetesty.mid"
+playing = true
+volume_db = -22.238
+loop = true
+soundfont = "res://midi/soundfont/gm.sf2"
+sequence_per_seconds = 250
 
 [node name="Background" parent="." instance=ExtResource("6_762on")]
 z_index = -3

@@ -1,8 +1,9 @@
-[gd_scene load_steps=12 format=3 uid="uid://bgfhovmrj5mn1"]
+[gd_scene load_steps=13 format=3 uid="uid://bgfhovmrj5mn1"]
 
-[ext_resource type="Texture2D" uid="uid://bfxhgikdlju4r" path="res://Demo/levels/test_3d/3DtestLevel/Textures/backdropgrid.png" id="1_vra77"]
+[ext_resource type="Texture2D" uid="uid://dbonldnckumep" path="res://Demo/levels/test_3d/3DtestLevel/Textures/backdropgrid.png" id="1_vra77"]
 [ext_resource type="Script" uid="uid://duft4hid3q220" path="res://Framework/objects/slope_inator.gd" id="2_16eif"]
-[ext_resource type="Texture2D" uid="uid://dlqbd5s6eq0b1" path="res://Demo/levels/test_3d/3DtestLevel/Textures/grid.png" id="3_uqk27"]
+[ext_resource type="PackedScene" uid="uid://cuyd1qv0pn26e" path="res://midi/addons/midi/MidiPlayer.tscn" id="2_uqk27"]
+[ext_resource type="Texture2D" uid="uid://c5fs8he8p745u" path="res://Demo/levels/test_3d/3DtestLevel/Textures/grid.png" id="3_uqk27"]
 [ext_resource type="Texture2D" uid="uid://llwc515n82ec" path="res://Demo/levels/demo_2d/parallax_layers/water.tres" id="4_43t7u"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/levels/demo_2d/2d_background.tscn" id="5_04744"]
 [ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/player/classic_sonic/mrneedlemouse.tscn" id="6_hhpn2"]
@@ -79,6 +80,14 @@ repeat_times = 8
 [node name="Sprite2D" type="Sprite2D" parent="Background"]
 scale = Vector2(4, 4)
 texture = ExtResource("1_vra77")
+
+[node name="MidiPlayer" parent="." instance=ExtResource("2_uqk27")]
+max_polyphony = 256
+file = "res://midi/test song/slope.mid"
+playing = true
+volume_db = -22.238
+loop = true
+soundfont = "res://midi/soundfont/gm.sf2"
 
 [node name="Path2D" type="Path2D" parent="."]
 position = Vector2(1, 0)
