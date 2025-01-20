@@ -336,9 +336,9 @@ func roll_checks() -> bool:
 		can_roll = false
 	return can_roll
 
-func process_movement() -> void:
+func process_movement(ground_angle:float) -> void:
 	if is_grounded:
-		process_ground()
+		process_ground(ground_angle)
 		if is_grounded:
 			state_ground.emit(self)
 	else:
@@ -371,7 +371,8 @@ func enter_air() -> void:
 	contact_air.emit(self)
 
 ##Process the player's ground physics
-func process_ground() -> void:
+func process_ground(ground_angle:float) -> void:
+	collision_angle = ground_angle
 	var sine_ground_angle:float = sin(collision_angle)
 	
 	#Calculate movement based on the mode

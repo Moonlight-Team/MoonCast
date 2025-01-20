@@ -27,7 +27,7 @@ func _on_2d_pressed() -> void:
 		get_tree().change_scene_to_file(main_2D)
 
 func _on_3d_pressed() -> void:
-	if Input.is_key_pressed(KEY_SHIFT) and not test_3D.is_empty():
+	if Input.is_action_pressed(&"y") and not test_3D.is_empty():
 		get_tree().change_scene_to_file(test_3D)
 	elif not main_3D.is_empty():
 		get_tree().change_scene_to_file(main_3D)

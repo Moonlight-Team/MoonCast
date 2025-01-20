@@ -27,9 +27,11 @@ func _ready() -> void:
 	get_tree().connect(&"node_removed", prepare_injection)
 
 func prepare_injection(_the_node:Node) -> void:
+	if not is_inside_tree():
+		return
 	var tree:SceneTree = get_tree()
 	
-	if is_instance_valid(tree) and not is_instance_valid(tree.current_scene):
+	if is_instance_valid(tree) and not is_instance_valid(tree.current_scene) and not tree.is_connected(&"node_added", inject_scenes):
 		tree.connect(&"node_added", inject_scenes)
 
 func inject_scenes(root:Node) -> void:
@@ -73,5 +75,4 @@ func process_ini_file() -> void:
 					push_warning("Autoload scene called ", scene_name, "could not be loaded at path ", scene_path)
 	else:
 		ini.set_value(scene_section, "instructions", scene_instructions)
-		
-	ini.save(file_path)
+		ini.save(file_path)

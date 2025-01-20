@@ -236,7 +236,6 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 			animations.play(played_anim, -1, anim.speed)
 			animation_set = true
 
-
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func setup_children() -> void:

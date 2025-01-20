@@ -1,10 +1,10 @@
 [gd_scene load_steps=30 format=3 uid="uid://l6j7c0hm73c"]
 
-[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="2_43wwi"]
+[ext_resource type="PackedScene" uid="uid://h5b7bs6th3qc" path="res://Demo/player/classic_sonic/classic_sonic.tscn" id="2_nuj5t"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_pfiy8"]
 [ext_resource type="Script" uid="uid://bsijqywm6rvv0" path="res://Framework/abilities/bonus/rolling_plus.gd" id="5_hlu7c"]
 [ext_resource type="Script" uid="uid://kv6fjiweqpvg" path="res://Framework/abilities/bonus/dynamic_camera.gd" id="6_qevq0"]
-[ext_resource type="Texture2D" path="res://Demo/assets/gui/dream.png" id="7_2q626"]
+[ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
 size = Vector2(790, 20)
@@ -275,20 +275,20 @@ repeat_times = 6
 show_behind_parent = true
 texture = ExtResource("7_2q626")
 
-[node name="mrmooncastmouse" parent="." instance=ExtResource("2_43wwi")]
+[node name="mrneedlemouse_direct" parent="." instance=ExtResource("2_nuj5t")]
 
-[node name="Camera2D" type="Camera2D" parent="mrmooncastmouse"]
+[node name="Camera2D2" type="Camera2D" parent="mrneedlemouse_direct"]
 
-[node name="DebugMode" type="Node" parent="mrmooncastmouse"]
+[node name="DebugMode" type="Node" parent="mrneedlemouse_direct"]
 script = ExtResource("3_pfiy8")
 button_enable_debug = &"x"
 button_scene_pause = &"start"
 button_scene_frame_advance = &"z"
 
-[node name="DynamicCam" type="Node" parent="mrmooncastmouse"]
+[node name="DynamicCam" type="Node" parent="mrneedlemouse_direct"]
 script = ExtResource("6_qevq0")
 zoom_speed = 0.01
 
-[node name="RollingControlsPlus" type="Node" parent="mrmooncastmouse"]
+[node name="RollingControlsPlus" type="Node" parent="mrneedlemouse_direct"]
 script = ExtResource("5_hlu7c")
 uncurl_button = &"up"

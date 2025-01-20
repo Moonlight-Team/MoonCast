@@ -195,11 +195,14 @@ func _physics_process(delta: float) -> void:
 	
 	#reset this flag specifically
 	animation_set = false
-	pre_physics.emit(self)
+	pre_physics.emit(self_old)
 	
 	physics.input_direction = 0.0
 	if physics.can_be_moving:
 		physics.input_direction = Input.get_axis(controls.direction_left, controls.direction_right)
+		
+		if not is_zero_approx(physics.input_direction):
+			print(physics.input_direction)
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -214,19 +217,19 @@ func _physics_process(delta: float) -> void:
 	
 	if not skip_builtin_states:
 		if physics.is_grounded:
-			physics.process_ground()
+			physics.process_ground(0.0)
 			#If we're still on the ground, call the state function
 			if physics.is_grounded:
-				state_ground.emit(self)
+				state_ground.emit(self_old)
 		else:
 			physics.process_air()
 			#If we're still in the air, call the state function
 			if not physics.is_grounded:
-				state_air.emit(self)
+				state_air.emit(self_old)
 	#Make the callback for physics post-calculation
 	#But this is *before* actually moving, or else it'd be nearly
 	#the same as pre_physics
-	post_physics.emit(self)
+	post_physics.emit(self_old)
 	
 	const physics_adjust:float = 60.0
 	var raw_velocity:Vector2 = Vector2(physics.space_velocity.z, physics.space_velocity.y) * physics_adjust
@@ -334,8 +337,8 @@ func scan_children() -> void:
 		#Patch for the inability for get_class to return GDScript classes
 		if nodes.has_meta(&"Ability_flag"):
 			#abilities.append(nodes.name)
-			nodes.call(&"setup_ability", physics)
-			nodes.call(&"setup_ability_2D", self)
+			#nodes.call(&"setup_ability", physics)
+			nodes.call(&"setup_ability_2D", self_old)
 	
 	#If we have an AnimatedSprite2D, not having the other two doesn't matter
 	if not is_instance_valid(node_animated_sprite_2d):
@@ -588,18 +591,20 @@ var platform_object_id:int
 var platform_layer:int
 
 var last_motion:Vector2
-var motion_results:Array[KinematicCollision2D]
+var motion_results:Array[KinematicCollision2D] = []
 
 var real_velocity:Vector2
 
 const FLOOR_ANGLE_THRESHOLD:float = 0.01
 
 func _set_collision_direction(result:KinematicCollision2D) -> void:
-	if motion_mode == MOTION_MODE_GROUNDED and result.get_angle(up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+	#if motion_mode == MOTION_MODE_GROUNDED and result.get_angle(up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+	if result.get_angle(up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
 		on_floor = true
 		floor_normal = result.get_normal()
 		_set_platform_data(result)
-	elif motion_mode == MOTION_MODE_GROUNDED and result.get_angle(-up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+	#elif motion_mode == MOTION_MODE_GROUNDED and result.get_angle(-up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
+	elif result.get_angle(-up_direction) <= floor_max_angle + FLOOR_ANGLE_THRESHOLD:
 		on_ceiling = true
 	else:
 		on_wall = true
@@ -619,8 +624,8 @@ func _snap_on_floor(p_was_on_floor:bool, p_vel_dir_facing_up:bool, p_wall_as_flo
 	
 	_apply_floor_snap(p_was_on_floor)
 
-func _on_floor_if_snapped(was_on_floor:bool, vel_dir_facing_up:bool) -> bool:
-	if up_direction == Vector2() or on_floor or not was_on_floor or vel_dir_facing_up:
+func _on_floor_if_snapped(was_on_floor:bool, velocity_is_going_up:bool) -> bool:
+	if up_direction == Vector2() or on_floor or not was_on_floor or velocity_is_going_up:
 		return false
 	
 	var length:float = maxf(floor_snap_length, safe_margin)
@@ -632,6 +637,12 @@ func _on_floor_if_snapped(was_on_floor:bool, vel_dir_facing_up:bool) -> bool:
 			return true
 	
 	return false
+
+func _is_on_wall_only() -> bool:
+	return on_wall and not on_floor and not on_ceiling
+
+func _is_on_floor_only() -> bool:
+	return on_floor and not on_wall and not on_ceiling
 
 func _apply_floor_snap(wall_as_floor:bool) -> void:
 	if on_floor:
@@ -656,7 +667,7 @@ func _apply_floor_snap(wall_as_floor:bool) -> void:
 					pass
 
 func mooncast_move_and_slide(delta:float) -> void:
-	#move_and_slide
+#region move_and_slide
 	var current_platform_velocity:Vector2 = platform_velocity
 	var previous_position:Vector2 = global_position
 	
@@ -669,11 +680,11 @@ func mooncast_move_and_slide(delta:float) -> void:
 			excluded = platform_wall_layers & platform_layer == 0
 		
 		if not excluded:
-			var bs:PhysicsDirectBodyState2D = PhysicsServer2D.body_get_direct_state(platform_rid)
+			var body_space:PhysicsDirectBodyState2D = PhysicsServer2D.body_get_direct_state(platform_rid)
 			
-			if bs:
-				var local_position:Vector2 = global_position - bs.transform.origin
-				current_platform_velocity = bs.get_velocity_at_local_position(local_position)
+			if is_instance_valid(body_space):
+				var local_position:Vector2 = global_position - body_space.transform.origin
+				current_platform_velocity = body_space.get_velocity_at_local_position(local_position)
 			else:
 				current_platform_velocity = Vector2.ZERO
 				platform_rid = RID()
@@ -693,11 +704,13 @@ func mooncast_move_and_slide(delta:float) -> void:
 		
 		var floor_result:KinematicCollision2D = move_and_collide(current_platform_velocity * delta, false, safe_margin, true)
 		
-		if floor_result:
+		if is_instance_valid(floor_result):
 			motion_results.push_back(floor_result)
 			_set_collision_direction(floor_result)
-	
-	#_move_and_slide_grounded
+		
+		PhysicsServer2D.body_remove_collision_exception(get_rid(), platform_rid)
+#endregion
+#region_move_and_slide_grounded
 	var motion:Vector2 = velocity * delta
 	var motion_slide_up:Vector2 = motion.slide(up_direction)
 	
@@ -708,11 +721,15 @@ func mooncast_move_and_slide(delta:float) -> void:
 	floor_normal = Vector2.ZERO
 	platform_velocity = Vector2.ZERO
 	
+	#No sliding on first attempt to keep floor motion stable when possible,
+	#When stop on slope is enabled or when there is no up direction.
 	var sliding_enabled:bool = not floor_stop_on_slope
+	# Constant speed can be applied only the first time sliding is enabled.
 	var can_apply_constant_speed: bool = sliding_enabled
+	#If the platform's ceiling pushes down the body.
 	var apply_ceiling_velocity:bool = false
 	var first_slide:bool = true
-	var vel_dir_facing_up:bool = velocity.dot(up_direction) > 0
+	var velocity_is_going_up:bool = velocity.dot(up_direction) > 0
 	var last_travel:Vector2
 	
 	const CMP_EPSILON:float = 0.00001
@@ -720,21 +737,24 @@ func mooncast_move_and_slide(delta:float) -> void:
 	for iteration:int in max_slides:
 		var result:KinematicCollision2D = move_and_collide(motion, false, safe_margin, true)
 		
-		last_motion = result.get_travel()
-		
-		var collided:bool = result.get_collider_rid().is_valid()
+		var collided:bool = is_instance_valid(result)
 		
 		if collided:
+			last_motion = result.get_travel()
+			
 			motion_results.push_back(result)
 			_set_collision_direction(result)
 			
+			#If we hit a ceiling platform, we set the vertical velocity to at least the platform one.
 			if on_ceiling and result.get_collider_velocity() != Vector2.ZERO and \
-			result.get_collider_velocity().dot(up_direction) < 0:
-				
+				result.get_collider_velocity().dot(up_direction) < 0:
+				#If ceiling sliding is on, only apply when the ceiling is flat or when the motion is upward.
 				if not slide_on_ceiling or motion.dot(up_direction) < 0 or (result.get_normal() + up_direction).length() < 0.01:
 					apply_ceiling_velocity = true
+					
 					var ceiling_vertical_velocity:Vector2 = up_direction * up_direction.dot(result.get_collider_velocity())
 					var motion_vertical_velocity:Vector2 = up_direction * up_direction.dot(velocity)
+					
 					if motion_vertical_velocity.dot(up_direction) > 0 or ceiling_vertical_velocity.length_squared() > motion_vertical_velocity.length_squared():
 						velocity = ceiling_vertical_velocity + velocity.slide(up_direction)
 				
@@ -750,48 +770,63 @@ func mooncast_move_and_slide(delta:float) -> void:
 					motion = Vector2.ZERO
 					break
 				
+				# Move on floor only checks
 				if floor_block_on_wall and on_wall and motion_slide_up.dot(result.get_normal()) <= 0:
-					if was_on_floor and not on_floor and vel_dir_facing_up:
+					#Avoid to move forward on a wall if floor_block_on_wall is true.
+					if was_on_floor and not on_floor and velocity_is_going_up:
+						#If the movement is large the body can be prevented from reaching the walls.
 						if result.get_travel().length() <= safe_margin + CMP_EPSILON:
+							#Cancels the motion.
 							global_position -= result.get_travel()
 						
+						#Determines if you are on the ground.
 						_snap_on_floor(true, false, true)
 						velocity = Vector2.ZERO
 						last_motion = Vector2.ZERO
 						motion = Vector2.ZERO
 						break
 					
+					#Prevents the body from being able to climb a slope when it moves forward against the wall.
 					elif not on_floor:
 						motion = up_direction * up_direction.dot(result.get_remainder())
 						motion = motion.slide(result.get_normal())
 					else:
 						motion = result.get_remainder()
 				
-				elif floor_constant_speed and is_on_floor_only() and can_apply_constant_speed and was_on_floor and motion.dot(result.get_normal()) < 0:
+				#Constant Speed when the slope is upward.
+				elif floor_constant_speed and _is_on_floor_only() and can_apply_constant_speed and was_on_floor and motion.dot(result.get_normal()) < 0:
 					can_apply_constant_speed = false
 					var motion_slide_norm:Vector2 = result.get_remainder().slide(result.get_normal()).normalized()
 					motion = motion_slide_norm * (motion_slide_up.length() - result.get_travel().slide(up_direction).length() - last_travel.slide(up_direction).length())
 				
-				elif (sliding_enabled or not on_floor) and (not on_ceiling or slide_on_ceiling or not vel_dir_facing_up) and not apply_ceiling_velocity:
+				#Regular sliding, the last part of the test handle the case when you don't want to slide on the ceiling.
+				elif (sliding_enabled or not on_floor) and (not on_ceiling or slide_on_ceiling or not velocity_is_going_up) and not apply_ceiling_velocity:
 					var slide_motion:Vector2 = result.get_remainder().slide(result.get_normal())
 					if slide_motion.dot(velocity) > 0.0:
 						motion = slide_motion
 					else:
 						motion = Vector2.ZERO
 					
-					if vel_dir_facing_up:
-						velocity = velocity.slide(result.get_normal())
-					else:
-						velocity = up_direction * up_direction.dot(velocity)
+					if slide_on_ceiling and on_ceiling:
+						#Apply slide only in the direction of the input motion, otherwise just stop to avoid jittering when moving against a wall.
+						if velocity_is_going_up:
+							velocity = velocity.slide(result.get_normal())
+						else:
+							#Avoid acceleration in slope when falling.
+							velocity = up_direction * up_direction.dot(velocity)
 				
+				#No sliding on first attempt to keep floor motion stable when possible.
 				else:
 					motion = result.get_remainder()
-					if on_ceiling and not slide_on_ceiling and vel_dir_facing_up:
+					if on_ceiling and not slide_on_ceiling and velocity_is_going_up:
 						velocity = velocity.slide(up_direction)
 						motion = motion.slide(up_direction)
 				
 				last_travel = result.get_travel()
-		elif floor_constant_speed and first_slide and _on_floor_if_snapped(was_on_floor, vel_dir_facing_up):
+		
+		#When you move forward in a downward slope you don’t collide because you will be in the air.
+		#This test ensures that constant speed is applied, only if the player is still on the ground after the snap is applied.
+		elif floor_constant_speed and first_slide and _on_floor_if_snapped(was_on_floor, velocity_is_going_up):
 			can_apply_constant_speed = false
 			sliding_enabled = true
 			global_position = previous_position
@@ -807,27 +842,37 @@ func mooncast_move_and_slide(delta:float) -> void:
 		if not collided or motion.is_zero_approx():
 			break
 	
-	_snap_on_floor(was_on_floor, vel_dir_facing_up)
+	_snap_on_floor(was_on_floor, velocity_is_going_up)
 	
-	if is_on_wall_only() and motion_slide_up.dot(motion_results.get(0).get_normal()) < 0:
-		var slide_motion:Vector2 = velocity.slide(motion_results.get(0).get_normal())
+	var first_result:KinematicCollision2D = KinematicCollision2D.new()
+	if not motion_results.is_empty():
+		first_result = motion_results.get(0)
+	
+	#Scales the horizontal velocity according to the wall slope.
+	if _is_on_wall_only() and motion_slide_up.dot(first_result.get_normal()) < 0:
+		var slide_motion:Vector2 = velocity.slide(first_result.get_normal())
 		if motion_slide_up.dot(slide_motion) < 0:
 			velocity = up_direction * up_direction.dot(velocity)
 		else:
+			#Keeps the vertical motion from velocity and add the horizontal motion of the projection.
 			velocity = up_direction * up_direction.dot(velocity) + slide_motion.slide(up_direction)
 	
-	if on_floor and not vel_dir_facing_up:
+	#Reset the gravity accumulation when touching the ground.
+	if on_floor and not velocity_is_going_up:
 		velocity = velocity.slide(up_direction)
+#endregion
+#region move_and_slide 2
 	
-	#move_and_slide 2
+	#Compute real velocity.
 	real_velocity = (global_position - previous_position) / delta
 	
 	if platform_on_leave != PLATFORM_ON_LEAVE_DO_NOTHING:
+		#Add last platform velocity when just left a moving platform.
 		if not on_floor and not on_wall:
 			if platform_on_leave == PLATFORM_ON_LEAVE_ADD_UPWARD_VELOCITY and current_platform_velocity.dot(up_direction) < 0:
 				current_platform_velocity = current_platform_velocity.slide(up_direction)
 			velocity += current_platform_velocity
-	
+#endregion
 	#physics feedback to the player
 	const physics_adjust:float = 60.0
 	var raw_velocity:Vector2 = Vector2(physics.space_velocity.z, physics.space_velocity.y) * physics_adjust
@@ -836,9 +881,8 @@ func mooncast_move_and_slide(delta:float) -> void:
 	#We can't have it feed back every time, since otherwise, it breaks slope landing physics.
 	var feedback_physics:bool = not wall_data.is_empty()
 	
-	if get_slide_collision_count() > 0:
-		for bodies:int in get_slide_collision_count():
-			var body:KinematicCollision2D = get_slide_collision(bodies)
+	if not motion_results.is_empty():
+		for body:KinematicCollision2D in motion_results:
 			var body_mode:PhysicsServer2D.BodyMode = PhysicsServer2D.body_get_mode(body.get_collider_rid())
 			
 			if body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID or body_mode == PhysicsServer2D.BodyMode.BODY_MODE_RIGID_LINEAR:
@@ -855,6 +899,14 @@ func mooncast_move_and_slide(delta:float) -> void:
 		physics.space_velocity.y = adjusted.y
 		
 		#TODO: Ground physics feedback
+	
+	#TODO: Check motion results to see if any past collisions occured.
+	#If the most recent motion result is in the air but some include being grounded,
+	#the then player should not stick because they have moved off the ground, like
+	#off a slope or something.
+
+func move_and_update_collision_rotation() -> void:
+	pass
 
 #this is likely the most complicated part of this whole codebase LOL
 ##Update collision and rotation.
@@ -891,7 +943,7 @@ func update_collision_rotation() -> void:
 	var ground_center_colliding:bool = not ground_center_data.is_empty()
 	
 	#figure out if we've hit a wall
-	physics.update_wall_contact(wall_colliding, is_on_wall_only())
+	physics.update_wall_contact(wall_colliding, _is_on_wall_only())
 	
 	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
@@ -899,7 +951,7 @@ func update_collision_rotation() -> void:
 	var in_ground_range:bool = bool(contact_point_count)
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
-	var will_actually_land:bool = get_slide_collision_count() > 0 and not (wall_colliding and is_on_wall_only())
+	var will_actually_land:bool = not motion_results.is_empty() and not (wall_colliding and _is_on_wall_only())
 	
 	var collision_rotation:float = 0.0
 	
@@ -954,7 +1006,8 @@ func update_collision_rotation() -> void:
 				
 				if physics.is_grounded:
 					apply_floor_snap()
-					var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+					#var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
+					var gnd_angle:float = limitAngle(floor_normal.rotated(-deg_to_rad(270.0)).angle())
 					
 					#make sure the player can't merely run into anything in front of them and 
 					#then walk up it. This check also prevents the player from flying off sudden 
@@ -994,7 +1047,7 @@ func update_collision_rotation() -> void:
 		#set sprite rotation
 		#update_air_visual_rotation()
 	
-	physics.update_collision_rotation(collision_rotation, contact_point_count, get_slide_collision_count() > 0)
+	physics.update_collision_rotation(collision_rotation, contact_point_count, not motion_results.is_empty())
 	
 	#sprites_set_rotation(sprite_rotation)
 
