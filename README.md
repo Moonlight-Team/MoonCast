@@ -4,14 +4,15 @@
 
 ![logo](https://github.com/Moonlight-Team/MoonCast/blob/main/mooncastlogo.svg)
 
-#### DISCLAIMER: THIS SOFTWARE IS IN A PRE-RELEASE STATE AND IS SUBJECT TO POTENTIALLY LARGE AND BACKWARDS-COMPATIBILILTY-BREAKING CHANGES DURING DEVELOPMENT
+#### DISCLAIMER: THIS SOFTWARE IS IN A PRE-RELEASE STATE AND IS SUBJECT TO POTENTIALLY LARGE AND BACKWARDS COMPATIBILITY BREAKING CHANGES DURING DEVELOPMENT
 
 ## Features:
-* 3D and 2D character support.
+* 3D and 2D character support. (3D is in-progress)
 * Tight and complementary integration into Godot's physics engine and other systems.
 * Custom Resource types that can be used for both the 3D and 2D systems.
 * Easy to use script API for adding and extending player abilities in a modular way.
 * Highly configurable player node types.
+* Simple player Node setup without any scene inheritance or hard-coded Node paths.
 
 ## Overview:
 
