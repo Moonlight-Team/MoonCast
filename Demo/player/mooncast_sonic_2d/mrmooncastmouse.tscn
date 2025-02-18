@@ -1,24 +1,24 @@
 [gd_scene load_steps=39 format=3 uid="uid://x0bop1i17eyt"]
 
-[ext_resource type="Script" uid="uid://clfwuiek3skg7" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
+[ext_resource type="Script" path="res://MoonCast/MC_character_2d.gd" id="1_x65an"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Framework/abilities/sonic_standard/mooncast_physics.tres" id="2_rii83"]
-[ext_resource type="AudioStream" uid="uid://sb06qhlyoftm" path="res://Demo/audio/Sonic 2/jump.wav" id="3_o6288"]
+[ext_resource type="AudioStream" uid="uid://b7u6qx1bph0ip" path="res://Demo/audio/Sonic 2/jump.wav" id="3_o6288"]
 [ext_resource type="Resource" uid="uid://dfwk0fpplgsi4" path="res://Demo/player/control_set.tres" id="3_td25q"]
-[ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_j5cv3"]
-[ext_resource type="AudioStream" uid="uid://di134ubcptm8i" path="res://Demo/audio/SFX/roll.wav" id="4_rcomx"]
-[ext_resource type="AudioStream" uid="uid://bd5bmykuv1dq6" path="res://Demo/audio/Sonic 2/skid.wav" id="5_fe7cx"]
-[ext_resource type="Script" uid="uid://dwwqwut5sssky" path="res://Framework/animations/speed_varied_anim.gd" id="5_onlsf"]
-[ext_resource type="AudioStream" uid="uid://yolp6oc04irg" path="res://Demo/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
-[ext_resource type="Script" uid="uid://dmn8dq47ypbsf" path="res://Framework/animations/flip_anim.gd" id="6_l0jkf"]
+[ext_resource type="Script" path="res://MoonCast/MC_player_anim.gd" id="4_j5cv3"]
+[ext_resource type="AudioStream" uid="uid://bkrgw0ximu88p" path="res://Demo/audio/SFX/roll.wav" id="4_rcomx"]
+[ext_resource type="AudioStream" uid="uid://c4d5lh2j80y0t" path="res://Demo/audio/Sonic 2/skid.wav" id="5_fe7cx"]
+[ext_resource type="Script" path="res://Framework/animations/speed_varied_anim.gd" id="5_onlsf"]
+[ext_resource type="AudioStream" uid="uid://da7plsorm1nsl" path="res://Demo/audio/Sonic 2/ouch.wav" id="6_jrcbu"]
+[ext_resource type="Script" path="res://Framework/animations/flip_anim.gd" id="6_l0jkf"]
 [ext_resource type="SpriteFrames" uid="uid://dm67r4cqj7ud5" path="res://Demo/player/mooncast_sonic_2d/sprite_frame_ice.tres" id="7_hprdh"]
 [ext_resource type="SpriteFrames" uid="uid://bpvjns0vskghr" path="res://Demo/player/mooncast_sonic_2d/sprite_frame_mooncast.tres" id="7_o1ngo"]
-[ext_resource type="Script" uid="uid://cjwrhog1kep00" path="res://Framework/abilities/bonus/switch_skin.gd" id="8_ax5uv"]
-[ext_resource type="AudioStream" uid="uid://bdf5oypybgqj1" path="res://Demo/audio/SFX/switch_outfits.ogg" id="9_apyss"]
-[ext_resource type="Script" uid="uid://dh21r7jthua87" path="res://Framework/abilities/sonic_standard/spindash.gd" id="11_jsmc0"]
-[ext_resource type="AudioStream" uid="uid://dyqe7bf0gr3xb" path="res://Demo/audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
-[ext_resource type="AudioStream" uid="uid://bjsasecj3g02u" path="res://Demo/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
-[ext_resource type="Script" uid="uid://b3i1iohnqckgd" path="res://Framework/abilities/sonic_standard/super_peel_out.gd" id="14_oykrb"]
-[ext_resource type="Script" uid="uid://dngbkto8dafn8" path="res://Framework/abilities/sonic_standard/drop_dash.gd" id="16_7ai3q"]
+[ext_resource type="Script" path="res://Framework/abilities/bonus/switch_skin.gd" id="8_ax5uv"]
+[ext_resource type="AudioStream" uid="uid://bdma8ef5wiqkw" path="res://Demo/audio/SFX/switch_outfits.ogg" id="9_apyss"]
+[ext_resource type="Script" path="res://Framework/abilities/sonic_standard/spindash.gd" id="11_jsmc0"]
+[ext_resource type="AudioStream" uid="uid://cyy6obhwp4by2" path="res://Demo/audio/Sonic 2/spindash_charge.wav" id="12_40a6c"]
+[ext_resource type="AudioStream" uid="uid://dm1qhaplhe5dq" path="res://Demo/audio/Sonic 2/spindash_release.wav" id="13_gukst"]
+[ext_resource type="Script" path="res://Framework/abilities/sonic_standard/super_peel_out.gd" id="14_oykrb"]
+[ext_resource type="Script" path="res://Framework/abilities/sonic_standard/drop_dash.gd" id="16_7ai3q"]
 
 [sub_resource type="Resource" id="Resource_ipwss"]
 resource_name = "stand"
@@ -156,9 +156,10 @@ collision_3d_center = Vector3(0, 0, 0)
 rotation_snap = 0.523599
 rotation_smooth = true
 
-[sub_resource type="Resource" id="Resource_4miyg"]
-resource_name = "run"
-script = ExtResource("4_j5cv3")
+[sub_resource type="Resource" id="Resource_6ol3t"]
+script = ExtResource("5_onlsf")
+walk_min_speed = 0.3
+speed_scale = 1.615
 animation = &"run"
 speed = 1.0
 can_turn_vertically = true
@@ -375,7 +376,7 @@ anim_crouch = SubResource("Resource_24foh")
 anim_roll = SubResource("Resource_rbxmi")
 anim_run = Dictionary[float, ExtResource("4_j5cv3")]({
 0.01: SubResource("Resource_xe3mx"),
-1.0: SubResource("Resource_4miyg")
+1.0: SubResource("Resource_6ol3t")
 })
 anim_skid = Dictionary[float, ExtResource("4_j5cv3")]({
 0.4: SubResource("Resource_uf82t")
@@ -396,8 +397,10 @@ shape = SubResource("RectangleShape2D_x7kbe")
 
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
-position = Vector2(2, -1)
+position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
+animation = &"walk"
+frame_progress = 0.479735
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")
