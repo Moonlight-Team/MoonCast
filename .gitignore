@@ -16,3 +16,6 @@ data_*/
 mono_crash.*.json
 showcase.avi
 /build
+/addons/gdscript2all
+/MoonCastC++/mooncast/__pycache__
+*.o

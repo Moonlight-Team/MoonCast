@@ -200,9 +200,6 @@ func _physics_process(delta: float) -> void:
 	physics.input_direction = 0.0
 	if physics.can_be_moving:
 		physics.input_direction = Input.get_axis(controls.direction_left, controls.direction_right)
-		
-		if not is_zero_approx(physics.input_direction):
-			print(physics.input_direction)
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities

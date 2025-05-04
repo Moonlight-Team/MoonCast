@@ -1466,9 +1466,10 @@ func _physics_process(_delta: float) -> void:
 	animation_set = false
 	pre_physics.emit(self)
 	
-	input_direction = 0.0
 	if can_be_moving:
 		input_direction = Input.get_axis(controls.direction_left, controls.direction_right)
+	else:
+		input_direction = 0.0
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities

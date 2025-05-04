@@ -17,8 +17,8 @@ run/main_scene="res://Demo/gui/main_menu.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.4", "GL Compatibility")
 boot_splash/bg_color=Color(0, 0.572549, 0.780392, 1)
-boot_splash/image="uid://eafx8rhd3haw"
 boot_splash/fullsize=false
+boot_splash/image="uid://eafx8rhd3haw"
 config/icon="uid://0ym8sn1yp7br"
 
 [autoload]

@@ -276,6 +276,7 @@ show_behind_parent = true
 texture = ExtResource("7_2q626")
 
 [node name="mrneedlemouse_direct" parent="." instance=ExtResource("2_nuj5t")]
+metadata/_custom_type_script = "uid://m3d0vyonycar"
 
 [node name="Camera2D2" type="Camera2D" parent="mrneedlemouse_direct"]
 

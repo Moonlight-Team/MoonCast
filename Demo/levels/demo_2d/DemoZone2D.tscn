@@ -62,7 +62,7 @@ script = ExtResource("2_u7ekt")
 button_enable_debug = &"x"
 button_scene_pause = &"y"
 button_scene_frame_advance = &"z"
-metadata/_custom_type_script = ExtResource("2_u7ekt")
+metadata/_custom_type_script = "uid://chxrofx7moh6c"
 
 [node name="Cam" type="Camera2D" parent="mrmooncastmouse"]
 limit_left = -256
@@ -76,7 +76,7 @@ editor_draw_drag_margin = true
 script = ExtResource("3_musv3")
 charge_button = &"jump"
 anim_charge = SubResource("Resource_dqorc")
-metadata/_custom_type_script = ExtResource("3_musv3")
+metadata/_custom_type_script = "uid://dngbkto8dafn8"
 
 [node name="StageMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("5_867ew")
