@@ -603,7 +603,7 @@ func overlay_add_lib(lib_name:StringName, anims:AnimatedSprite2D) -> void:
 ##not contain the animation [code]anim[/code].
 func overlay_play_anim(lib:StringName, anim:StringName) -> void:
 	var anim_node:AnimatedSprite2D = overlay_sprites.get(lib, null)
-	if is_instance_valid(anim_node):
+	if is_instance_valid(anim_node) and is_instance_valid(anim_node.sprite_frames):
 		if anim_node.sprite_frames.has_animation(anim):
 			anim_node.play(anim)
 
@@ -1007,7 +1007,7 @@ func update_collision_rotation() -> void:
 			ground_velocity = minf(ground_velocity, 0.0)
 		
 		if not was_pushing and is_pushing:
-			contact_wall.emit()
+			contact_wall.emit(self)
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
@@ -1222,7 +1222,7 @@ func old_update_animations() -> void:
 				if abs_ground_velocity > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
-					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
+					play_animation(anim_run.get(snappedf(speeds, 0.001), null))
 					break
 		else: #standing still
 			#not balancing on a ledge
@@ -1464,12 +1464,15 @@ func _physics_process(_delta: float) -> void:
 	
 	#reset this flag specifically
 	animation_set = false
-	pre_physics.emit(self)
 	
+	#set input before pre-physics so that abilities can react to inputs before 
+	#they go into effect
 	if can_be_moving:
 		input_direction = Input.get_axis(controls.direction_left, controls.direction_right)
 	else:
 		input_direction = 0.0
+	
+	pre_physics.emit(self)
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
