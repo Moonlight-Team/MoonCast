@@ -103,17 +103,16 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var sfx_custom:Dictionary[StringName, AudioStream]
 #endregion
 #region Node references
-#generally speaking, these should *not* be directly accessed unless absolutely needed, 
-#but they still have documentation because documentation is good
+@export_group("Nodes", "node_")
 ##The AnimationPlayer for all the animations triggered by the player.
 ##If you have an [class AnimatedSprite2D], you do not need a child [class Sprite2D] nor [class AnimationPlayer].
-var animations:AnimationPlayer = null
+@export var node_animations:AnimationPlayer = null
 ##The Sprite2D node for this player.
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
-var node_sprite_2d:Sprite2D = null
+@export var node_sprite_2d:Sprite2D = null
 ##The AnimatedSprite2D for this player.
 ##If you have an AnimatedSprite2D, you do not need a child Sprite2D nor AnimationPlayer.
-var node_animated_sprite:AnimatedSprite2D = null
+@export var node_animated_sprite:AnimatedSprite2D = null
 
 ##A central node around which all the raycasts rotate.
 var raycast_wheel:Node2D = Node2D.new()
@@ -370,14 +369,10 @@ signal state_air(player:MoonCastPlayer2D)
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func scan_children() -> void:
-	animations = null
-	node_sprite_2d = null
-	node_animated_sprite = null
-	
 	#find the animationPlayer and other nodes
 	for nodes:Node in get_children():
-		if not is_instance_valid(animations) and nodes is AnimationPlayer:
-			animations = nodes
+		if not is_instance_valid(node_animations) and nodes is AnimationPlayer:
+			node_animations = nodes
 		if not is_instance_valid(node_sprite_2d) and nodes is Sprite2D:
 			node_sprite_2d = nodes
 		if not is_instance_valid(node_animated_sprite) and nodes is AnimatedSprite2D:
@@ -428,6 +423,8 @@ func load_dictionary(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32
 		if not is_equal_approx(keys, snapped_key):
 			push_warning("Key ", keys, " is more precise than the precision cutoff")
 		sorted_keys.append(snapped_key)
+		
+		dict[snapped_key] = dict[keys]
 	#sort the keys (from least to greatest)
 	sorted_keys.sort()
 	
@@ -499,8 +496,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 		#set the actual animation to play based on if the animation wants to branch
 		var played_anim:StringName = anim.next_animation if animation_custom else anim.animation
 		
-		if is_instance_valid(animations) and animations.has_animation(played_anim):
-			animations.play(played_anim, -1, anim.speed)
+		if is_instance_valid(node_animations) and node_animations.has_animation(played_anim):
+			node_animations.play(played_anim, -1, anim.speed)
 			animation_set = true
 		if is_instance_valid(node_animated_sprite.sprite_frames) and node_animated_sprite.sprite_frames.has_animation(played_anim):
 			node_animated_sprite.play(played_anim, anim.speed)
@@ -509,8 +506,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 ##A function to check for if either a child AnimationPlayer or AnimatedSprite2D has an animation.
 func has_animation(anim:MoonCastAnimation) -> bool:
 	var has_anim:bool
-	if is_instance_valid(animations):
-		has_anim = animations.has_animation(anim.animation)
+	if is_instance_valid(node_animations):
+		has_anim = node_animations.has_animation(anim.animation)
 	if is_instance_valid(node_animated_sprite):
 		has_anim = has_anim or node_animated_sprite.sprite_frames.has_animation(anim.animation)
 	return has_anim
@@ -1222,7 +1219,7 @@ func old_update_animations() -> void:
 				if abs_ground_velocity > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
-					play_animation(anim_run.get(snappedf(speeds, 0.001), null))
+					play_animation(anim_run.get(snappedf(speeds, 0.001), current_anim))
 					break
 		else: #standing still
 			#not balancing on a ledge
@@ -1389,8 +1386,7 @@ func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
 
 func _ready() -> void:
 	#scan for children. This can happen even in the editor.
-	if not ((is_instance_valid(animations) or is_instance_valid(node_sprite_2d)) or is_instance_valid(node_animated_sprite)):
-		scan_children()
+	scan_children()
 	
 	#everything past here should NOT happen in the editor
 	if Engine.is_editor_hint():
@@ -1417,11 +1413,11 @@ func _get_configuration_warnings() -> PackedStringArray:
 		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
 		#but having both is optional. Therefore, only warn about the lack of the latter
 		#if one of the two for the former is missing.
-		if is_instance_valid(node_sprite_2d) and not is_instance_valid(animations):
+		if is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animations):
 			warnings.append("Using Sprite2D mode: No AnimationPlayer found. Please add one, or an AnimatedSprite2D.")
-		elif is_instance_valid(animations) and not is_instance_valid(node_sprite_2d):
+		elif is_instance_valid(node_animations) and not is_instance_valid(node_sprite_2d):
 			warnings.append("Using Sprite2D mode: No Sprite2D child found. Please add one, or an AnimatedSprite2D.")
-		elif not is_instance_valid(node_sprite_2d) and not is_instance_valid(animations):
+		elif not is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animations):
 			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
 	return warnings
 
