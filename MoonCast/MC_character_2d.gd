@@ -995,13 +995,24 @@ func update_collision_rotation() -> void:
 			#they are pushing if they're pressing left
 			is_pushing = input_direction < 0.0
 			
-			ground_velocity = maxf(ground_velocity, 0.0)
+			if facing_direction < 0.0:
+				if is_grounded:
+					ground_velocity = maxf(ground_velocity, 0.0)
+				else:
+					space_velocity.x = maxf(space_velocity.x, 0.0)
 		
 		if ray_wall_right.is_colliding():
 			#they are pushing if they're pressing right
 			is_pushing = input_direction > 0.0
 			
-			ground_velocity = minf(ground_velocity, 0.0)
+			if facing_direction > 0.0:
+				if is_grounded:
+					ground_velocity = minf(ground_velocity, 0.0)
+				else:
+					space_velocity.x = minf(space_velocity.x, 0.0)
+			
+		
+		
 		
 		if not was_pushing and is_pushing:
 			contact_wall.emit(self)
@@ -1407,6 +1418,16 @@ func _ready() -> void:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings:PackedStringArray = []
+	
+	if floor_stop_on_slope == true:
+		warnings.append("It's not recommended to have floor_stop_on_slope on.")
+	if floor_constant_speed == false:
+		warnings.append("Having floor_constant_speed enabled will conflict with MoonCast's slope calculations.")
+	if floor_block_on_wall == true:
+		warnings.append("It's not recommended to have floor_block_on_wall on.")
+	
+	if floor_snap_length < 1.1:
+		warnings.append("A low floor_snap_length value will cause the player to easily lose grip of the floor, especially at high speeds!")
 	
 	#If we have an AnimatedSprite2D, not having the other two doesn't matter
 	if not is_instance_valid(node_animated_sprite):
