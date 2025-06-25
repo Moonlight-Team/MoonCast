@@ -338,7 +338,7 @@ func roll_checks() -> bool:
 
 func process_movement(ground_angle:float) -> void:
 	if is_grounded:
-		process_ground(ground_angle)
+		process_ground(ground_angle, 0.0)
 		if is_grounded:
 			state_ground.emit(self)
 	else:
@@ -370,8 +370,54 @@ func enter_air() -> void:
 	
 	contact_air.emit(self)
 
+func process_running(ground_angle:float, forward_input:float) -> float:
+	var accumulate:float = 0.0
+	var sine_ground_angle:float = sin(ground_angle)
+	
+	#var slipping_direction_v:Vector2
+	
+	#This is a little value we need for some slipping logic. The player cannot move in the 
+	#direction they are slipping. They can however, run in the opposite direction, since that 
+	#would be "downhill"
+	var slip_lock:bool = is_slipping and is_equal_approx(signf(forward_input), slipping_direction)
+	#var slip_lock:bool = is_slipping and input_direction.sign().is_equal_approx(slipping_direction_v)
+	
+	#slope and other "world" speed factors
+	if is_moving or is_slipping:
+		#Apply the standing/running slope factor
+		accumulate += ground_slope_factor * sine_ground_angle
+	else:
+		#prevent standing on a steep slope
+		if floor_is_fall_angle:
+			accumulate += ground_slope_factor * sine_ground_angle
+	
+	return accumulate
+
+func process_rolling(ground_angle:float, forward_input:float) -> float:
+	var accumulate:float = 0.0
+	var sine_ground_angle:float = sin(ground_angle)
+	
+	#apply slope factors
+	if is_zero_approx(ground_angle): #If we're on level ground
+		
+		#If we're also moving at all
+		accumulate -= rolling_flat_factor
+	else: #We're on a hill of some sort
+		if is_zero_approx(forward_input) or is_equal_approx(signf(forward_input), signf(sine_ground_angle)):
+			#rolling downhill
+			accumulate += rolling_downhill_factor * sine_ground_angle
+		else:
+			#rolling uphill
+			accumulate += rolling_uphill_factor * sine_ground_angle
+	
+	#Allow the player to actively slow down if they try to move in the opposite direction
+	if not is_zero_approx(forward_input) and not is_equal_approx(signf(forward_input), signf(accumulate)):
+		accumulate -= rolling_active_stop
+	
+	return accumulate
+
 ##Process the player's ground physics
-func process_ground(ground_angle:float) -> void:
+func process_ground(ground_angle:float, forward_input:float) -> void:
 	collision_angle = ground_angle
 	var sine_ground_angle:float = sin(collision_angle)
 	

@@ -197,9 +197,10 @@ func _physics_process(delta: float) -> void:
 	animation_set = false
 	pre_physics.emit(self_old)
 	
+	var input_dir:float = 0.0
 	physics.input_direction = 0.0
 	if physics.can_be_moving:
-		physics.input_direction = Input.get_axis(controls.direction_left, controls.direction_right)
+		input_dir = Input.get_axis(controls.direction_left, controls.direction_right)
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -214,7 +215,7 @@ func _physics_process(delta: float) -> void:
 	
 	if not skip_builtin_states:
 		if physics.is_grounded:
-			physics.process_ground(0.0)
+			physics.process_ground(0.0, input_dir)
 			#If we're still on the ground, call the state function
 			if physics.is_grounded:
 				state_ground.emit(self_old)

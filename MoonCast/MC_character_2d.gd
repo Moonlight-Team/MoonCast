@@ -764,7 +764,6 @@ func process_air() -> void:
 	#slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 	if space_velocity.y < 0 and space_velocity.y > -physics.jump_short_limit:
 		space_velocity.x -= (space_velocity.x * 0.125) / 256
-		pass
 	
 	# apply gravity
 	space_velocity.y += physics.air_gravity_strength

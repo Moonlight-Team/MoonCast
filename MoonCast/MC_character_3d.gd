@@ -11,7 +11,7 @@ class_name MoonCastPlayer3D
 @export var default_up_direction:Vector3 = Vector3.UP
 
 @export_group("Rotation", "rotation_")
-##The default "forward" axis. This should be forward for you model and camera.
+##The default "forward" axis. This should be forward for your model and camera.
 @export var rotation_forward_axis:Vector3 = Vector3.FORWARD
 
 ##If this is true, collision boxes of the character will not rotate based on 
@@ -91,7 +91,11 @@ class_name MoonCastPlayer3D
 var input_direction:Vector2
 ##the input direction adjusted to reflect the current y rotation of the camera.
 var spatial_input_direction:Vector3
+##The direction the player is facing
+var model_facing_direction:Vector3
+
 var space_velocity:Vector3
+
 var collision_rotation:Vector3
 
 ##The names of all the abilities of this character.
@@ -282,6 +286,7 @@ func setup_children() -> void:
 	if is_instance_valid(camera):
 		camera_remote.transform = camera.transform
 		camera_remote.remote_path = camera.get_path()
+		camera_remote.use_global_coordinates = false
 	
 	if not is_instance_valid(anim_model):
 		push_error("No player model found for ", name)
@@ -356,8 +361,6 @@ func setup_collision() -> void:
 	if not is_finite(ground_right_point.y):
 		ground_right_point = Vector3(1.5, 0.0, 0.0)
 	
-	printt("Check 2", ground_forward_point, ground_back_point, ground_left_point, ground_right_point)
-	
 	rotation_root.position.y = def_vis_notif_shape.size.y / 2.0
 	
 	anim_col_owner_id = create_shape_owner(self)
@@ -400,12 +403,16 @@ func setup_collision() -> void:
 func setup_performance_monitors() -> void:
 	pass
 
-func update_animations() -> void:
+func update_animations(extern:int = 0) -> void:
 	if not animation_set:
-		var anim:int = physics.assess_animations()
+		var anim:int = extern
+		
+		if extern != 0:
+			anim = physics.assess_animations()
+		
 		match anim:
 			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
-				print("Default anim")
+				#print("Default anim")
 				play_animation(anim_stand)
 			MoonCastPhysicsTable.AnimationTypes.STAND:
 				if current_anim != anim_stand:
@@ -437,15 +444,16 @@ func update_animations() -> void:
 				print("Implement animation ", anim)
 		#TODO: Match statement for anim
 
-func rotate_model(new_basis:Basis) -> void:
+##Rotate the player model to [new_rotation], in global coordinates.
+func rotate_model(new_rotation:Vector3) -> void:
 	if current_anim.can_turn_horizontal:
-		#TODO: do this properly. Should just turn y axis
-		anim_model.basis = new_basis
+		anim_model.global_rotation.y = new_rotation.y
+	if current_anim.can_turn_vertically:
+		anim_model.global_rotation.x = new_rotation.x
+	
+	model_facing_direction = anim_model.global_rotation
 
 func update_collision_rotation() -> void:
-	if not camera_use_mouse and not input_direction.is_zero_approx():
-		camera_remote.rotation.y = input_direction.rotated(deg_to_rad(90.0)).angle() * camera_sensitivity.x
-	
 	const ray_count:int = 5
 	
 	var will_actually_land:bool = get_slide_collision_count() > 0 and not (ray_wall_forward.is_colliding() and is_on_wall_only())
@@ -454,6 +462,7 @@ func update_collision_rotation() -> void:
 	var in_ar_ray:Array[RayCast3D] = [ray_ground_back, ray_ground_forward, ray_ground_left, ray_ground_right, ray_ground_central]
 	var out_ar_ray:Array[RayCast3D] = []
 	#note: This should be unrolled in C++
+	
 	for arr_num:int in ray_count:
 		var current_raycast:RayCast3D = in_ar_ray[arr_num]
 		if current_raycast.is_colliding():
@@ -470,14 +479,14 @@ func update_collision_rotation() -> void:
 					#we aren't grounded; still calculate angles
 					collision_rotation = out_ar_ray[0].get_collision_normal()
 			2:
-				if out_ar_ray.has(ray_ground_central):
+				if ray_ground_central.is_colliding():
 					#we are grounded, likely standing on the edge of some small fence or smth
-					pass
+					collision_rotation = ray_ground_central.get_collision_normal()
 				else: #we are NOT grounded
-					pass
-			3: 
-				pass
-			4, 5:
+					collision_rotation.lerp(Vector3.ZERO, 0.01)
+			#3: 
+			#	pass
+			3, 4, 5:
 				physics.is_balancing = false
 				
 				if physics.is_grounded:
@@ -489,7 +498,7 @@ func update_collision_rotation() -> void:
 			_:
 				assert(false, "How did we get here")
 	
-	
+	#TODO: Use dot product of which way the model is rotated in order to do wall checks
 	physics.update_wall_contact(ray_wall_forward.is_colliding(), is_on_wall_only())
 	
 	if physics.update_collision_rotation(get_floor_angle(up_direction), out_ar_ray.size(), get_slide_collision_count() > 0):
@@ -558,12 +567,21 @@ func _ready() -> void:
 
 func _input(event:InputEvent) -> void:
 	#camera
-	if camera_use_mouse and event is InputEventMouseMotion:
-		camera_remote.rotate_y(deg_to_rad(-event.relative.x * camera_sensitivity.x))
+	
+	var camera_movement:float = 0.0
+	if camera_use_mouse:
+		if event is InputEventMouseMotion:
+			camera_movement = -event.relative.x
+	else:
+		camera_movement = Input.get_axis(controls.camera_right, controls.camera_left)
+	#rotate the camera around the player without actually rotating the parent node in the process
+	#TODO: Y axis (pitch) rotation, ie. full SADX-styled camera control
+	camera_remote.global_transform = global_transform.rotated_local(Vector3.UP, camera_movement * camera_sensitivity.x) * camera_remote.transform
 
 func _physics_process(delta: float) -> void:
-	new_physics_process()
+	#new_physics_process()
 	#old_physics_process(delta)
+	times_physics_process(delta)
 
 func new_physics_process() -> void:
 	if Engine.is_editor_hint():
@@ -578,13 +596,17 @@ func new_physics_process() -> void:
 	
 	spatial_input_direction = Vector3.ZERO
 	if physics.can_be_moving:
-		var raw_input_vec3:Vector3 = Vector3.ZERO
-		raw_input_vec3.x = Input.get_axis(controls.direction_left, controls.direction_right)
-		raw_input_vec3.z = Input.get_axis(controls.direction_down, controls.direction_up)
+		var raw_input_vec3:Vector3 = Vector3(
+			Input.get_axis(controls.direction_left, controls.direction_right),
+			0.0,
+			Input.get_axis(controls.direction_down, controls.direction_up)
+		)
 		
 		#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
 		#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
-		spatial_input_direction = (camera_remote.basis * raw_input_vec3).normalized()
+		
+		if not raw_input_vec3.is_zero_approx():
+			spatial_input_direction = (camera_remote.basis * raw_input_vec3).normalized()
 	
 	physics.space_velocity = space_velocity
 	
@@ -603,7 +625,7 @@ func new_physics_process() -> void:
 	
 	if not skip_builtin_states:
 		if physics.is_grounded:
-			physics.process_ground()
+			physics.process_ground(0.0, spatial_input_direction.z)
 			#If we're still on the ground, call the state function
 			if physics.is_grounded:
 				state_ground.emit(self)
@@ -647,14 +669,25 @@ func new_physics_process() -> void:
 	
 	update_collision_rotation()
 
-func old_physics_process(delta:float) -> void:
+func old_physics_process(_delta:float) -> void:
+	
+	spatial_input_direction = Vector3.ZERO
+	if physics.can_be_moving:
+		var raw_input_vec3:Vector3 = Vector3(
+			Input.get_axis(controls.direction_left, controls.direction_right),
+			Input.get_action_strength(controls.action_jump),
+			Input.get_axis(controls.direction_down, controls.direction_up)
+		)
+		
+		spatial_input_direction = raw_input_vec3 * camera_remote.basis
+	
 	# Add the gravity.
 	if not is_on_floor():
 		velocity.y -= physics.air_gravity_strength
 	
 	# Handle jump.
 	if Input.is_action_just_pressed(controls.action_jump) and is_on_floor():
-		velocity.y = physics.jump_velocity
+		velocity.y = physics.jump_velocity + physics.air_gravity_strength
 	
 	#cam part too
 	if Input.is_action_just_pressed(&"x"):
@@ -666,7 +699,7 @@ func old_physics_process(delta:float) -> void:
 	
 	#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
 	#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
-	spatial_input_direction = (camera_remote.basis * Vector3(input_direction.x, 0, input_direction.y)).normalized()
+	spatial_input_direction = (camera_remote.basis.orthonormalized() * Vector3(input_direction.x, 0, input_direction.y))
 	
 	if not spatial_input_direction.is_zero_approx(): #if Sonic should be going somewhere
 		velocity.x = move_toward(velocity.x, physics.ground_top_speed, physics.ground_acceleration * spatial_input_direction.x)
@@ -675,5 +708,241 @@ func old_physics_process(delta:float) -> void:
 		velocity.x = move_toward(velocity.x, 0, physics.ground_deceleration)
 		velocity.z = move_toward(velocity.z, 0, physics.ground_deceleration)
 	
+	const pixels_to_meters:float = 0.1 + 0.6
+	
+	velocity *= pixels_to_meters
+	
 	#apply physics changes to the engine
 	move_and_slide()
+
+var last_input_direction: Vector3 = Vector3.ZERO
+
+var accel_speed: float = 0.0
+var slope_speed: float = 0.0
+
+#physics implementation based on the work of @time209 on Discord
+func times_physics_process(delta: float) -> void:
+	animation_set = false
+	
+	floor_max_angle = physics.ground_slip_angle
+	
+	var floor_normal: Vector3 = get_floor_normal()
+	#var angle_from_up: float = acos(floor_normal.dot(Vector3.UP))
+	var on_floor: bool = is_on_floor() #and angle_from_up < floor_max_angle
+	
+	var slope_normal: Vector3 = get_floor_normal() if on_floor else Vector3.UP
+	
+	# Calculate rotation that aligns body "down" with floor normal
+	var floor_axis: Vector3 = default_up_direction.cross(floor_normal)
+	var floor_angle: float = acos(default_up_direction.dot(floor_normal))
+	
+	if floor_axis.length() > 0.001:
+		floor_axis = floor_axis.normalized()
+		collision_rotation = Quaternion(floor_axis, floor_angle).get_euler()
+	
+	else:
+		# Floor normal and up vector are the same (flat ground)
+		collision_rotation = Vector3.ZERO
+	
+	# Update grounded state and gravity
+	if on_floor and not physics.is_grounded:
+		physics.is_rolling = false
+		physics.is_jumping  = false
+	
+	physics.is_grounded = is_on_floor()
+
+	if not physics.is_grounded:
+		velocity += Vector3.DOWN * 45.0 * delta
+	else:
+		velocity.y = 0
+
+# Input
+	var input: Vector2 = Input.get_vector(controls.direction_left, controls.direction_right, controls.direction_down, controls.direction_up)
+	
+	#mayb globalbasis
+	var input_dir: Vector3 = (camera_remote.global_basis * Vector3(input.x, 0.0, input.y)).normalized()
+	var input_dir_2d:Vector2 = Vector2(input_dir.x, input_dir.z)
+	
+	var has_input: bool = input.length() > 0.01
+	var current_input_direction: Vector3 = input_dir.normalized() if has_input else Vector3.ZERO
+	
+	if has_input:
+		last_input_direction = current_input_direction
+	else:
+		var current_friction: float = physics.rolling_flat_factor if physics.is_rolling else physics.ground_deceleration
+		accel_speed = move_toward(accel_speed, 0.0, current_friction)
+		slope_speed = move_toward(slope_speed, 0.0, current_friction)
+
+# Jump
+	if physics.is_grounded and Input.is_action_just_pressed(controls.action_jump):
+		physics.is_rolling = true
+		physics.is_jumping  = true
+		
+		var slope_strength: float = clampf(spatial_input_direction.dot(-slope_normal), -1.0, 1.0)
+		
+		velocity += (Vector3.UP + slope_normal * 1.5).normalized() * physics.jump_velocity 
+	
+# --- VARIABLE JUMP HEIGHT --- #
+# Cut jump short if A is released and still going upward
+	if not physics.is_grounded and physics.is_jumping and not Input.is_action_pressed(controls.action_jump):
+		if velocity.y > 0:
+			velocity.y *= 0.5  # You can tweak this (e.g. 0.4–0.6)
+		physics.is_jumping = false  # Prevent multiple reductions
+
+	else:
+		# RT roll / crouch logic (must be grounded and not spindashing)
+		if physics.is_grounded:
+			if Input.is_action_pressed(controls.action_roll):
+				if absf(physics.ground_velocity) > 5.0 or physics.is_jumping:
+					physics.is_rolling = true
+					physics.is_crouching = false
+				elif absf(physics.ground_velocity) < 5.0:
+					physics.is_crouching = true
+					var friction: float = physics.rolling_flat_factor if physics.is_rolling else physics.ground_slope_factor
+					accel_speed = move_toward(accel_speed, 0.0, friction)
+					slope_speed = move_toward(slope_speed, 0.0, friction)
+					physics.ground_velocity = 0
+					physics.is_rolling = false
+				else:
+					# Between crouch and spin thresholds — neither state
+					physics.is_rolling = false
+					physics.is_crouching = false
+			elif not physics.is_jumping and physics.is_grounded:
+				# RT not held — reset both states
+				physics.is_rolling = false
+				physics.is_crouching = false
+
+	# Auto cancel roll
+	if physics.is_grounded and physics.is_rolling and absf(physics.ground_velocity) < 1.0 and not physics.is_jumping:
+		physics.is_rolling = false
+	
+	# --- Movement Code --- #
+	if not physics.is_crouching: 
+		if current_input_direction.length() > 0.01:
+			const TURN_RESISTANCE_FACTOR: float = 0.1
+			# Rotate toward new input direction
+			var turn_speed: float = clampf(1.0 - (absf(accel_speed) / physics.ground_top_speed) * TURN_RESISTANCE_FACTOR, 0.05, 1.0)
+			
+			if spatial_input_direction.is_zero_approx():
+				spatial_input_direction = current_input_direction
+			
+			spatial_input_direction = spatial_input_direction.slerp(current_input_direction, turn_speed)
+			
+			var input_dot: float = spatial_input_direction.normalized().dot(current_input_direction)
+			
+			# Accelerate
+			if not physics.is_rolling and not physics.is_crouching:
+				if input_dot > 0: #accelerate, going in the same direction
+					accel_speed = minf(accel_speed + physics.ground_acceleration, physics.ground_top_speed)
+				elif input_dot < 0: #decelerate, ie. big turn
+					accel_speed = maxf(accel_speed - physics.ground_deceleration, -physics.ground_top_speed)
+		else:
+			# Apply friction when no input
+			var friction: float = physics.air_acceleration if physics.is_rolling else physics.ground_deceleration
+			accel_speed = move_toward(accel_speed, 0.0, friction)
+			slope_speed = move_toward(slope_speed, 0.0, friction)
+	
+	#active stop on rolling?
+	#if physics.is_rolling and physics.is_grounded:
+		#if current_input_direction.length() > 0.01:
+			#accel_speed = move_toward(accel_speed, 0.0, SPIN_FRC)
+			#slope_speed = move_toward(slope_speed, 0.0, SPIN_FRC)
+	
+# --- Slope physics --- #
+	if physics.is_grounded:
+		# Use current movement direction to evaluate slope
+		var slope_strength: float = -slope_normal.z
+		
+		if physics.is_rolling:
+			if slope_strength < 0: # Downhill
+				slope_speed += absf(slope_strength) * physics.rolling_downhill_factor * delta
+			elif slope_strength > 0: # Uphill
+				slope_speed -= slope_strength * physics.rolling_uphill_factor * delta
+		else:
+			if slope_strength < 0: # Downhill
+				slope_speed += absf(slope_strength) * physics.ground_slope_factor * delta
+			elif slope_strength > 0: # Uphill
+				slope_speed -= slope_strength * physics.ground_slope_factor * delta
+		
+		#if slope_speed < MIN_GSP_UPHILL:
+			#slope_speed = MIN_GSP_UPHILL
+		
+		# Clamp slope speed
+		slope_speed = clampf(slope_speed, -physics.absolute_speed_cap.x, physics.absolute_speed_cap.x)
+	else:
+		# Airborne or spindash - let slope speed decay
+		slope_speed = move_toward(slope_speed, 0, physics.air_acceleration * delta)
+	
+	# Total movement speed
+	physics.ground_velocity = clampf(accel_speed + slope_speed, -physics.absolute_speed_cap.x, physics.absolute_speed_cap.x)
+	
+	# Air control (Sonic-style)
+	var xz_velocity:Vector2 = Vector2(velocity.x, velocity.z)
+	if not on_floor:
+		var current_h_velocity: Vector2 = xz_velocity
+		
+		var current_h_speed: float = current_h_velocity.length()
+		
+		#TODO: Make this use model rotation
+		var current_h_dir: Vector2 = current_h_velocity.normalized() if current_h_speed > 0.01 else Vector2.ZERO
+
+		if current_input_direction.length() > 0.01:
+			if current_h_dir.dot(input_dir_2d) > 0:
+				# Accelerate in air toward input direction
+				var target_speed: float = clampf(current_h_speed + physics.air_acceleration * delta, 0, physics.absolute_speed_cap.x)
+				var desired_velocity: Vector2 = input_dir_2d * target_speed
+				
+				# Smoothly adjust velocity toward desired desired_velocity
+				xz_velocity = xz_velocity.lerp(desired_velocity, physics.air_acceleration * delta)
+			else:
+				# Opposite or perpendicular input — slow down gently, allow slight steering
+				
+				# Blend slightly toward input current_input_direction to allow some control
+				var blended_dir: Vector2 = current_h_dir.slerp(input_dir_2d, 0.1) # small influence
+				
+				var target_speed: float = maxf(current_h_speed - physics.air_acceleration * 0.5 * delta, 0)
+				var desired_velocity: Vector2 = blended_dir * target_speed
+				
+				xz_velocity = xz_velocity.lerp(desired_velocity, physics.air_acceleration * delta)
+		else:
+			# No input, maintain current horizontal velocity (or decay slightly if desired)
+			
+			xz_velocity = xz_velocity.lerp(current_h_velocity, physics.air_acceleration * 0.1 * delta)
+		
+		velocity = Vector3(xz_velocity.x, velocity.y, xz_velocity.y)
+	
+	# --- Apply velocity from physics.ground_velocity and spatial_input_direction ---
+	if physics.is_grounded:
+		var move_vector: Vector3 = spatial_input_direction * physics.ground_velocity
+		velocity.x = move_vector.x
+		velocity.z = move_vector.z
+	
+	move_and_slide()
+	
+	if has_input:
+		last_input_direction = current_input_direction
+		
+		#TODO: Yaw (y axis) input is correct, x and z not so much
+		rotate_model(Vector3(floor_normal.x, atan2(spatial_input_direction.z, spatial_input_direction.x), floor_normal.z))
+	
+	if not physics.is_grounded:
+		if physics.is_rolling:
+			play_animation(anim_roll)
+		else:
+			play_animation(anim_free_fall)
+	elif physics.is_crouching:
+		play_animation(anim_crouch)
+	elif physics.is_rolling:
+		play_animation(anim_roll)
+	elif not physics.is_moving:
+		play_animation(anim_stand)
+	else: #run/jog
+		#if absf(physics.ground_velocity) > 65:
+			#animations.play("SonicMain/AnimPeelout")
+		#elif absf(physics.ground_velocity) > 25:
+			#animations.play("SonicMain/AnimRun")
+		#elif absf(physics.ground_velocity) > 1:
+			#animations.play("SonicMain/AnimJog")
+		pass
+		
+		play_animation(anim_stand)

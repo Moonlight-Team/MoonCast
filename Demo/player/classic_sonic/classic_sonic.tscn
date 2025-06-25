@@ -303,7 +303,7 @@ anim_push = SubResource("Resource_rtua2")
 anim_jump = SubResource("Resource_0wcwc")
 anim_free_fall = SubResource("Resource_0bvxg")
 anim_death = SubResource("Resource_irmiy")
-metadata/_custom_type_script = ExtResource("1_722kx")
+metadata/_custom_type_script = "uid://m3d0vyonycar"
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("6_mtaum")
