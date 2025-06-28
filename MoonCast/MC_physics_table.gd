@@ -33,21 +33,6 @@ enum AnimationTypes {
 	SKID,
 }
 
-##A collection of implementation-defined flags that need to be passed in to 
-##new_update_collision_rotation() every frame
-enum CollisionUpdateFlags {
-	##The player is being launched off a slope and thus should not stick to the 
-	##floor.
-	SLOPE_LAUNCH = 0b0000_0001,
-	##The player is turning around.
-	SKIDDING = 0b000_0010,
-	##The player is on a wall.
-	ON_WALL = 0b0000_0100,
-	##The player is on a wall, but not on the floor
-	ON_WALL_ONLY = 0b0000_1000,
-	
-}
-
 const perf_ground_velocity:StringName = &"Ground Velocity"
 const perf_ground_angle:StringName = &"Ground Angle"
 const perf_state:StringName = &"Player State"
@@ -73,11 +58,12 @@ const perf_state:StringName = &"Player State"
 ##Otherwise, they [i]also[/i] have to let go of jump in order to jump again.
 @export var control_jump_hold_repeat:bool = false
 
+#could also be considered "world space options"
 @export_group("General")
 ##The absolute fastest speed the player can achieve traveling through space, no matter what.
 @export var absolute_speed_cap:Vector2 = Vector2(16.0, 16.0)
 ##The default up direction for the player.
-@export var default_up_direction:Vector3 = Vector3.UP
+@export var default_gravity_normal:Vector3 = Vector3.UP
 ##The percentage of the player's speed that becomes the force exerted on rigid physics 
 ##bodies in the engine when colliding with them.
 @export var physics_collision_power:float = 1.0
@@ -93,6 +79,8 @@ const perf_state:StringName = &"Player State"
 @export var ground_stick_speed:float = 0.2
 ##The angle the floor has to be at for the player to begin to slip on it.
 @export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_slip_angle:float = deg_to_rad(35.0)
+##The angle the floor has to be at for the player to begin to slip on it.
+@export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_fall_angle:float = deg_to_rad(45.0)
 ##The amount of time, in seconds, the player will be slipping when on a slope that is steeper than
 ##[member ground_slip_angle].
 @export var ground_slip_time:float = 0.5
@@ -152,31 +140,16 @@ var control_lock_timer:Timer = Timer.new()
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
 
-##How how fast the player is travelling on the ground, regardless of angles.
-var ground_velocity:float:
-	set(new_gvel):
-		ground_velocity = new_gvel
-		abs_ground_velocity = absf(ground_velocity)
-		is_moving = abs_ground_velocity > ground_min_speed
-##Easy-access variable for the absolute value of [ground_velocity], because it's 
-##often needed for general checks regarding speed.
-var abs_ground_velocity:float
-##The character's current velocity through space. For 2D, z is the equivalent of x.
-var space_velocity:Vector3 = Vector3.ZERO
-##The forwards/backwards  direction the player is facing horizontally.
-var facing_direction:Vector2 = Vector2.ZERO
-##The forwards/backwards direction of the player's controller movement input.
-var input_direction:float = 0.0
-##The direction of the slope that the player is slipping down.
-var slipping_direction:float
-
-var up_direction:Vector3
+##The character's current vertical velocity relative to their rotation.
+var vertical_velocity:float
+##The character's current forward velocity relative to their rotation.
+var forward_velocity:float
+##How quickly the character is turning on the yaw axis. In 2D this value is useless
+##unless you are using a 3D model for your player, but in 3D it's used for how fast
+##the player is turning.
+var strafe_velocity:float
 
 #angle values
-##The rotation of the collision. When is_grounded, this is the ground angle.
-##In the air, this should be 0. In 2D, this is player's rotation. In 3D, this is 
-##rotation on the x axis (tilt forwards/backwards).
-var collision_angle:float
 
 ##The max angle of the floor before the player will fall (not slip) off of it when
 ##moving too slowly.
@@ -197,7 +170,8 @@ var can_roll:bool = true:
 	set(on):
 		if control_roll_enabled:
 			if control_roll_move_lock:
-				can_roll = on and is_zero_approx(input_direction)
+				#can_roll = on and is_zero_approx(input_direction)
+				can_roll = on
 			else:
 				can_roll = on
 		else:
@@ -210,15 +184,7 @@ var can_be_attacking:bool = true
 ##to be the ground.
 ##A signal is emitted whenever this value is changed;
 ##contact_air when false, and contact_ground when true
-var is_grounded:bool:
-	set(now_grounded):
-		if now_grounded:
-			if not is_grounded:
-				land_on_ground()
-		else:
-			if is_grounded:
-				enter_air()
-		is_grounded = now_grounded
+var is_grounded:bool
 ##If true, the player is moving.
 var is_moving:bool:
 	set(on):
@@ -240,14 +206,14 @@ var is_pushing:bool = false:
 var is_jumping:bool = false
 ##If the player is slipping down a slope. When set, this value will silently
 ##set [member slipping_direction] based on the current [member collision_angle].
-var is_slipping:bool = false:
-	get:
-		return not is_zero_approx(slipping_direction)
-	set(slip):
-		if slip:
-			slipping_direction = -signf(sin(collision_angle))
-		else:
-			slipping_direction = 0.0
+var is_slipping:bool = false
+	#get:
+		#return not is_zero_approx(slipping_direction)
+	#set(slip):
+		#if slip:
+			#slipping_direction = -signf(sin(collision_angle))
+		#else:
+			#slipping_direction = 0.0
 ##If the player is in an attacking state.
 var is_attacking:bool = false
 
@@ -317,8 +283,26 @@ func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_ground_angle)
 	Performance.remove_custom_monitor(self_perf_ground_vel)
 
+func check_ground_velocity(ground_velocity:float) -> void:
+	pass
+
+##Check if the player can move in their current state
+func check_can_move() -> bool:
+	var result:bool = true
+	if is_grounded:
+		pass
+	else:
+		#player can move in the air if they don't have control_jump_roll_lock, or
+		#they do BUT they aren't rolling
+		if control_jump_roll_lock:
+			return is_rolling
+		else:
+			return true
+	
+	return result
+
 ##Runs checks on being able to roll and returns the new value of [member can_roll].
-func roll_checks() -> bool:
+func check_can_roll(has_direction_input:bool) -> bool:
 	#check this first, cause if we aren't allowed to roll externally, we don't
 	#need the more nitty gritty checks
 	if control_roll_enabled:
@@ -331,95 +315,42 @@ func roll_checks() -> bool:
 		#external influences on rolling, such as tubes, are not affected
 		if not is_rolling and control_roll_move_lock:
 			#only allow rolling if we aren't going left or right actively
-			can_roll = can_roll and is_zero_approx(input_direction)
+			can_roll = can_roll and is_zero_approx(has_direction_input)
 	else:
 		can_roll = false
 	return can_roll
 
-func process_movement(ground_angle:float) -> void:
-	if is_grounded:
-		process_ground(ground_angle, 0.0)
-		if is_grounded:
-			state_ground.emit(self)
-	else:
-		process_air()
-		if not is_grounded:
-			state_air.emit(self)
-
-
-func process_air() -> void:
+func process_air(input_vector:Vector2) -> void:
 	#only move if the player does not have the roll lock and is rolling to cause it 
 	if not control_jump_roll_lock or (control_jump_roll_lock and is_rolling):
 		#Only let the player move in midair if they aren't already at max speed
-		if absf(space_velocity.x) < ground_top_speed or signf(space_velocity.x) != signf(input_direction):
-		#if space_velocity.x < ground_top_speed or space_velocity.dot(input_direction) > 0:
-			space_velocity.x += air_acceleration * input_direction
+		#if absf(space_velocity.x) < ground_top_speed or signf(space_velocity.x) != signf(input_direction):
+		if forward_velocity < ground_top_speed or Vector2(strafe_velocity, forward_velocity).dot(input_vector) > 0:
+			strafe_velocity += air_acceleration * input_vector.x
+			forward_velocity += air_acceleration * input_vector.y
 	
 	#calculate air drag. This makes it so that the player moves at a slightly 
 	#slower horizontal speed when jumping up, before hitting the [jump_short_limit].
-	if space_velocity.y < 0 and space_velocity.y > -jump_short_limit:
-		#space_velocity_3d.x -= (space_velocity_3d.x * 0.125) / 256
-		space_velocity -= (space_velocity * 0.125) / 256
+	if vertical_velocity > 0 and vertical_velocity < jump_short_limit:
+		forward_velocity -= (forward_velocity * 0.125) / 256
+		strafe_velocity -= (strafe_velocity * 0.125) / 256
 	
 	# apply gravity
-	space_velocity.y += air_gravity_strength
+	vertical_velocity -= air_gravity_strength
 
 func enter_air() -> void:
-	collision_angle = 0.0
-	up_direction = default_up_direction
-	
+	is_grounded = false
 	contact_air.emit(self)
 
-func process_running(ground_angle:float, forward_input:float) -> float:
-	var accumulate:float = 0.0
-	var sine_ground_angle:float = sin(ground_angle)
+##Process the player's ground physics.
+##[param ground_dot_product] is the dot product between the gravity normal and the 
+##floor normal. [param direction_dot] represents the dot product between the floor normal
+##and the the direction the player is facing.
+func process_ground(ground_dot_product:float, direction_dot:float, input_vector:Vector2) -> float:
+	var ground_velocity:float
 	
-	#var slipping_direction_v:Vector2
-	
-	#This is a little value we need for some slipping logic. The player cannot move in the 
-	#direction they are slipping. They can however, run in the opposite direction, since that 
-	#would be "downhill"
-	var slip_lock:bool = is_slipping and is_equal_approx(signf(forward_input), slipping_direction)
-	#var slip_lock:bool = is_slipping and input_direction.sign().is_equal_approx(slipping_direction_v)
-	
-	#slope and other "world" speed factors
-	if is_moving or is_slipping:
-		#Apply the standing/running slope factor
-		accumulate += ground_slope_factor * sine_ground_angle
-	else:
-		#prevent standing on a steep slope
-		if floor_is_fall_angle:
-			accumulate += ground_slope_factor * sine_ground_angle
-	
-	return accumulate
-
-func process_rolling(ground_angle:float, forward_input:float) -> float:
-	var accumulate:float = 0.0
-	var sine_ground_angle:float = sin(ground_angle)
-	
-	#apply slope factors
-	if is_zero_approx(ground_angle): #If we're on level ground
-		
-		#If we're also moving at all
-		accumulate -= rolling_flat_factor
-	else: #We're on a hill of some sort
-		if is_zero_approx(forward_input) or is_equal_approx(signf(forward_input), signf(sine_ground_angle)):
-			#rolling downhill
-			accumulate += rolling_downhill_factor * sine_ground_angle
-		else:
-			#rolling uphill
-			accumulate += rolling_uphill_factor * sine_ground_angle
-	
-	#Allow the player to actively slow down if they try to move in the opposite direction
-	if not is_zero_approx(forward_input) and not is_equal_approx(signf(forward_input), signf(accumulate)):
-		accumulate -= rolling_active_stop
-	
-	return accumulate
-
-##Process the player's ground physics
-func process_ground(ground_angle:float, forward_input:float) -> void:
-	collision_angle = ground_angle
-	var sine_ground_angle:float = sin(collision_angle)
+	#TODO: Figure out if the slope is uphill or downhill based on the rotation of the model
+	#var slope_direction:Vector3 = (-default_gravity_normal).bounce(collision_rotation)
 	
 	#Calculate movement based on the mode
 	if is_rolling:
@@ -427,24 +358,24 @@ func process_ground(ground_angle:float, forward_input:float) -> void:
 		var prev_ground_vel_sign:float = signf(ground_velocity)
 		
 		#apply slope factors
-		if is_zero_approx(collision_angle): #If we're on level ground
+		if is_zero_approx(ground_dot_product): #If we're on level ground
 			
 			#If we're also moving at all
-			ground_velocity -= rolling_flat_factor * signf(ground_velocity)
+			ground_velocity -= rolling_flat_factor * ground_dot_product
 			
 			#Stop the player if they turn around
 			if not is_equal_approx(signf(prev_ground_vel_sign), signf(ground_velocity)):
 				ground_velocity = 0.0
 		else: #We're on a hill of some sort
-			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
+			if direction_dot > 0:
 				#rolling downhill
-				ground_velocity += rolling_downhill_factor * sine_ground_angle
+				ground_velocity += rolling_downhill_factor * ground_dot_product
 			else:
 				#rolling uphill
-				ground_velocity += rolling_uphill_factor * sine_ground_angle
+				ground_velocity += rolling_uphill_factor * ground_dot_product
 		
 		#Allow the player to actively slow down if they try to move in the opposite direction
-		if not is_equal_approx(facing_direction.y, signf(ground_velocity)):
+		if not is_equal_approx(input_vector.y, signf(ground_velocity)):
 			ground_velocity -= rolling_active_stop * signf(ground_velocity)
 			#facing_direction = -facing_direction
 			#sprites_flip()
@@ -455,33 +386,44 @@ func process_ground(ground_angle:float, forward_input:float) -> void:
 			is_rolling = false
 	
 	else: #slope factors for being on foot
-		#var slipping_direction_v:Vector2
 		
-		#This is a little value we need for some slipping logic. The player cannot move in the 
-		#direction they are slipping. They can however, run in the opposite direction, since that 
-		#would be "downhill"
-		var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
-		#var slip_lock:bool = is_slipping and input_direction.sign().is_equal_approx(slipping_direction_v)
+		#This is a little value we need for some slipping logic. The player cannot move in
+		#most directions when slipping. They can however, run downhill. Running downhill will
+		#not magically give them control back, as the slipping timer still starts as soon as they
+		#begin slipping. But, this makes running downhill at slow speeds less annoying.
+		var slip_lock:bool = direction_dot < 0
 		
 		#slope and other "world" speed factors
 		if is_moving or is_slipping:
 			#Apply the standing/running slope factor
-			ground_velocity += ground_slope_factor * sine_ground_angle
+			ground_velocity += ground_slope_factor * ground_dot_product
 		else:
 			#prevent standing on a steep slope
 			if floor_is_fall_angle:
-				ground_velocity += ground_slope_factor * sine_ground_angle
+				ground_velocity += ground_slope_factor * ground_dot_product
 		
 		#input processing
+	
+	return ground_velocity
 
-func land_on_ground() -> void:
+##Run processes for properly landing on the ground. 
+##[param ground_dot] is the dot product between the ground normal and gravity normal.
+func land_on_ground(ground_dot:float, direction_dot:float) -> void:
+	var ground_velocity:float
+	
 	#Transfer space_velocity to ground_velocity
-	var applied_ground_speed:Vector2 = Vector2.from_angle(collision_angle) 
-	applied_ground_speed *= Vector2(space_velocity.z, space_velocity.y)
-	ground_velocity = applied_ground_speed.x + applied_ground_speed.y
+	#TODO: applied_ground speed using cross/dot product math for working in 3d
+	#var applied_x_speed:float = cos(collision_rotation) * space_velocity.x
+	var applied_x_speed:float #= cos(collision_rotation) * space_velocity.x
+	#var applied_y_speed:float = sin(collision_rotation) * space_velocity.y
+	var applied_y_speed:float = ground_dot * vertical_velocity
+	ground_velocity = applied_x_speed + applied_y_speed
+	
+	
+	var has_input:bool = false ##TODO: Actually fix this lmao
 	
 	#land in a roll if the player can
-	if roll_checks() and false: #and Input.is_action_pressed(controls.action_roll):
+	if check_can_roll(has_input) and false: #and Input.is_action_pressed(controls.action_roll):
 		is_rolling = true
 		#play_sound_effect(sfx_roll_name)
 	else:
@@ -489,7 +431,7 @@ func land_on_ground() -> void:
 	
 	#begin control lock timer
 	if not control_lock_timer.timeout.get_connections().is_empty() and control_lock_timer.is_stopped():
-		ground_velocity += air_gravity_strength * sin(collision_angle)
+		#ground_velocity += air_gravity_strength * sin(collision_angle)
 		control_lock_timer.start(ground_slip_time)
 	
 	#if Input.is_action_pressed(controls.action_jump) and not control_jump_hold_repeat:
@@ -505,32 +447,37 @@ func land_on_ground() -> void:
 		jump_timer.start(jump_spam_timer)
 	is_jumping = false
 	
+	is_grounded = true
 	
 	contact_ground.emit(self)
 
-func update_wall_contact(is_contacting:bool, is_on_wall_only:bool) -> void:
-	wall_contact = is_contacting
+##Update wall contact status. [param wall_dot] is the dot product between the direction the 
+##player is facing and the normal of the wall.
+func update_wall_contact(wall_dot:float, is_on_wall_only:bool) -> void:
+	const wall_angle:float = deg_to_rad(80.0)
+	
+	var was_pushing:bool = is_pushing
+	is_pushing = wall_dot > wall_angle
+	
 	wall_only_contact = is_on_wall_only
-	if is_contacting:
-		var was_pushing:bool = is_pushing
-		
-		if facing_direction.y < 0.0:
-			#they are pushing if they're pressing left
-			is_pushing = input_direction < 0.0
-		
-		if facing_direction.y > 0.0:
-			#they are pushing if they're pressing right
-			is_pushing = input_direction > 0.0
-		
-		if not was_pushing and is_pushing:
-			contact_wall.emit(self)
-	else:
-		#The player obviously isn't going to be pushing a wall they aren't touching
-		is_pushing = false
 
-func update_collision_rotation(rotation_angle:float, contact_point_count:int, has_slide_collisions:bool) -> bool:
-	collision_angle = rotation_angle
+	if not was_pushing and is_pushing:
+		contact_wall.emit(self)
+
+##Update collision and rotation state for the player. 
+##[param ground_dot] is the dot product between the normal of gravity and the normal of the floor. 
+##[param direction_dot] is the dot product between the normal of the floor and the vector of the player's facing direction. 
+##[param contact_percentage] is the percentage of how many raycasts are making contact with the floor.
+##[param has_slide_collisions] is whether or not the physics engine has registered any collisions from
+##the player node moving. This is checked against [param contact_point_count] to ensure 
+##proper ground contact.
+func update_collision_rotation(ground_dot:float, direction_dot:float, contact_percentage:float, has_slide_collisions:bool) -> bool:
+	#dot product will be between -1.0 and 1.0. 
+	#In this case, it's < 0 if the the floor normal faces the same direction as gravity (ground),
+	#or > 0 if the it doesn't (ceiling)
+	
 	var apply_floor_snap:bool 
+	var was_grounded:bool = is_grounded
 	
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
 	#properly applies ground angle
@@ -540,61 +487,49 @@ func update_collision_rotation(rotation_angle:float, contact_point_count:int, ha
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing what the ground angle is/will be, to apply landing speed
-	if contact_point_count:
+	if contact_percentage > 0.0:
 		#ceiling checks
 		
 		const deg_90_rad:float = PI / 2.0
 		
 		#if the player is on what would be considered the ceiling
-		var ground_is_ceiling:bool = collision_angle > deg_90_rad or collision_angle < -(deg_90_rad)
+		var ground_is_ceiling:bool = ground_dot < 0
 		
-		if ground_is_ceiling:
-			#TODO: Optimize this section
-			
-			var adjusted_col_rot:float = fmod(collision_angle, deg_90_rad)
-			#false on shallow angles going up and right. Otherwise true.
-			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + floor_max_angle)
-			#false on shallow angles going up and left. Otherwise true.
-			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - floor_max_angle)
-			
-			#We make sure the angle is steep. We also check for it being near 0 because otherwise,
-			#nearly/entirely flat ceilings will pass the check.
-			floor_is_fall_angle = leftward_steep_check and rightward_steep_check and not is_zero_approx(adjusted_col_rot)
-			floor_is_slip_angle = floor_is_fall_angle or (adjusted_col_rot < (deg_90_rad - ground_slip_angle) and adjusted_col_rot > (-deg_90_rad + ground_slip_angle))
-		else:
-			floor_is_fall_angle = collision_angle > floor_max_angle or collision_angle < -floor_max_angle
-			floor_is_slip_angle = floor_is_fall_angle or (collision_angle > ground_slip_angle or collision_angle < -ground_slip_angle)
+		#(x / deg_to_rad(90.0)) converts the slip angle to a value between 0 and 1. Since the dot 
+		#product is between 0 and 1 if it's facing the same direction, and between -1 and 0 if it 
+		#isn't, this allows us to quickly check the angle of the floor for slip/fall checks
+		
+		printt(ground_fall_angle / deg_to_rad(90.0), ground_slip_angle / deg_to_rad(90.0))
+		
+		floor_is_fall_angle = ground_dot < (ground_fall_angle / deg_to_rad(90.0))
+		floor_is_slip_angle = ground_dot < (ground_slip_angle / deg_to_rad(90.0))
 		
 		#slip checks
 		
-		var fast_enough:bool = abs_ground_velocity > ground_stick_speed
-		var should_lose_grip:bool = true if ground_is_ceiling else floor_is_slip_angle
-		
 		if is_grounded:
-			if fast_enough and contact_point_count > 1:
-				#up_direction is set so that floor snapping can be used for walking on walls. 
-				var forward_vector:Vector2 =  Vector2.from_angle(collision_angle - deg_to_rad(90.0))
-				up_direction = Vector3(0.0, forward_vector.y, forward_vector.x)
-				
+			#traveling fast enough to be traveling on any angle of floor
+			#if absf(forward_velocity) > ground_stick_speed and contact_point_count > 1:
+			if absf(forward_velocity) > ground_stick_speed and contact_percentage > 0.5:
 				#in this situation, they only need to be in range of the ground to be grounded
-				is_grounded = bool(contact_point_count)
+				is_grounded = true
 				
 				apply_floor_snap = true
 			
 			else: #not fast enough to simply stick to the ground
-				#up_direction should be set to the default direction, which will unstick
-				#the player from any walls they were on
-				up_direction = default_up_direction
+				#up_direction should be set to the direction of gravity, which will 
+				#unstick the player from any walls they were on
+				apply_floor_snap = false
 				
 				if floor_is_fall_angle:
 					if not (ground_is_ceiling and is_slipping):
-						is_slipping = true
+						#is_slipping = true #...?
+						
 						#set up the connection for the control lock timer.
 						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
 						control_lock_timer.start(ground_slip_time)
 					is_grounded = false
 				
-				elif should_lose_grip:
+				elif floor_is_slip_angle or ground_is_ceiling:
 					#unstick from any ceilings we're on
 					if ground_is_ceiling:
 						is_grounded = false
@@ -605,11 +540,9 @@ func update_collision_rotation(rotation_angle:float, contact_point_count:int, ha
 						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
 						control_lock_timer.start(ground_slip_time)
 						#prevent immedeate "oh we're moving fast enough" upon landing
-						if slipping_direction == signf(ground_velocity):
-							ground_velocity = 0.0
+						#if slipping_direction == signf(ground_velocity):
+							#ground_velocity = 0.0
 		else: #not grounded
-			up_direction = default_up_direction
-			
 			#player can land on a ground slope if it's not too steep, and only on a ceiling slope
 			#when it *is* too steep
 			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
@@ -618,15 +551,13 @@ func update_collision_rotation(rotation_angle:float, contact_point_count:int, ha
 			#so only become grounded when both are "on the ground"
 			
 			if can_land_on_slope:
-				if ground_is_ceiling:
-					is_grounded = bool(contact_point_count) and floor_is_fall_angle
-				is_grounded = bool(contact_point_count) and will_actually_land
+				is_grounded = will_actually_land
 			else:
 				#slip if we're not on the ceiling
 				
 				if ground_is_ceiling and has_slide_collisions:
 					#stop moving vertically if we're on the ceiling
-					space_velocity.y = maxf(space_velocity.y, 0.0)
+					vertical_velocity = minf(vertical_velocity, 0.0)
 				
 				if not is_slipping:
 					is_slipping = true
@@ -643,25 +574,16 @@ func update_collision_rotation(rotation_angle:float, contact_point_count:int, ha
 		is_grounded = false
 		is_slipping = false
 		
-		#ground sensors point whichever direction the player is traveling vertically
-		#this is so that landing on the ceiling is made possible
-		if space_velocity.y >= 0:
-			collision_angle = 0
-		else:
-			collision_angle = PI #180 degrees, pointing up
-		
-		up_direction = default_up_direction
-		
 		#set sprite rotation
 		#update_air_visual_rotation()
 	
+	if is_grounded and not was_grounded:
+		land_on_ground(ground_dot, direction_dot)
+	elif not is_grounded and was_grounded:
+		enter_air()
+	
 	#sprites_set_rotation(sprite_rotation)
 	return apply_floor_snap
-
-func new_update_collision_rotation(flags:CollisionUpdateFlags) -> int:
-	var ret_flags:int = int(flags)
-	
-	return ret_flags
 
 ##Determine which animation should be playing for the player based on their physics state. 
 ##This does not include custom animations. This returns a value from [AnimationTypes].
@@ -676,7 +598,7 @@ func assess_animations() -> int:
 			return AnimationTypes.PUSH
 		# set player animations based on ground velocity
 		#These use percents to scale to the stats
-		elif not is_zero_approx(ground_velocity) or is_slipping:
+		elif not is_zero_approx(forward_velocity):
 			return AnimationTypes.RUN
 		else: #standing still
 			#not balancing on a ledge

@@ -28,6 +28,7 @@ class_name Slopeinator
 				load_collision_slope()
 		
 		queue_redraw()
+
 ##If true, the texturing for the slope will be shown in the editor. 
 ##This value does not affect it being visible in-game.
 @export var editor_show_textures:bool = true:
@@ -169,6 +170,31 @@ var background_canvas_rid:RID
 var collision_body_rid:RID
 var collision_shape_rids:Array[RID] = []
 
+##Calculate the [Rect2i] of a [PackedVector2Array] of values.
+static func calculate_curve_rect(from_array:PackedVector2Array) -> Rect2i:
+	var ret_rect2:Rect2i
+	
+	var l_top_y:float = 0.0
+	var l_left_x:float = 0.0
+	var l_bottom_y:float = 0.0
+	var l_right_x:float = 0.0
+	
+	for slope_point:Vector2 in from_array:
+		l_left_x = minf(slope_point.x, l_left_x)
+		l_right_x = maxf(slope_point.x, l_right_x)
+		l_top_y = minf(slope_point.y, l_top_y)
+		l_bottom_y = maxf(slope_point.y, l_bottom_y)
+	
+	l_top_y = floorf(l_top_y)
+	l_left_x = floorf(l_left_x)
+	l_bottom_y = ceilf(l_bottom_y)
+	l_right_x = ceilf(l_right_x)
+	
+	ret_rect2.size = Vector2i(int(absf(l_left_x) + absf(l_right_x)), int(absf(l_top_y) + absf(l_bottom_y)))
+	ret_rect2.position = Vector2i(int(l_left_x), int(l_top_y))
+	
+	return ret_rect2
+
 func _init() -> void:
 	#TODO: Update delay to reduce real-time update lag by updating less
 	#wait for changes to NOT happen for a second or two, *then* update
@@ -245,29 +271,6 @@ func _notification(what: int) -> void:
 		NOTIFICATION_DISABLED:
 			PhysicsServer2D.body_set_space(collision_body_rid, RID())
 
-func calculate_curve_rect(from_array:PackedVector2Array) -> void:
-	top_y = 0.0
-	left_x = 0.0
-	bottom_y = 0.0
-	right_x = 0.0
-	
-	for slope_point:Vector2 in from_array:
-		left_x = minf(slope_point.x, left_x)
-		right_x = maxf(slope_point.x, right_x)
-		top_y = minf(slope_point.y, top_y)
-		bottom_y = maxf(slope_point.y, bottom_y)
-	
-	top_y = floorf(top_y)
-	left_x = floorf(left_x)
-	bottom_y = ceilf(bottom_y)
-	right_x = ceilf(right_x)
-	
-	curve_rect.size.x = int(absf(left_x) + absf(right_x))
-	curve_rect.size.y = int(absf(top_y) + absf(bottom_y))
-	
-	curve_rect.position.x = int(left_x)
-	curve_rect.position.y = int(top_y)
-
 func setup_collision() -> void:
 	PhysicsServer2D.body_set_mode(collision_body_rid, PhysicsServer2D.BODY_MODE_STATIC)
 	PhysicsServer2D.body_set_collision_layer(collision_body_rid, collision_layer)
@@ -312,7 +315,7 @@ func generate_collision_slope() -> void:
 	collision_polygon_array = collision_curve.tessellate().duplicate()
 	collision_count = collision_polygon_array.size()
 	
-	calculate_curve_rect(collision_polygon_array)
+	curve_rect = calculate_curve_rect(collision_polygon_array)
 	
 	var bottom_left:Vector2 = Vector2(left_x, bottom_y)
 	var bottom_right:Vector2 = Vector2(right_x, bottom_y)
@@ -347,7 +350,7 @@ func generate_visual_slope() -> void:
 	visual_polygon_array.clear()
 	visual_polygon_array.resize(visual_point_count)
 	
-	calculate_curve_rect(in_visual_polygon_array)
+	curve_rect = calculate_curve_rect(in_visual_polygon_array)
 	
 	if floor_snap_x:
 		var prev_point:Vector2 = in_visual_polygon_array.get(0)

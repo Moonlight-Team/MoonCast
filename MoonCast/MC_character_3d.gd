@@ -94,8 +94,6 @@ var spatial_input_direction:Vector3
 ##The direction the player is facing
 var model_facing_direction:Vector3
 
-var space_velocity:Vector3
-
 var collision_rotation:Vector3
 
 ##The names of all the abilities of this character.
@@ -411,6 +409,57 @@ func update_animations(extern:int = 0) -> void:
 			anim = physics.assess_animations()
 		
 		match anim:
+			MoonCastPhysicsTable.AnimationTypes.RUN:
+				for speeds:float in anim_run_sorted_keys:
+					if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+						#They were snapped earlier, but I find that it still won't work
+						#unless I snap them here
+						play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
+						break
+			MoonCastPhysicsTable.AnimationTypes.SKID:
+				for speeds:float in anim_skid_sorted_keys:
+					if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+						
+						#correct the direction of the sprite
+						#facing_direction = -facing_direction
+						#sprites_flip()
+						
+						#They were snapped earlier, but I find that it still won't work
+						#unless I snap them here
+						play_animation(anim_skid.get(snappedf(speeds, 0.001), &"RESET"), true)
+						
+						#only play skid anim once while skidding
+						if not anim_skid.values().has(current_anim):
+							#play_sound_effect(sfx_skid_name)
+							pass
+						break
+						
+			MoonCastPhysicsTable.AnimationTypes.BALANCE:
+				#if ground_left_data.is_empty():
+					#face the ledge
+					#facing_direction = -1.0
+				#elif ground_right_data.is_empty():
+					#face the ledge
+					#facing_direction = 1.0
+				
+				#sprites_flip(false)
+				#if has_animation(anim_balance):
+				if false:
+					play_animation(anim_balance)
+				else:
+					play_animation(anim_stand)
+			MoonCastPhysicsTable.AnimationTypes.STAND:
+				if Input.is_action_pressed(controls.direction_up):
+					#TODO: Change this to be used by moving the camera up.
+					if current_anim != anim_look_up:
+						play_animation(anim_look_up)
+				else:
+					play_animation(anim_stand)
+			_:
+				pass #print("Animation: ", anim)
+
+		
+		match anim:
 			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
 				#print("Default anim")
 				play_animation(anim_stand)
@@ -454,39 +503,65 @@ func rotate_model(new_rotation:Vector3) -> void:
 	model_facing_direction = anim_model.global_rotation
 
 func update_collision_rotation() -> void:
-	const ray_count:int = 5
+	#Sidenote: I think this could be handled more efficiently with bitfields, but 
 	
-	var will_actually_land:bool = get_slide_collision_count() > 0 and not (ray_wall_forward.is_colliding() and is_on_wall_only())
+	var forward_axis_contact:bool = ray_ground_forward.is_colliding() and ray_ground_back.is_colliding()
+	var side_axis_contact:bool = ray_ground_left.is_colliding() and ray_ground_right.is_colliding()
+	var central_contact:bool = ray_ground_central.is_colliding()
 	
-	#yes I think I am very funny with naming
-	var in_ar_ray:Array[RayCast3D] = [ray_ground_back, ray_ground_forward, ray_ground_left, ray_ground_right, ray_ground_central]
-	var out_ar_ray:Array[RayCast3D] = []
-	#note: This should be unrolled in C++
+	var contact_count:int = int(central_contact)
 	
-	for arr_num:int in ray_count:
-		var current_raycast:RayCast3D = in_ar_ray[arr_num]
-		if current_raycast.is_colliding():
-			out_ar_ray.append(current_raycast)
+	if forward_axis_contact:
+		contact_count += 2
+	else:
+		contact_count += int(ray_ground_forward.is_colliding())
+		contact_count += int(ray_ground_back.is_colliding())
 	
-	if not out_ar_ray.is_empty():
+	if side_axis_contact:
+		contact_count += 2
+	else:
+		contact_count += int(ray_ground_left.is_colliding())
+		contact_count += int(ray_ground_right.is_colliding())
+	
+	if contact_count > 0:
 		#NOTE: for 3 and 4, we are assuming the central ray is one of the contacting rays.
-		match out_ar_ray.size():
+		match contact_count:
 			1:
-				if physics.is_grounded:
-					#we just ran off a ledge; don't update collision rotation
-					collision_rotation.lerp(Vector3.ZERO, 0.01)
+				if central_contact:
+					if physics.is_grounded:
+						pass
+					else:
+						#we just ran off a ledge; don't update collision rotation
+						collision_rotation.lerp(Vector3.ZERO, 0.01)
 				else:
-					#we aren't grounded; still calculate angles
-					collision_rotation = out_ar_ray[0].get_collision_normal()
+					#we aren't grounded; still calculate angles, because we may land
+					if ray_ground_forward.is_colliding():
+						collision_rotation = ray_ground_forward.get_collision_normal()
+					elif ray_ground_back.is_colliding():
+						collision_rotation = ray_ground_back.get_collision_normal()
+					elif ray_ground_left.is_colliding():
+						collision_rotation = ray_ground_left.get_collision_normal()
+					elif ray_ground_right.is_colliding():
+						collision_rotation = ray_ground_right.get_collision_normal()
 			2:
-				if ray_ground_central.is_colliding():
+				if central_contact:
 					#we are grounded, likely standing on the edge of some small fence or smth
 					collision_rotation = ray_ground_central.get_collision_normal()
-				else: #we are NOT grounded
+				elif forward_axis_contact:
+					collision_rotation = (ray_ground_forward.get_collision_normal() + ray_ground_back.get_collision_normal()) / 2.0
+				elif side_axis_contact:
+					collision_rotation = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
+				else:
+					#we are NOT grounded, because the two contacting rays do not span an axis
+					#(ie. we are on the edge of something)
 					collision_rotation.lerp(Vector3.ZERO, 0.01)
-			#3: 
-			#	pass
-			3, 4, 5:
+			3: 
+				if central_contact:
+					pass
+				else:
+					#This realistically shouldn't happen, but
+					pass
+			4, 5:
 				physics.is_balancing = false
 				
 				if physics.is_grounded:
@@ -501,10 +576,11 @@ func update_collision_rotation() -> void:
 	#TODO: Use dot product of which way the model is rotated in order to do wall checks
 	physics.update_wall_contact(ray_wall_forward.is_colliding(), is_on_wall_only())
 	
-	if physics.update_collision_rotation(get_floor_angle(up_direction), out_ar_ray.size(), get_slide_collision_count() > 0):
-		up_direction = physics.up_direction
-		collision_rotation.x = physics.collision_angle
+	if physics.new_update_collision_rotation(collision_rotation, contact_count, get_slide_collision_count() > 0):
+		print("floorsnap")
 		apply_floor_snap()
+	up_direction = physics.up_direction
+	print("aliving")
 
 func reposition_raycasts(forward_point:Vector3, back_point:Vector3, left_point:Vector3, right_point:Vector3, center:Vector3) -> void:
 	#move the raycasts horizontally to the point on their relevant axis, then
@@ -579,9 +655,9 @@ func _input(event:InputEvent) -> void:
 	camera_remote.global_transform = global_transform.rotated_local(Vector3.UP, camera_movement * camera_sensitivity.x) * camera_remote.transform
 
 func _physics_process(delta: float) -> void:
-	#new_physics_process()
+	new_physics_process()
 	#old_physics_process(delta)
-	times_physics_process(delta)
+	#times_physics_process(delta)
 
 func new_physics_process() -> void:
 	if Engine.is_editor_hint():
@@ -594,6 +670,7 @@ func new_physics_process() -> void:
 	#some calculations/checks that always happen no matter what the state
 	#velocity_direction = get_position_delta().normalized().sign()
 	
+	input_direction = Vector2.ZERO
 	spatial_input_direction = Vector3.ZERO
 	if physics.can_be_moving:
 		var raw_input_vec3:Vector3 = Vector3(
@@ -602,15 +679,11 @@ func new_physics_process() -> void:
 			Input.get_axis(controls.direction_down, controls.direction_up)
 		)
 		
-		#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
-		#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
-		
 		if not raw_input_vec3.is_zero_approx():
+			#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
+			#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
 			spatial_input_direction = (camera_remote.basis * raw_input_vec3).normalized()
-	
-	physics.space_velocity = space_velocity
-	
-	physics.input_direction = spatial_input_direction.z
+			input_direction = Vector2(spatial_input_direction.x, spatial_input_direction.z)
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -625,18 +698,15 @@ func new_physics_process() -> void:
 	
 	if not skip_builtin_states:
 		if physics.is_grounded:
-			physics.process_ground(0.0, spatial_input_direction.z)
+			physics.process_ground(up_direction.dot(collision_rotation), 0.0, input_direction)
 			#If we're still on the ground, call the state function
 			if physics.is_grounded:
 				state_ground.emit(self)
 		else:
-			physics.process_air()
+			physics.process_air(input_direction)
 			#If we're still in the air, call the state function
 			if not physics.is_grounded:
 				state_air.emit(self)
-	
-	space_velocity = physics.space_velocity
-	space_velocity.y = -space_velocity.y
 	
 	#Make the callback for physics post-calculation
 	#But this is *before* actually moving, or else it'd be nearly
@@ -644,6 +714,13 @@ func new_physics_process() -> void:
 	post_physics.emit(self)
 	
 	const physics_tick_adjust:float = 60.0
+	
+	var space_velocity:Vector3 = physics.space_velocity
+	
+	space_velocity.y = -space_velocity.y
+	
+	var converted_velocity:Vector3
+	converted_velocity.y = -physics.vertical_velocity
 	
 	velocity = camera_remote.basis * space_velocity #* physics_tick_adjust
 	
@@ -788,7 +865,7 @@ func times_physics_process(delta: float) -> void:
 		if velocity.y > 0:
 			velocity.y *= 0.5  # You can tweak this (e.g. 0.4–0.6)
 		physics.is_jumping = false  # Prevent multiple reductions
-
+	
 	else:
 		# RT roll / crouch logic (must be grounded and not spindashing)
 		if physics.is_grounded:
@@ -885,7 +962,7 @@ func times_physics_process(delta: float) -> void:
 		
 		#TODO: Make this use model rotation
 		var current_h_dir: Vector2 = current_h_velocity.normalized() if current_h_speed > 0.01 else Vector2.ZERO
-
+		
 		if current_input_direction.length() > 0.01:
 			if current_h_dir.dot(input_dir_2d) > 0:
 				# Accelerate in air toward input direction
@@ -922,9 +999,13 @@ func times_physics_process(delta: float) -> void:
 	if has_input:
 		last_input_direction = current_input_direction
 		
-		#TODO: Yaw (y axis) input is correct, x and z not so much
+		#TODO: Make Yaw (y axis) input work relative to the camera
+		#TODO: make x and z work for aligning to the floor
 		rotate_model(Vector3(floor_normal.x, atan2(spatial_input_direction.z, spatial_input_direction.x), floor_normal.z))
 	
+	times_play_animations()
+
+func times_play_animations() -> void:
 	if not physics.is_grounded:
 		if physics.is_rolling:
 			play_animation(anim_roll)
