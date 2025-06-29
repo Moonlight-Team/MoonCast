@@ -33,8 +33,8 @@ enum AnimationTypes {
 	SKID,
 }
 
-const perf_ground_velocity:StringName = &"Ground Velocity"
-const perf_ground_angle:StringName = &"Ground Angle"
+const perf_forward_velocity:StringName = &"Forward Velocity"
+const perf_vertical_velocity:StringName = &"Vertical Velocity"
 const perf_state:StringName = &"Player State"
 
 @export_group("Control Options", "control_")
@@ -42,6 +42,8 @@ const perf_state:StringName = &"Player State"
 ##3D only: The threshold of how far off from 180 degrees a joystick input has to be in 
 ##order to be counted as a full u-turn.
 @export_range(0, 180, 1.0, "rad_to_deg") var control_3d_turn_around_threshold:float = deg_to_rad(22.5)
+##3D only: The speed at which the player turns directions when not doing a full u-turn.
+@export_range(0, 180, 1.0, "rad_to_deg") var control_3d_turn_speed:float = deg_to_rad(22.5)
 @export_subgroup("Rolling Options", "control_roll_")
 ##If enabled, the player must release all directional input before being able to roll while moving.
 @export var control_roll_move_lock:bool = true
@@ -59,11 +61,9 @@ const perf_state:StringName = &"Player State"
 @export var control_jump_hold_repeat:bool = false
 
 #could also be considered "world space options"
-@export_group("General")
+@export_group("World Space Options")
 ##The absolute fastest speed the player can achieve traveling through space, no matter what.
 @export var absolute_speed_cap:Vector2 = Vector2(16.0, 16.0)
-##The default up direction for the player.
-@export var default_gravity_normal:Vector3 = Vector3.UP
 ##The percentage of the player's speed that becomes the force exerted on rigid physics 
 ##bodies in the engine when colliding with them.
 @export var physics_collision_power:float = 1.0
@@ -140,14 +140,19 @@ var control_lock_timer:Timer = Timer.new()
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
 var hold_jump_lock:bool = false
 
-##The character's current vertical velocity relative to their rotation.
+##The character's current vertical velocity relative to their rotation. This value is 
+##manipulated in a way where increases towards infinity represent upward movement, and decreases
+##towards negative infinity represent downwards movement, even in 2D.
 var vertical_velocity:float
-##The character's current forward velocity relative to their rotation.
+##The character's current velocity moving forward relative to their rotation.
 var forward_velocity:float
 ##How quickly the character is turning on the yaw axis. In 2D this value is useless
 ##unless you are using a 3D model for your player, but in 3D it's used for how fast
 ##the player is turning.
 var strafe_velocity:float
+##The character's velocity on the ground, regardless of rotation. This value is only useful when
+##[member is_grounded] is true.
+var ground_velocity:float
 
 #angle values
 
@@ -218,9 +223,9 @@ var is_slipping:bool = false
 var is_attacking:bool = false
 
 ##The name of the custom performance monitor for ground_velocity
-var self_perf_ground_vel:StringName
+var self_perf_vertical_velocity:StringName
 ##The name of the custom performance monitor for the ground angle
-var self_perf_ground_angle:StringName
+var self_perf_forward_velocity:StringName
 ##The name of the custom performance monitor for state
 var self_perf_state:StringName
 
@@ -272,16 +277,16 @@ func disconnect_timers(free:bool = false) -> void:
 	control_lock_timer = null
 
 func setup_performance_monitors(name:StringName) -> void:
-	self_perf_ground_angle = name + &"/" + perf_ground_angle
-	self_perf_ground_vel = name + &"/" + perf_ground_velocity
+	self_perf_forward_velocity = name + &"/" + perf_forward_velocity
+	self_perf_vertical_velocity = name + &"/" + perf_vertical_velocity
 	self_perf_state = name + &"/" + perf_state
-	Performance.add_custom_monitor(self_perf_ground_angle, get, [&"collision_angle"])
-	Performance.add_custom_monitor(self_perf_ground_vel, get, [&"abs_ground_velocity"])
+	Performance.add_custom_monitor(self_perf_forward_velocity, get, [&"forward_velocity"])
+	Performance.add_custom_monitor(self_perf_vertical_velocity, get, [&"vertical_velocity"])
 
 ##Clean up the custom performance monitors for the player
 func cleanup_performance_monitors() -> void:
-	Performance.remove_custom_monitor(self_perf_ground_angle)
-	Performance.remove_custom_monitor(self_perf_ground_vel)
+	Performance.remove_custom_monitor(self_perf_forward_velocity)
+	Performance.remove_custom_monitor(self_perf_vertical_velocity)
 
 func check_ground_velocity(ground_velocity:float) -> void:
 	pass
@@ -324,8 +329,7 @@ func process_air(input_vector:Vector2) -> void:
 	#only move if the player does not have the roll lock and is rolling to cause it 
 	if not control_jump_roll_lock or (control_jump_roll_lock and is_rolling):
 		#Only let the player move in midair if they aren't already at max speed
-		#if absf(space_velocity.x) < ground_top_speed or signf(space_velocity.x) != signf(input_direction):
-		if forward_velocity < ground_top_speed or Vector2(strafe_velocity, forward_velocity).dot(input_vector) > 0:
+		if forward_velocity < ground_top_speed or Vector2(strafe_velocity, forward_velocity).dot(input_vector) < 0:
 			strafe_velocity += air_acceleration * input_vector.x
 			forward_velocity += air_acceleration * input_vector.y
 	
@@ -347,11 +351,6 @@ func enter_air() -> void:
 ##floor normal. [param direction_dot] represents the dot product between the floor normal
 ##and the the direction the player is facing.
 func process_ground(ground_dot_product:float, direction_dot:float, input_vector:Vector2) -> float:
-	var ground_velocity:float
-	
-	#TODO: Figure out if the slope is uphill or downhill based on the rotation of the model
-	#var slope_direction:Vector3 = (-default_gravity_normal).bounce(collision_rotation)
-	
 	#Calculate movement based on the mode
 	if is_rolling:
 		#Calculate rolling
@@ -409,7 +408,6 @@ func process_ground(ground_dot_product:float, direction_dot:float, input_vector:
 ##Run processes for properly landing on the ground. 
 ##[param ground_dot] is the dot product between the ground normal and gravity normal.
 func land_on_ground(ground_dot:float, direction_dot:float) -> void:
-	var ground_velocity:float
 	
 	#Transfer space_velocity to ground_velocity
 	#TODO: applied_ground speed using cross/dot product math for working in 3d
@@ -431,7 +429,7 @@ func land_on_ground(ground_dot:float, direction_dot:float) -> void:
 	
 	#begin control lock timer
 	if not control_lock_timer.timeout.get_connections().is_empty() and control_lock_timer.is_stopped():
-		#ground_velocity += air_gravity_strength * sin(collision_angle)
+		ground_velocity += air_gravity_strength * ground_dot
 		control_lock_timer.start(ground_slip_time)
 	
 	#if Input.is_action_pressed(controls.action_jump) and not control_jump_hold_repeat:
@@ -439,7 +437,6 @@ func land_on_ground(ground_dot:float, direction_dot:float) -> void:
 	
 	#if they were landing from a jump, clean up jump stuff
 	if is_jumping:
-		#is_jumping = false
 		can_jump = false
 		
 		#we use a timer to make sure the player can't spam the jump
@@ -454,6 +451,7 @@ func land_on_ground(ground_dot:float, direction_dot:float) -> void:
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 
 ##player is facing and the normal of the wall.
 func update_wall_contact(wall_dot:float, is_on_wall_only:bool) -> void:
+	#TODO: Configurable angle
 	const wall_angle:float = deg_to_rad(80.0)
 	
 	var was_pushing:bool = is_pushing
@@ -490,17 +488,12 @@ func update_collision_rotation(ground_dot:float, direction_dot:float, contact_pe
 	if contact_percentage > 0.0:
 		#ceiling checks
 		
-		const deg_90_rad:float = PI / 2.0
-		
 		#if the player is on what would be considered the ceiling
 		var ground_is_ceiling:bool = ground_dot < 0
 		
 		#(x / deg_to_rad(90.0)) converts the slip angle to a value between 0 and 1. Since the dot 
 		#product is between 0 and 1 if it's facing the same direction, and between -1 and 0 if it 
 		#isn't, this allows us to quickly check the angle of the floor for slip/fall checks
-		
-		printt(ground_fall_angle / deg_to_rad(90.0), ground_slip_angle / deg_to_rad(90.0))
-		
 		floor_is_fall_angle = ground_dot < (ground_fall_angle / deg_to_rad(90.0))
 		floor_is_slip_angle = ground_dot < (ground_slip_angle / deg_to_rad(90.0))
 		
@@ -508,8 +501,8 @@ func update_collision_rotation(ground_dot:float, direction_dot:float, contact_pe
 		
 		if is_grounded:
 			#traveling fast enough to be traveling on any angle of floor
-			#if absf(forward_velocity) > ground_stick_speed and contact_point_count > 1:
-			if absf(forward_velocity) > ground_stick_speed and contact_percentage > 0.5:
+			#if ground_velocity > ground_stick_speed and contact_point_count > 1:
+			if ground_velocity > ground_stick_speed and contact_percentage > 0.5:
 				#in this situation, they only need to be in range of the ground to be grounded
 				is_grounded = true
 				
@@ -541,19 +534,18 @@ func update_collision_rotation(ground_dot:float, direction_dot:float, contact_pe
 						control_lock_timer.start(ground_slip_time)
 						#prevent immedeate "oh we're moving fast enough" upon landing
 						#if slipping_direction == signf(ground_velocity):
-							#ground_velocity = 0.0
+						if direction_dot < 0:
+							ground_velocity = 0.0
 		else: #not grounded
-			#player can land on a ground slope if it's not too steep, and only on a ceiling slope
-			#when it *is* too steep
-			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
-			
-			#the raycasts will find the ground before the CharacterBody hitbox does, 
-			#so only become grounded when both are "on the ground"
-			
-			if can_land_on_slope:
+			#player can land on a regular ground slope if it's *not* too steep, and 
+			#only on a ceiling slope when it *is* too steep.
+			if ground_is_ceiling == floor_is_fall_angle:
+				#the raycasts will find the ground before the CharacterBody hitbox does, 
+				#so only become grounded when both are "on the ground"
 				is_grounded = will_actually_land
 			else:
 				#slip if we're not on the ceiling
+				
 				
 				if ground_is_ceiling and has_slide_collisions:
 					#stop moving vertically if we're on the ceiling

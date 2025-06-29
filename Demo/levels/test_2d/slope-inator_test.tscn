@@ -84,7 +84,7 @@ repeat_times = 8
 scale = Vector2(4, 4)
 texture = ExtResource("1_vra77")
 
-[node name="Path2D" type="Path2D" parent="."]
+[node name="Slope-inator" type="Path2D" parent="."]
 position = Vector2(1, 0)
 rotation = -0.00183384
 curve = SubResource("Curve2D_sg8w8")

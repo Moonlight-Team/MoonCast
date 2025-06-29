@@ -163,6 +163,7 @@ var ground_center_target:Vector2 = Vector2.ZERO
 
 var facing_direction:Vector2
 var ground_normal:Vector2
+var ground_velocity:float
 
 var self_old:MoonCastPlayer2D = MoonCastPlayer2D.new()
 
@@ -220,27 +221,33 @@ func _physics_process(delta: float) -> void:
 	
 	if not skip_builtin_states:
 		if physics.is_grounded:
-			#This represents the direction of the vector (direction) of gravity
-			#when bounced off the ground.
+			#This represents the dot product between the ground normal and the gravity 
+			#normal. This allows for effectively telling the steepness of the slope relative to
+			#the direction of gravity.
+			var ground_dot:float = ground_normal.dot(default_up_direction)
 			
 			#This represents the dot product between the direction the player is facing and
-			#the way that the slope is going, for determining uphill/downhill
+			#the normal of the slope, for determining if the current slope is considered
+			#"uphill" or "downhill"
 			var facing_dot:float = facing_direction.dot(ground_normal)
 			
-			printt(ground_normal.dot(-default_up_direction), sin(ground_normal.angle()))
-			
-			var ground_velocity:float = physics.process_ground(ground_normal.dot(-default_up_direction), facing_dot, Vector2(0.0, input_dir))
+			ground_velocity += physics.process_ground(ground_dot, facing_dot, Vector2(0.0, input_dir))
 			
 			velocity = Vector2.from_angle(ground_normal.angle())
 			
 			#If we're still on the ground, call the state function
 			if physics.is_grounded:
 				state_ground.emit(self_old)
+			else:
+				pass
 		else:
 			physics.process_air(Vector2(0.0, input_dir))
 			#If we're still in the air, call the state function
 			if not physics.is_grounded:
 				state_air.emit(self_old)
+			else:
+				ground_velocity = land_on_ground()
+	
 	#Make the callback for physics post-calculation
 	#But this is *before* actually moving, or else it'd be nearly
 	#the same as pre_physics
@@ -268,6 +275,10 @@ func _notification(what: int) -> void:
 		NOTIFICATION_CHILD_ORDER_CHANGED:
 			scan_children()
 			update_configuration_warnings()
+		NOTIFICATION_ENTER_TREE:
+			physics.setup_performance_monitors(name)
+		NOTIFICATION_EXIT_TREE:
+			physics.cleanup_performance_monitors()
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings:PackedStringArray = []
@@ -608,13 +619,9 @@ func update_collision_rotation() -> void:
 	ray_query.to = global_position + ground_center_target
 	ground_center_data = space.intersect_ray(ray_query)
 	
-	var wall_colliding:bool = not wall_data.is_empty()
 	var ground_left_colliding:bool = not ground_left_data.is_empty()
 	var ground_right_colliding:bool = not ground_right_data.is_empty()
 	var ground_center_colliding:bool = not ground_center_data.is_empty()
-	
-	#figure out if we've hit a wall
-	physics.update_wall_contact(wall_colliding, is_on_wall_only())
 	
 	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
@@ -693,16 +700,18 @@ func update_collision_rotation() -> void:
 					ground_normal = (left_normal + right_normal) / 2.0
 	
 	ground_normal = ground_normal.normalized()
-	#TODO: Proper exposed var
-	var gravity_normal:Vector2 = Vector2.UP
 	
-	var ground_dot:float = gravity_normal.dot(ground_normal)
-	#This will be > 0 if the player is looking downhill and < 0 if the player is looking uphill.
+	#figure out if we've hit a wall
+	physics.update_wall_contact(ground_normal.dot(wall_data.get("normal", ground_normal)), is_on_wall_only())
+	
+	var ground_dot:float = default_up_direction.dot(ground_normal)
+	#This will be > 0 if the player is looking downhill, 0 if the player is on even ground (slope won't
+	#matter), and < 0 if the player is looking uphill.
 	var direction_dot:float = facing_direction.dot(ground_normal)
 	
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
-	var will_actually_land:bool = get_slide_collision_count() > 0 and not (wall_colliding and is_on_wall_only())
+	var will_actually_land:bool = get_slide_collision_count() > 0 # and not (not wall_data.is_empty() and is_on_wall_only())
 	
 	if physics.update_collision_rotation(ground_dot, direction_dot, contact_point_count / 3.0, will_actually_land):
 		#up_direction is set so that floor snapping can be used for walking on walls. 
@@ -712,9 +721,17 @@ func update_collision_rotation() -> void:
 	else:
 		#up_direction should be set to the direction of gravity, which will 
 		#unstick the player from any walls they were on
-		up_direction = Vector2(physics.default_gravity_normal.z, physics.default_gravity_normal.y)
+		up_direction = default_up_direction
 	
 	#sprites_set_rotation(sprite_rotation)
+
+func enter_air() -> Vector2:
+	return Vector2.ZERO
+
+func land_on_ground() -> float:
+	var applied_ground_speed:Vector2 = Vector2.from_angle(ground_normal.angle()) 
+	applied_ground_speed *= Vector2(physics.forward_velocity, -physics.vertical_velocity)
+	return applied_ground_speed.x + applied_ground_speed.y
 
 func reposition_raycasts(left_corner:Vector2, right_corner:Vector2, center:Vector2 = (left_corner + right_corner) / 2.0) -> void:
 	var ground_safe_margin:int = int(floor_snap_length)

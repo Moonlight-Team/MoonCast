@@ -322,6 +322,8 @@ var collision_rotation:float:
 			raycast_wheel.rotation = new_rot
 		else:
 			rotation = new_rot
+var collision_normal:Vector2
+
 ##Collision rotation in global units.
 var global_collision_rotation:float:
 	get:
@@ -771,7 +773,8 @@ func process_air() -> void:
 
 ##Process the player's ground physics
 func process_ground() -> void:
-	var sine_ground_angle:float = sin(collision_rotation)
+	var sine_ground_angle:float = collision_normal.dot(Vector2.RIGHT)
+	
 	
 	#Calculate movement based on the mode
 	if is_rolling:
@@ -780,7 +783,6 @@ func process_ground() -> void:
 		
 		#apply slope factors
 		if is_zero_approx(collision_rotation): #If we're on level ground
-			
 			#If we're also moving at all
 			ground_velocity -= physics.rolling_flat_factor * facing_direction
 			
@@ -891,18 +893,12 @@ func process_ground() -> void:
 		hold_jump_lock = hold_jump_lock and Input.is_action_pressed(controls.action_jump)
 		#player can jump when the hold jump lock is not active
 	
-	#This is a shorthand for Vector2(cos(collision_rotation), sin(collision_rotation))
-	#we need to calculate this before we leave the ground, becuase collision_rotation
-	#is reset when we do
-	var rotation_vector:Vector2 = Vector2.from_angle(collision_rotation)
-	
 	#Check if the player wants to (and can) jump
 	if Input.is_action_pressed(controls.action_jump) and can_jump:
 		is_jumping = true
 		jump.emit(self)
 		#Add velocity to the jump
-		space_velocity.x += physics.jump_velocity * rotation_vector.y
-		space_velocity.y -= physics.jump_velocity * rotation_vector.x
+		space_velocity += collision_normal * physics.jump_velocity
 		
 		is_grounded = false
 		
@@ -917,7 +913,11 @@ func process_ground() -> void:
 			is_attacking = not  physics.control_jump_is_vulnerable
 	else:
 		#apply the ground velocity to the "actual" velocity
-		space_velocity = ground_velocity * rotation_vector
+		
+		#This is a shorthand for Vector2(cos(collision_rotation), sin(collision_rotation))
+		#we need to calculate this before we leave the ground, becuase collision_rotation
+		#is reset when we do
+		space_velocity = ground_velocity * Vector2.from_angle(collision_rotation)
 
 ##Runs checks on being able to roll and returns the new value of [member can_roll].
 func roll_checks() -> bool:
@@ -941,7 +941,7 @@ func roll_checks() -> bool:
 ##A function that is called when the player enters the air from
 ##previously being on the ground.
 func enter_air() -> void:
-	collision_rotation = 0.0
+	collision_normal = default_up_direction
 	up_direction = default_up_direction
 	
 	contact_air.emit(self)
@@ -1009,9 +1009,6 @@ func update_collision_rotation() -> void:
 					ground_velocity = minf(ground_velocity, 0.0)
 				else:
 					space_velocity.x = minf(space_velocity.x, 0.0)
-			
-		
-		
 		
 		if not was_pushing and is_pushing:
 			contact_wall.emit(self)
@@ -1040,7 +1037,7 @@ func update_collision_rotation() -> void:
 					#slope but too slowly to actually "launch". If we do nothing in this scenario,
 					#it can cause an odd situation where the player is stuck on the ground but at 
 					#the angle that they launched at, which is not good.
-					collision_rotation = lerp_angle(collision_rotation, 0, 0.01)
+					collision_normal = collision_normal.lerp(default_up_direction, 0.01)
 				else:
 					#Don't update rotation if we were already grounded. This allows for 
 					#slope launch physics while retaining slope landing physics, by eliminating
@@ -1048,69 +1045,63 @@ func update_collision_rotation() -> void:
 					#launching off a slope
 					
 					if ray_ground_left.is_colliding():
-						collision_rotation = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
+						collision_normal = ray_ground_left.get_collision_normal()
 						facing_direction = 1.0 #slope is to the left, face right
 					elif ray_ground_right.is_colliding():
-						collision_rotation = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
+						collision_normal = ray_ground_right.get_collision_normal()
 						facing_direction = -1.0 #slope is to the right, face left
 			2:
 				is_balancing = false
-				var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-				var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
 				
 				if ray_ground_left.is_colliding() and ray_ground_right.is_colliding():
-					collision_rotation = (right_angle + left_angle) / 2.0
+					collision_normal = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
 				#in these next two cases, the other contact point is the center
 				elif ray_ground_left.is_colliding():
-					collision_rotation = left_angle
+					collision_normal = ray_ground_left.get_collision_normal()
 				elif ray_ground_right.is_colliding():
-					collision_rotation = right_angle
+					collision_normal = ray_ground_right.get_collision_normal()
 			3:
 				is_balancing = false
 				
 				if is_grounded:
 					apply_floor_snap()
-					var gnd_angle:float = limitAngle(get_floor_normal().rotated(-deg_to_rad(270.0)).angle())
-					
+				
 					#make sure the player can't merely run into anything in front of them and 
 					#then walk up it. This check also prevents the player from flying off sudden 
 					#obtuse landscape curves
-					if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(floor_max_angle) and not is_on_wall()):
-						collision_rotation = gnd_angle
+					
+					if get_floor_normal().dot(collision_normal) > (absf(floor_max_angle) / PI):
+						collision_normal = get_floor_normal()
 				
 				else:
 					#the CharacterBody2D system has no idea what the ground normal is when its
 					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
 					#we use the raycasts. 
 					
-					var left_angle:float = limitAngle(-atan2(ray_ground_left.get_collision_normal().x, ray_ground_left.get_collision_normal().y) - PI)
-					var right_angle:float = limitAngle(-atan2(ray_ground_right.get_collision_normal().x, ray_ground_right.get_collision_normal().y) - PI)
-					
-					collision_rotation = (right_angle + left_angle) / 2.0
+					collision_normal = ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()
+					collision_normal /= 2.0
+		
+		collision_rotation = limitAngle(-atan2(collision_normal.x, collision_normal.y) - PI)
+		collision_normal = collision_normal.normalized()
 		
 		#ceiling checks
 		
 		const deg_90_rad:float = PI / 2.0
+		var ground_dot:float = collision_normal.dot(default_up_direction)
 		
 		#if the player is on what would be considered the ceiling
-		var ground_is_ceiling:bool = collision_rotation > deg_90_rad or collision_rotation < -(deg_90_rad)
+		var ground_is_ceiling:bool = ground_dot < 0
+		
+		#TODO: Compute these once, not every frame
+		var fall_dot:float = Vector2.from_angle(physics.ground_fall_angle).normalized().dot(default_up_direction)
+		var slip_dot:float = Vector2.from_angle(physics.ground_slip_angle).normalized().dot(default_up_direction) #"isn't slipdot that one metal band"
 		
 		if ground_is_ceiling:
-			#TODO: Optimize this section
-			
-			var adjusted_col_rot:float = fmod(collision_rotation, deg_90_rad)
-			#false on shallow angles going up and right. Otherwise true.
-			var rightward_steep_check:bool = adjusted_col_rot > (-deg_90_rad + floor_max_angle)
-			#false on shallow angles going up and left. Otherwise true.
-			var leftward_steep_check:bool = adjusted_col_rot < (deg_90_rad - floor_max_angle)
-			
-			#We make sure the angle is steep. We also check for it being near 0 because otherwise,
-			#nearly/entirely flat ceilings will pass the check.
-			floor_is_fall_angle = leftward_steep_check and rightward_steep_check and not is_zero_approx(adjusted_col_rot)
-			floor_is_slip_angle = floor_is_fall_angle or (adjusted_col_rot < (deg_90_rad - physics.ground_slip_angle) and adjusted_col_rot > (-deg_90_rad + physics.ground_slip_angle))
+			floor_is_fall_angle = ground_dot > fall_dot
+			floor_is_slip_angle = floor_is_fall_angle or ground_dot > fall_dot
 		else:
-			floor_is_fall_angle = collision_rotation > floor_max_angle or collision_rotation < -floor_max_angle
-			floor_is_slip_angle = floor_is_fall_angle or (collision_rotation > physics.ground_slip_angle or collision_rotation < -physics.ground_slip_angle)
+			floor_is_fall_angle = ground_dot < -fall_dot
+			floor_is_slip_angle = floor_is_fall_angle or ground_dot < - slip_dot
 		
 		#slip checks
 		
@@ -1120,7 +1111,7 @@ func update_collision_rotation() -> void:
 		if is_grounded:
 			if fast_enough:
 				#up_direction is set so that floor snapping can be used for walking on walls. 
-				up_direction = Vector2.from_angle(collision_rotation - deg_to_rad(90.0))
+				up_direction = collision_normal
 				
 				#in this situation, they only need to be in range of the ground to be grounded
 				is_grounded = in_ground_range
@@ -1355,11 +1346,11 @@ func update_ground_visual_rotation() -> void:
 				sprite_rotation = rotation_snap
 			else:
 				var actual_rotation_speed:float = rotation_adjustment_speed
-					
+				
 				var rotation_difference:float = angle_difference(sprite_rotation, collision_rotation)
-					
-					#multiply the rotation speed so that it rotates faster when it needs to "catch up"
-					#to more extreme changes in angle
+				
+				#multiply the rotation speed so that it rotates faster when it needs to "catch up"
+				#to more extreme changes in angle
 				if rotation_difference > rotation_snap_interval:
 					sprite_rotation = collision_rotation
 				elif rotation_difference > (half_rot_snap):
@@ -1478,6 +1469,8 @@ func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	
+	update_collision_rotation()
+	
 	#reset this flag specifically
 	animation_set = false
 	
@@ -1572,5 +1565,3 @@ func _physics_process(_delta: float) -> void:
 				ground_velocity = 0.0
 	
 	update_animations()
-	
-	update_collision_rotation()
