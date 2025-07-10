@@ -19,6 +19,9 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var controls:MoonCastControlSettings = MoonCastControlSettings.new()
 ##The default direction of gravity.
 @export var default_up_direction:Vector2 = Vector2.UP
+##An arbitrary scaler applied to all physics values before being applied in order to scale
+##them to any sized game scale.
+@export var spatial_scale:float = 60.0
 
 @export_group("Rotation", "rotation_")
 ##If this is true, collision boxes of the character will not rotate based on 
@@ -109,13 +112,6 @@ var sfx_player_res:AudioStreamPolyphonic = AudioStreamPolyphonic.new()
 
 var sfx_playback_ref:AudioStreamPlaybackPolyphonic
 
-##The timer for the player's ability to jump after landing.
-var jump_timer:Timer = Timer.new()
-##The timer for the player's ability to move directionally.
-var control_lock_timer:Timer = Timer.new()
-##The timer for the player to be able to stick to the floor.
-var ground_snap_timer:Timer = Timer.new()
-
 ##Custom states for the character. This is a list of Abilities that have registered 
 ##themselves as a state ability, which can implement an entirely new state for the player.
 var state_abilities:Array[StringName]
@@ -143,6 +139,31 @@ var def_ray_gnd_center:Vector2
 ##The default shape of the visiblity notifier.
 var def_vis_notif_shape:Rect2
 
+##A central node around which all the raycasts rotate.
+var raycast_wheel:Node2D = Node2D.new()
+##The left ground raycast, used for determining balancing and rotation.
+##[br]
+##Its position is based on the farthest down and left [CollisionShape2D] shape that 
+##is a child of the player (ie. it is not going to account for collision shapes that
+##aren't going to touch the ground due to other lower shapes), and it points to that 
+##shape's lowest reaching y value, plus [floor_snap_length] into the ground.
+var ray_ground_left:RayCast2D = RayCast2D.new()
+##The right ground raycast, used for determining balancing and rotation.
+##Its position and target_position are determined the same way ray_ground_left.position
+##are, but for rightwards values.
+var ray_ground_right:RayCast2D = RayCast2D.new()
+##The central raycast, used for balancing. This is based on the central point values 
+##between ray_ground_left and ray_ground_right.
+var ray_ground_central:RayCast2D = RayCast2D.new()
+##The left wall raycast. Used for detecting running into a "wall" relative to the 
+##player's rotation
+var ray_wall_left:RayCast2D = RayCast2D.new()
+##The right wall raycast. Used for detecting running into a "wall" relative to the 
+##player's rotation
+var ray_wall_right:RayCast2D = RayCast2D.new()
+
+
+
 var ray_query:PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
 var wall_data:Dictionary
 var ground_left_data:Dictionary
@@ -162,8 +183,14 @@ var ground_right_target:Vector2 = Vector2.ZERO
 var ground_center_target:Vector2 = Vector2.ZERO
 
 var facing_direction:Vector2
+##This is the ground normal. Meaning, this vector points directly up/out compared to
+##the ground. So, on level ground, it would point straight up, on a 90 degree slope
+##it points horizontally, etc.
 var ground_normal:Vector2
-var ground_velocity:float
+##This represents the dot product between the ground normal and the gravity 
+##normal. This allows for effectively telling the steepness of the slope relative to
+##the direction of gravity.
+var ground_dot:float
 
 var self_old:MoonCastPlayer2D = MoonCastPlayer2D.new()
 
@@ -190,111 +217,6 @@ signal contact_air(player:MoonCastPlayer2D)
 signal state_ground(player:MoonCastPlayer2D)
 ##Emitted every frame when the player is in the air
 signal state_air(player:MoonCastPlayer2D)
-
-func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		return
-	
-	update_collision_rotation()
-	
-	#reset this flag specifically
-	animation_set = false
-	pre_physics.emit(self_old)
-	
-	var input_dir:float = Input.get_axis(controls.direction_left, controls.direction_right)
-	
-	if physics.can_be_moving:
-		input_dir = Input.get_axis(controls.direction_left, controls.direction_right)
-	
-	var skip_builtin_states:bool = false
-	#Check for custom abilities
-	if not state_abilities.is_empty():
-		for customized_states:StringName in state_abilities:
-			var state_node:MoonCastAbility = get_node(NodePath(customized_states))
-			#If the state returns false, that means it has requested a skip in the
-			#regular state processing
-			if not state_node._custom_state_2D(self_old):
-				skip_builtin_states = true
-				break
-	
-	velocity = Vector2.ZERO
-	
-	if not skip_builtin_states:
-		if physics.is_grounded:
-			#This represents the dot product between the ground normal and the gravity 
-			#normal. This allows for effectively telling the steepness of the slope relative to
-			#the direction of gravity.
-			var ground_dot:float = ground_normal.dot(default_up_direction)
-			
-			#This represents the dot product between the direction the player is facing and
-			#the normal of the slope, for determining if the current slope is considered
-			#"uphill" or "downhill"
-			var facing_dot:float = facing_direction.dot(ground_normal)
-			
-			ground_velocity += physics.process_ground(ground_dot, facing_dot, Vector2(0.0, input_dir))
-			
-			velocity = Vector2.from_angle(ground_normal.angle())
-			
-			#If we're still on the ground, call the state function
-			if physics.is_grounded:
-				state_ground.emit(self_old)
-			else:
-				pass
-		else:
-			physics.process_air(Vector2(0.0, input_dir))
-			#If we're still in the air, call the state function
-			if not physics.is_grounded:
-				state_air.emit(self_old)
-			else:
-				ground_velocity = land_on_ground()
-	
-	#Make the callback for physics post-calculation
-	#But this is *before* actually moving, or else it'd be nearly
-	#the same as pre_physics
-	post_physics.emit(self_old)
-	
-	const physics_adjust:float = 60.0
-	
-	velocity += Vector2(physics.forward_velocity, -physics.vertical_velocity)
-	
-	velocity *= physics_adjust
-	
-	move_and_slide()
-	
-	update_animations()
-
-func _notification(what: int) -> void:
-	match what:
-		NOTIFICATION_DRAW:
-			if is_visible_in_tree() and (get_tree().debug_collisions_hint or Engine.is_editor_hint()):
-				draw_debug_info()
-		NOTIFICATION_READY:
-			setup_internal_children()
-			scan_children()
-			setup_collision()
-		NOTIFICATION_CHILD_ORDER_CHANGED:
-			scan_children()
-			update_configuration_warnings()
-		NOTIFICATION_ENTER_TREE:
-			physics.setup_performance_monitors(name)
-		NOTIFICATION_EXIT_TREE:
-			physics.cleanup_performance_monitors()
-
-func _get_configuration_warnings() -> PackedStringArray:
-	var warnings:PackedStringArray = []
-	
-	#If we have an AnimatedSprite2D, not having the other two doesn't matter
-	if not is_instance_valid(node_animated_sprite_2d):
-		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
-		#but having both is optional. Therefore, only warn about the lack of the latter
-		#if one of the two for the former is missing.
-		if is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animation_player):
-			warnings.append("Using Sprite2D mode: No AnimationPlayer found. Please add one, or an AnimatedSprite2D.")
-		elif is_instance_valid(node_animation_player) and not is_instance_valid(node_sprite_2d):
-			warnings.append("Using Sprite2D mode: No Sprite2D child found. Please add one, or an AnimatedSprite2D.")
-		elif not is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animation_player):
-			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
-	return warnings
 
 func draw_debug_info() -> void:
 	#draw the collision shape
@@ -379,9 +301,19 @@ func scan_children() -> void:
 			push_error("No AnimatedSprite2D found for ", name)
 
 func setup_internal_children() -> void:
-	add_child(jump_timer)
-	add_child(control_lock_timer)
-	physics.connect_timers(jump_timer, control_lock_timer)
+	#Add the raycasts to the scene
+	raycast_wheel.name = "Raycast Rotator"
+	add_child(raycast_wheel)
+	ray_ground_left.name = "RayGroundLeft"
+	raycast_wheel.add_child(ray_ground_left)
+	ray_ground_right.name = "RayGroundRight"
+	raycast_wheel.add_child(ray_ground_right)
+	ray_ground_central.name = "RayGroundCentral"
+	raycast_wheel.add_child(ray_ground_central)
+	ray_wall_left.name = "RayWallLeft"
+	raycast_wheel.add_child(ray_wall_left)
+	ray_wall_right.name = "RayWallRight"
+	raycast_wheel.add_child(ray_wall_right)
 	
 	sfx_player.name = "SoundEffectPlayer"
 	add_child(sfx_player)
@@ -443,6 +375,18 @@ func setup_collision() -> void:
 	def_ray_right_corner = ground_right_corner
 	
 	def_ray_gnd_center = (ground_left_corner + ground_right_corner) / 2.0
+	
+	def_ray_left_corner = ground_left_corner
+	ray_ground_left.collision_mask = collision_mask
+	ray_ground_left.add_exception(self)
+	
+	def_ray_right_corner = ground_right_corner
+	ray_ground_right.collision_mask = collision_mask
+	ray_ground_right.add_exception(self)
+	
+	def_ray_gnd_center = (ground_left_corner + ground_right_corner) / 2.0
+	ray_ground_central.collision_mask = collision_mask
+	ray_ground_central.add_exception(self)
 	
 	add_child(onscreen_checker)
 	onscreen_checker.name = "VisiblityChecker"
@@ -592,9 +536,8 @@ func update_animations() -> void:
 func sprites_flip(something:bool = true) -> void:
 	pass
 
-#this is likely the most complicated part of this whole codebase LOL
-##Update collision and rotation.
-func update_collision_rotation() -> void:
+##Update the internal raycasts for the player.
+func refresh_raycasts() -> int:
 	#update the state data of all our raycasts
 	var space:PhysicsDirectSpaceState2D = PhysicsServer2D.space_get_direct_state(PhysicsServer2D.body_get_space(get_rid()))
 	
@@ -622,6 +565,15 @@ func update_collision_rotation() -> void:
 	var ground_left_colliding:bool = not ground_left_data.is_empty()
 	var ground_right_colliding:bool = not ground_right_data.is_empty()
 	var ground_center_colliding:bool = not ground_center_data.is_empty()
+	
+	#TODO: Make the direct raycasts work again
+	ground_left_colliding = ray_ground_left.is_colliding()
+	ground_left_data.set("normal", ray_ground_left.get_collision_normal())
+	ground_center_colliding = ray_ground_central.is_colliding()
+	ground_center_data.set("normal", ray_ground_central.get_collision_normal())
+	ground_right_colliding = ray_ground_right.is_colliding()
+	ground_right_data.set("normal", ray_ground_right.get_collision_normal())
+	
 	
 	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
@@ -682,8 +634,6 @@ func update_collision_rotation() -> void:
 					var wall_normal:Vector2 = wall_data.get("normal", ground_normal)
 					var wall_comparison:float = rad_to_deg(floor_max_angle) / 90.0 #TODO: better system
 					
-					#var gnd_angle:float = limitAngle(ground_normal.rotated(-deg_to_rad(270.0)).angle())
-					
 					#if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(floor_max_angle) and not is_on_wall()):
 					if ground_normal.dot(new_ground_normal) < wall_comparison:
 						#collision_rotation = gnd_angle
@@ -701,10 +651,17 @@ func update_collision_rotation() -> void:
 	
 	ground_normal = ground_normal.normalized()
 	
+	return contact_point_count
+
+#this is likely the most complicated part of this whole codebase LOL
+##Update collision and rotation.
+func update_collision_rotation() -> void:
+	refresh_raycasts()
+	
 	#figure out if we've hit a wall
 	physics.update_wall_contact(ground_normal.dot(wall_data.get("normal", ground_normal)), is_on_wall_only())
 	
-	var ground_dot:float = default_up_direction.dot(ground_normal)
+	ground_dot = default_up_direction.dot(ground_normal)
 	#This will be > 0 if the player is looking downhill, 0 if the player is on even ground (slope won't
 	#matter), and < 0 if the player is looking uphill.
 	var direction_dot:float = facing_direction.dot(ground_normal)
@@ -712,6 +669,8 @@ func update_collision_rotation() -> void:
 	#This check is made so that the player does not prematurely enter the ground state as soon
 	# as the raycasts intersect the ground
 	var will_actually_land:bool = get_slide_collision_count() > 0 # and not (not wall_data.is_empty() and is_on_wall_only())
+	
+	var contact_point_count:float = 1.0
 	
 	if physics.update_collision_rotation(ground_dot, direction_dot, contact_point_count / 3.0, will_actually_land):
 		#up_direction is set so that floor snapping can be used for walking on walls. 
@@ -747,7 +706,313 @@ func reposition_raycasts(left_corner:Vector2, right_corner:Vector2, center:Vecto
 	ground_center_origin.x = center.x
 	ground_center_target.y = center.y + ground_safe_margin
 	
+	#move the raycast horizontally to point down to the corner
+	ray_ground_left.position.x = left_corner.x
+	#point the raycast down to the corner, and then beyond that by the margin
+	ray_ground_left.target_position.y = left_corner.y + ground_safe_margin
+	
+	ray_ground_right.position.x = right_corner.x
+	ray_ground_right.target_position.y = right_corner.y + ground_safe_margin
+	
+	ray_ground_central.position.x = center.x
+	ray_ground_central.target_position.y = center.y + ground_safe_margin
+	
 	#TODO: Place these better; they should be targeting the x pos of the absolute
 	#farthest horizontal collision boxes, not only the ground-valid boxes
 	wall_left_target.x = left_corner.x - 1
 	wall_right_target.x = right_corner.x + 1
+
+func legacy_physics_process() -> void:
+	update_collision_rotation()
+	
+	#reset this flag specifically
+	animation_set = false
+	pre_physics.emit(self_old)
+	
+	var input_dir:float = Input.get_axis(controls.direction_left, controls.direction_right)
+	
+	if physics.can_be_moving:
+		input_dir = Input.get_axis(controls.direction_left, controls.direction_right)
+	
+	var skip_builtin_states:bool = false
+	#Check for custom abilities
+	if not state_abilities.is_empty():
+		for customized_states:StringName in state_abilities:
+			var state_node:MoonCastAbility = get_node(NodePath(customized_states))
+			#If the state returns false, that means it has requested a skip in the
+			#regular state processing
+			if not state_node._custom_state_2D(self_old):
+				skip_builtin_states = true
+				break
+	
+	velocity = Vector2.ZERO
+	
+	if not skip_builtin_states:
+		if physics.is_grounded:
+			#This represents the dot product between the ground normal and the gravity 
+			#normal. This allows for effectively telling the steepness of the slope relative to
+			#the direction of gravity.
+			ground_dot = ground_normal.dot(default_up_direction)
+			
+			#This represents the dot product between the direction the player is facing and
+			#the normal of the slope, for determining if the current slope is considered
+			#"uphill" or "downhill"
+			var facing_dot:float = facing_direction.dot(ground_normal)
+			
+			#ground_velocity += physics.process_ground(ground_dot, facing_dot, Vector2(0.0, input_dir))
+			
+			velocity = Vector2.from_angle(ground_normal.angle())
+			
+			#If we're still on the ground, call the state function
+			if physics.is_grounded:
+				state_ground.emit(self_old)
+			else:
+				pass
+		else:
+			physics.process_air(Vector2(0.0, input_dir))
+			#If we're still in the air, call the state function
+			if not physics.is_grounded:
+				state_air.emit(self_old)
+			else:
+				#ground_velocity = land_on_ground()
+				pass
+	
+	#Make the callback for physics post-calculation
+	#But this is *before* actually moving, or else it'd be nearly
+	#the same as pre_physics
+	post_physics.emit(self_old)
+	
+	const physics_adjust:float = 60.0
+	
+	velocity += Vector2(physics.forward_velocity, -physics.vertical_velocity)
+	
+	velocity *= physics_adjust
+	
+	move_and_slide()
+	
+	update_animations()
+
+func new_physics_process(delta:float) -> void:
+	
+	#reset this flag specifically
+	animation_set = false
+	physics.tick_down_timers(delta)
+	
+	#poll input
+	var input_dir:float = Input.get_axis(controls.direction_left, controls.direction_right)
+	var input_vector:Vector2 = Vector2(
+		0.0,
+		input_dir #The physics table functions use y axis for forward.
+	)
+	
+	var jump_pressed:bool = Input.is_action_pressed(controls.action_jump)
+	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
+	var has_input:bool = not is_zero_approx(input_dir)
+	
+	#emit pre-physics before running any state functions
+	pre_physics.emit(self_old)
+	
+	var run_custom_state:bool = false
+	var custom_state_node:MoonCastAbility
+	
+	#Check for custom abilities
+	if not state_abilities.is_empty():
+		for customized_states:StringName in state_abilities:
+			custom_state_node = get_node(NodePath(customized_states))
+			#If the state returns false, that means it has requested a skip in the
+			#regular state processing
+			if custom_state_node._custom_state_2D(self_old):
+				run_custom_state = true
+				break
+	
+	if run_custom_state:
+		#custom_state_node._custom_state(physics)
+		custom_state_node._custom_state_2D(self_old)
+	
+	elif physics.is_grounded:
+		#STEP 1: Check for crouching, balancing, etc.
+		physics.update_ground_actions(jump_pressed, crouch_pressed, has_input)
+		
+		#STEP 2: Check for starting a spindash
+		
+		#STEP 3: Slope factors
+		
+		#This represents the dot product between the direction the player is facing and
+		#the normal of the slope, for determining if the current slope is considered
+		#"uphill" or "downhill"
+		var facing_dot:float = facing_direction.dot(ground_normal)
+		
+		physics.process_ground_slope(ground_dot, facing_dot)
+		
+		#STEP 4: Check for starting a jump. Done earlier with update_ground_actions
+		
+		#STEP 5: Direction input factors, friction/deceleration
+		
+		var current_friction: float = physics.rolling_flat_factor if physics.is_rolling else physics.ground_deceleration
+		
+		var skidding:bool = signf(input_dir) != signf(facing_direction.x)
+		
+		if skidding:
+			# Stop skidding if speed is very low
+			if physics.abs_ground_velocity < physics.ground_min_speed:
+				skidding = false
+			else:
+				# Apply extra friction while skidding
+				physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, physics.abs_ground_velocity / 15.0 * 0.7)
+		
+		elif not physics.is_crouching: 
+			if physics.abs_ground_velocity < physics.ground_top_speed:
+				# Accelerate
+				if cam_move_dot > 0:
+					physics.ground_velocity = minf(physics.ground_velocity + physics.ground_acceleration, physics.ground_top_speed)
+				elif cam_move_dot < 0:
+					physics.ground_velocity = maxf(physics.ground_velocity - physics.ground_skid_speed, -physics.ground_top_speed)
+		else:
+			# Apply friction when no input
+			physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
+		
+		#Rolling friction
+		if physics.is_rolling:
+			if has_input:
+				physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
+		
+		#physics.process_ground_input(1.0, input_dir)
+		
+		#STEP 6: Check crouching, balancing, etc.
+		
+		#STEP 7: Push/wall sensors
+		
+		var wall_dot:float = facing_direction.dot(wall_data.get("normal", Vector2.ZERO))
+		
+		physics.update_wall_contact(0.0, is_on_wall_only())
+		
+		#STEP 8: Check for doing a roll
+		
+		physics.update_rolling_crouching(crouch_pressed)
+		
+		#STEP 9: Handle camera bounds (not gonna worry about that)
+		
+		#STEP 10: Move the player (apply gsp to velocity)
+		
+		var applied_velocity:Vector2 = facing_direction * physics.ground_velocity
+		applied_velocity = applied_velocity.rotated(ground_normal.angle())
+		applied_velocity *= spatial_scale
+		
+		velocity = applied_velocity
+		
+		move_and_slide()
+		
+		#physics.forward_velocity = velocity.x / spatial_scale
+		#physics.vertical_velocity = -velocity.y / spatial_scale
+		
+		#STEP 11: Check ground angles
+		
+		var raycast_collision:int = refresh_raycasts()
+		
+		ground_dot = ground_normal.dot(default_up_direction)
+		
+		physics.process_fall_slip_checks(raycast_collision > 1, ground_dot)
+		
+		if physics.is_grounded:
+			printt("Still grounded")
+			apply_floor_snap()
+		else:
+			if physics.is_jumping:
+				var jump_direction:Vector2 = ground_normal * physics.jump_velocity
+				
+				physics.vertical_velocity += -jump_direction.y
+				physics.forward_velocity += jump_direction.x
+				
+				jump.emit(self)
+			
+			printt("Leaving ground")
+			
+			contact_air.emit(self_old)
+	
+	else: #not grounded
+		#STEP 1: check for jump button release
+		physics.update_air_actions(jump_pressed, crouch_pressed, has_input)
+		
+		#STEP 2: Super Sonic checks (not gonna worry about that)
+		
+		#STEP 3: Directional input
+		physics.process_air_input(input_vector, 1.0)
+		
+		#STEP 4: Air drag
+		physics.process_air_drag()
+		
+		#STEP 5: Move the player
+		
+		velocity = Vector2(physics.forward_velocity, -physics.vertical_velocity) * spatial_scale
+		move_and_slide()
+		physics.forward_velocity = velocity.x / spatial_scale
+		physics.vertical_velocity = -velocity.y / spatial_scale
+		
+		#STEP 6: Apply gravity
+		physics.process_apply_gravity()
+		
+		#STEP 7: Check underwater for reduced gravity (not gonna worry about that)
+		
+		#STEP 8: Reset ground angle
+		up_direction = default_up_direction
+		
+		#STEP 9: Collision checks
+		var raycast_collision:int = refresh_raycasts()
+		
+		ground_dot = ground_normal.dot(default_up_direction)
+		
+		physics.update_wall_contact(0.0, is_on_wall_only())
+		
+		physics.process_landing(raycast_collision and get_slide_collision_count() > 0, ground_dot)
+		
+		if physics.is_grounded:
+			print("Landing...")
+			
+			contact_ground.emit(self_old)
+		else:
+			print("Still in the air")
+	
+	#emit post-physics
+	post_physics.emit(self_old)
+	
+	update_animations()
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_DRAW:
+			if is_visible_in_tree() and (get_tree().debug_collisions_hint or Engine.is_editor_hint()):
+				draw_debug_info()
+		NOTIFICATION_READY:
+			set_physics_process(true)
+			setup_internal_children()
+			scan_children()
+			setup_collision()
+		NOTIFICATION_CHILD_ORDER_CHANGED:
+			scan_children()
+			if Engine.is_editor_hint():
+				update_configuration_warnings()
+		NOTIFICATION_ENTER_TREE:
+			if not Engine.is_editor_hint():
+				physics.setup_performance_monitors(name)
+		NOTIFICATION_EXIT_TREE:
+			if not Engine.is_editor_hint():
+				physics.cleanup_performance_monitors()
+		NOTIFICATION_PHYSICS_PROCESS:
+			if not Engine.is_editor_hint():
+				new_physics_process(get_physics_process_delta_time())
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings:PackedStringArray = []
+	
+	#If we have an AnimatedSprite2D, not having the other two doesn't matter
+	if not is_instance_valid(node_animated_sprite_2d):
+		#we need either an AnimationPlayer and Sprite2D, or an AnimatedSprite2D,
+		#but having both is optional. Therefore, only warn about the lack of the latter
+		#if one of the two for the former is missing.
+		if is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animation_player):
+			warnings.append("Using Sprite2D mode: No AnimationPlayer found. Please add one, or an AnimatedSprite2D.")
+		elif is_instance_valid(node_animation_player) and not is_instance_valid(node_sprite_2d):
+			warnings.append("Using Sprite2D mode: No Sprite2D child found. Please add one, or an AnimatedSprite2D.")
+		elif not is_instance_valid(node_sprite_2d) and not is_instance_valid(node_animation_player):
+			warnings.append("No AnimatedSprite2D, or Sprite2D and AnimationPlayer, found as children.")
+	return warnings

@@ -24,7 +24,11 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 ##The control settings for this player.
 @export var controls:MoonCastControlSettings = MoonCastControlSettings.new()
 ##The default direction of gravity.
-@export var default_up_direction:Vector2 = Vector2.UP
+@export var default_up_direction:Vector2 = Vector2.UP:
+	set(new_dir):
+		default_up_direction = new_dir
+		fall_dot = Vector2.from_angle(physics.ground_fall_angle).normalized().dot(default_up_direction)
+		slip_dot = Vector2.from_angle(physics.ground_slip_angle).normalized().dot(default_up_direction)
 
 @export_group("Rotation", "rotation_")
 ##If this is true, collision boxes of the character will not rotate based on 
@@ -322,7 +326,15 @@ var collision_rotation:float:
 			raycast_wheel.rotation = new_rot
 		else:
 			rotation = new_rot
+##The normal vector of the collision.
 var collision_normal:Vector2
+##The dot product of [member collision_normal] and [member default_up_direction].
+var collision_dot:float
+#TODO: Recompute these two if their physics table value changes at runtime.
+##The dot product of the fall angle and [member default_up_direction].
+var fall_dot:float = Vector2.from_angle(physics.ground_fall_angle).normalized().dot(default_up_direction)
+##The dot product of the slip angle and [member default_up_direction].
+var slip_dot:float = Vector2.from_angle(physics.ground_slip_angle).normalized().dot(default_up_direction) #"isn't slipdot that one metal band"
 
 ##Collision rotation in global units.
 var global_collision_rotation:float:
@@ -392,7 +404,7 @@ func setup_children() -> void:
 	add_child(jump_timer)
 	control_lock_timer.name = "ControlLockTimer"
 	control_lock_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
-	jump_timer.one_shot = true
+	control_lock_timer.one_shot = true
 	add_child(control_lock_timer)
 	
 	sfx_player.name = "SoundEffectPlayer"
@@ -775,66 +787,71 @@ func process_air() -> void:
 func process_ground() -> void:
 	var sine_ground_angle:float = collision_normal.dot(Vector2.RIGHT)
 	
-	
 	#Calculate movement based on the mode
 	if is_rolling:
 		#Calculate rolling
 		var prev_ground_vel_sign:float = signf(ground_velocity)
 		
-		#apply slope factors
-		if is_zero_approx(collision_rotation): #If we're on level ground
-			#If we're also moving at all
-			ground_velocity -= physics.rolling_flat_factor * facing_direction
-			
-			#Stop the player if they turn around
-			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
-				ground_velocity = 0.0
-		else: #We're on a hill of some sort
-			if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
-				#rolling downhill
-				ground_velocity += physics.rolling_downhill_factor * sine_ground_angle
-			else:
-				#rolling uphill
-				ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
+		#apply slope factors if we are not on a ceiling
+		if collision_dot > -0.5:
+			if is_zero_approx(collision_rotation): #If we're on level ground
+				#If we're also moving at all
+				ground_velocity = move_toward(ground_velocity, 0.0, physics.rolling_flat_factor)
+				
+				#Stop the player if they turn around
+				if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+					ground_velocity = 0.0
+			else: #We're on a hill of some sort
+				if is_equal_approx(signf(ground_velocity), signf(sine_ground_angle)):
+					#rolling downhill
+					ground_velocity += physics.rolling_downhill_factor * sine_ground_angle
+				else:
+					#rolling uphill
+					ground_velocity += physics.rolling_uphill_factor * sine_ground_angle
 		
-		#Allow the player to actively slow down if they try to move in the opposite direction
-		if not is_equal_approx(facing_direction, signf(ground_velocity)):
-			ground_velocity += physics.rolling_active_stop * facing_direction
-			facing_direction = -facing_direction
-			sprites_flip()
-		
-		#Stop the player if they turn around
-		if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+		if abs_ground_velocity < physics.rolling_min_speed or not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+			#Stop the player if they turn around or are too slow to be rolling
 			ground_velocity = 0.0
 			is_rolling = false
+		else:
+			#Allow the player to actively slow down if they try to move in the opposite direction
+			if is_equal_approx(signf(input_direction), -signf(ground_velocity)):
+				ground_velocity = move_toward(ground_velocity, 0.0, physics.rolling_active_stop)
+				sprites_flip()
 		
 	else: #slope factors for being on foot
-		#This is a little value we need for some slipping logic. The player cannot move in the 
-		#direction they are slipping. They can however, run in the opposite direction, since that 
-		#would be "downhill"
-		var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
 		
-		#slope and other "world" speed factors
-		if is_moving or is_slipping:
+		if is_slipping:
+			#the actual "slipping" down the slope
+			#TODO: Exposed var for this
+			ground_velocity += 0.5 * sine_ground_angle
+		
+		#If the player is not on a ceiling
+		if collision_dot > -0.5 and (is_moving or is_slipping):
 			#Apply the standing/running slope factor
 			ground_velocity += physics.ground_slope_factor * sine_ground_angle
-		else:
-			#prevent standing on a steep slope
-			if floor_is_fall_angle:
-				ground_velocity += physics.ground_slope_factor * sine_ground_angle
 		
 		#input processing
 		
 		if is_zero_approx(input_direction): #handle input-less deceleration
 			if not is_zero_approx(ground_velocity):
-				ground_velocity = move_toward(ground_velocity, 0.0, physics.ground_deceleration)
+				ground_velocity -= physics.ground_deceleration * signf(ground_velocity)
+		
 		#If input matches the direction we're going
 		elif is_equal_approx(facing_direction, signf(ground_velocity)):
-			#If we *can* add speed (can't add above the top speed, and can't go the direction we're slipping)
+			#The player cannot move in the direction they are slipping.
+			#An change in MoonCast is that they can however, run in the opposite direction,
+			# since that would be "downhill"
+			var slip_lock:bool = is_slipping and is_equal_approx(signf(input_direction), slipping_direction)
+			
+			#If we *can* add speed (can't add above the top speed, and can't go the
+			# direction we're slipping)
 			if abs_ground_velocity < physics.ground_top_speed and not slip_lock:
-				ground_velocity += physics.ground_acceleration * facing_direction
-		elif not is_slipping: #We're going opposite to the facing direction, so apply skid mechanic
-			ground_velocity += physics.ground_skid_speed * facing_direction
+				ground_velocity += physics.ground_acceleration * input_direction
+		
+		#We're going opposite to the facing direction, so apply skid mechanic
+		elif not is_slipping:
+			ground_velocity += physics.ground_skid_speed * input_direction
 			
 			for speeds:float in anim_skid_sorted_keys:
 				if abs_ground_velocity > physics.ground_top_speed * speeds:
@@ -851,6 +868,10 @@ func process_ground() -> void:
 					if not anim_skid.values().has(current_anim):
 						play_sound_effect(sfx_skid_name)
 					break
+		
+		if abs_ground_velocity < physics.ground_min_speed:
+			ground_velocity = 0.0
+			is_moving = false
 	
 	#Do rolling or crouching checks
 	
@@ -917,7 +938,7 @@ func process_ground() -> void:
 		#This is a shorthand for Vector2(cos(collision_rotation), sin(collision_rotation))
 		#we need to calculate this before we leave the ground, becuase collision_rotation
 		#is reset when we do
-		space_velocity = ground_velocity * Vector2.from_angle(collision_rotation)
+		space_velocity = Vector2.from_angle(collision_rotation) * ground_velocity
 
 ##Runs checks on being able to roll and returns the new value of [member can_roll].
 func roll_checks() -> bool:
@@ -963,7 +984,6 @@ func land_on_ground() -> void:
 	
 	#begin control lock timer
 	if not control_lock_timer.timeout.get_connections().is_empty() and control_lock_timer.is_stopped():
-		#ground_velocity += physics.air_gravity_strength * sin(collision_rotation)
 		control_lock_timer.start(physics.ground_slip_time)
 	
 	if Input.is_action_pressed(controls.action_jump) and not physics.control_jump_hold_repeat:
@@ -1066,112 +1086,88 @@ func update_collision_rotation() -> void:
 				if is_grounded:
 					apply_floor_snap()
 				
-					#make sure the player can't merely run into anything in front of them and 
-					#then walk up it. This check also prevents the player from flying off sudden 
-					#obtuse landscape curves
-					
-					if get_floor_normal().dot(collision_normal) > (absf(floor_max_angle) / PI):
-						collision_normal = get_floor_normal()
+				collision_normal = get_floor_normal()
 				
-				else:
+				if collision_normal.is_zero_approx():
 					#the CharacterBody2D system has no idea what the ground normal is when its
 					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
 					#we use the raycasts. 
 					
-					collision_normal = ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()
-					collision_normal /= 2.0
-		
+					collision_normal = ray_ground_central.get_collision_normal()
+					
+					#collision_normal = ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()
+					#collision_normal /= 2.0
+				
 		collision_rotation = limitAngle(-atan2(collision_normal.x, collision_normal.y) - PI)
 		collision_normal = collision_normal.normalized()
+		collision_dot = collision_normal.dot(default_up_direction)
 		
 		#ceiling checks
-		
-		const deg_90_rad:float = PI / 2.0
-		var ground_dot:float = collision_normal.dot(default_up_direction)
-		
+		var ground_is_up:bool = collision_dot < 0.1
 		#if the player is on what would be considered the ceiling
-		var ground_is_ceiling:bool = ground_dot < 0
+		var ground_is_ceiling:bool = collision_dot < -0.5
 		
 		#TODO: Compute these once, not every frame
-		var fall_dot:float = Vector2.from_angle(physics.ground_fall_angle).normalized().dot(default_up_direction)
-		var slip_dot:float = Vector2.from_angle(physics.ground_slip_angle).normalized().dot(default_up_direction) #"isn't slipdot that one metal band"
+		#fall_dot = Vector2.from_angle(physics.ground_fall_angle).normalized().dot(default_up_direction)
+		#slip_dot = Vector2.from_angle(physics.ground_slip_angle).normalized().dot(default_up_direction) #"isn't slipdot that one metal band"
 		
-		if ground_is_ceiling:
-			floor_is_fall_angle = ground_dot > fall_dot
-			floor_is_slip_angle = floor_is_fall_angle or ground_dot > fall_dot
+		if ground_is_up:
+			floor_is_fall_angle = collision_dot > fall_dot
+			floor_is_slip_angle = floor_is_fall_angle or collision_dot > fall_dot
 		else:
-			floor_is_fall_angle = ground_dot < -fall_dot
-			floor_is_slip_angle = floor_is_fall_angle or ground_dot < - slip_dot
+			floor_is_fall_angle = collision_dot < -fall_dot
+			floor_is_slip_angle = floor_is_fall_angle or collision_dot < - slip_dot
 		
 		#slip checks
 		
-		var fast_enough:bool = abs_ground_velocity > physics.ground_stick_speed
-		var should_lose_grip:bool = true if ground_is_ceiling else floor_is_slip_angle
-		
-		if is_grounded:
-			if fast_enough:
-				#up_direction is set so that floor snapping can be used for walking on walls. 
-				up_direction = collision_normal
-				
-				#in this situation, they only need to be in range of the ground to be grounded
-				is_grounded = in_ground_range
-				
-				if contact_point_count > 1:
-					apply_floor_snap()
+		#special condition for being grounded and running fast enough to stick to walls
+		if is_grounded and abs_ground_velocity > physics.ground_stick_speed:
+			#up_direction is set so that floor snapping can be used for walking on walls. 
+			up_direction = collision_normal
 			
-			else: #not fast enough to simply stick to the ground
-				#up_direction should be set to the default direction, which will unstick
-				#the player from any walls they were on
-				up_direction = default_up_direction
-				
-				if floor_is_fall_angle:
-					if not (ground_is_ceiling and is_slipping):
-						is_slipping = true
-						#set up the connection for the control lock timer.
-						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
-						control_lock_timer.start(physics.ground_slip_time)
-					is_grounded = false
-				
-				elif should_lose_grip:
-					#unstick from any ceilings we're on
-					if ground_is_ceiling:
-						is_grounded = false
-					#if we're not slipping, start slipping
-					if not is_slipping:
-						is_slipping = true
-						#set up the connection for the control lock timer.
-						control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
-						control_lock_timer.start(physics.ground_slip_time)
-						#prevent immedeate "oh we're moving fast enough" upon landing
-						if slipping_direction == signf(ground_velocity):
-							ground_velocity = 0.0
-		else: #not grounded
+			assert(not collision_normal.is_zero_approx())
+			
+			#in this situation, they only need to be in range of the ground to be grounded
+			is_grounded = in_ground_range
+			
+			if contact_point_count > 1:
+				apply_floor_snap()
+		else: #run slip checks in any other situation
+			
+			#up_direction should be set to the default direction, which will unstick
+			#the player from any walls they were on
 			up_direction = default_up_direction
 			
-			#player can land on a ground slope if it's not too steep, and only on a ceiling slope
-			#when it *is* too steep
-			var can_land_on_slope:bool = ground_is_ceiling == floor_is_fall_angle
-			
-			#the raycasts will find the ground before the CharacterBody hitbox does, 
-			#so only become grounded when both are "on the ground"
-			
-			if can_land_on_slope:
-				if ground_is_ceiling:
-					is_grounded = in_ground_range and floor_is_fall_angle
-				is_grounded = in_ground_range and will_actually_land
+			if is_grounded:
+				#if the player should slip or fall
+				if floor_is_fall_angle or ground_is_up:
+					ground_velocity = 0.0
+					is_grounded = false
 			else:
-				#slip if we're not on the ceiling
+				#player can land on a ground slope if it's not too steep, and only on a ceiling slope
+				#when it *is* too steep
+				var can_land_on_slope:bool = ground_is_up == floor_is_fall_angle
 				
-				if ground_is_ceiling and get_slide_collision_count() > 0:
-					#stop moving vertically if we're on the ceiling
-					space_velocity.y = maxf(space_velocity.y, 0.0)
+				#printt(can_land_on_slope, collision_dot, floor_is_fall_angle)
 				
+				if not can_land_on_slope:
+					#slip if we're not on the ceiling
+					
+					if ground_is_up and get_slide_collision_count() > 0:
+						#stop moving vertically if we're on the ceiling
+						space_velocity.y = maxf(space_velocity.y, 0.0)
+				
+				#the raycasts will find the ground before the CharacterBody hitbox does, 
+				#so only become grounded when both are "on the ground"
+				
+				is_grounded = will_actually_land and can_land_on_slope
+			
+			#start the slip timer
+			if floor_is_slip_angle and not is_slipping:
 				if not is_slipping:
 					is_slipping = true
 					#set up the connection for the control lock timer.
 					control_lock_timer.connect(&"timeout", func(): is_slipping = false, CONNECT_ONE_SHOT)
-					control_lock_timer.start(physics.ground_slip_time)
-				is_grounded = will_actually_land and not ground_is_ceiling
 		
 		#set sprite rotations
 		update_ground_visual_rotation()
@@ -1207,9 +1203,6 @@ func old_update_animations() -> void:
 	#rolling is rolling, whether the player is in the air or on the ground
 	if is_rolling:
 		play_animation(anim_roll)
-	elif is_jumping: #air animations
-		sprites_flip(false)
-		play_animation(anim_jump)
 	elif is_grounded:
 		if is_pushing:
 			play_animation(anim_push)
@@ -1246,13 +1239,20 @@ func old_update_animations() -> void:
 					play_animation(anim_crouch)
 				else:
 					play_animation(anim_stand, true)
-	elif not is_grounded and not is_slipping:
-		play_animation(anim_free_fall)
+	else: #air animations
+		if is_jumping: 
+			sprites_flip(false)
+			play_animation(anim_jump)
+		else:
+			#This is so that slipping and falling doesn't look weird
+			print(collision_dot)
+			if collision_dot <= 0.1:
+				play_animation(anim_free_fall)
 
 func new_update_animations() -> void:
 	sprites_flip()
 	var anim:int = physics.assess_animations()
-	print("Animation: ", anim)
+	#print("Animation: ", anim)
 	match anim:
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:

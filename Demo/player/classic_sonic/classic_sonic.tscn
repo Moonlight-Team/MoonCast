@@ -20,6 +20,7 @@ control_jump_hold_repeat = false
 absolute_speed_cap = Vector2(16, 16)
 physics_collision_power = 1.0
 physics_weight = 1.0
+wall_threshold = 0.8
 ground_min_speed = 0.2
 ground_stick_speed = 0.2
 ground_slip_time = 0.5
@@ -284,12 +285,18 @@ rotation_smooth = true
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y3ao1"]
 size = Vector2(20, 39)
 
-[node name="mrneedlemouse_direct" type="CharacterBody2D"]
+[node name="mrneedlemouse_direct" type="CharacterBody2D" node_paths=PackedStringArray("node_animated_sprite_2d")]
 floor_snap_length = 15.0
 script = ExtResource("1_722kx")
 physics = SubResource("Resource_ta3xm")
 controls = ExtResource("3_ysavo")
+default_up_direction = null
+spatial_scale = null
 rotation_static_collision = true
+rotation_classic_snap = null
+rotation_adjustment_speed = null
+anim_sprites_left_default = null
+node_animated_sprite_2d = NodePath("AnimatedSprite2D")
 anim_stand = SubResource("Resource_3acpp")
 anim_look_up = SubResource("Resource_dq01h")
 anim_balance = SubResource("Resource_u65ga")
@@ -299,10 +306,14 @@ anim_run = Dictionary[float, ExtResource("4_3ys4t")]({
 0.01: SubResource("Resource_gxmxh"),
 1.0: SubResource("Resource_y3ao1")
 })
+anim_skid = null
 anim_push = SubResource("Resource_rtua2")
 anim_jump = SubResource("Resource_0wcwc")
 anim_free_fall = SubResource("Resource_0bvxg")
 anim_death = SubResource("Resource_irmiy")
+anim_death_custom = null
+sfx_bus = null
+sfx_custom = null
 metadata/_custom_type_script = "uid://m3d0vyonycar"
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]

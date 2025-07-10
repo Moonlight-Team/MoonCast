@@ -70,6 +70,18 @@ move_range = 20.0
 time_mult = 3.0
 
 [node name="mrneedlemouse_direct" parent="." instance=ExtResource("6_vra77")]
+floor_stop_on_slope = false
+floor_constant_speed = true
+floor_block_on_wall = false
+default_up_direction = null
+spatial_scale = null
+rotation_classic_snap = null
+rotation_adjustment_speed = null
+anim_sprites_left_default = null
+anim_skid = null
+anim_death_custom = null
+sfx_bus = null
+sfx_custom = null
 
 [node name="Camera2D2" type="Camera2D" parent="mrneedlemouse_direct"]
 

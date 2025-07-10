@@ -34,6 +34,7 @@ func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed(button_enable_debug):
 		in_debug_mode = not in_debug_mode
 		get_tree().paused = in_debug_mode
+		print("In debug mode: ", in_debug_mode)
 
 func _physics_process(_delta: float) -> void:
 	if in_debug_mode:

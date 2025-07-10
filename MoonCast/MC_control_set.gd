@@ -29,3 +29,5 @@ class_name MoonCastControlSettings
 @export var camera_left:StringName
 ##The action name for moving the camera right.
 @export var camera_right:StringName
+##The action name for snapping the camera to right behind the player (3D only).
+@export var camera_reset:StringName
