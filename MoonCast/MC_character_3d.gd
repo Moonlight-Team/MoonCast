@@ -70,10 +70,10 @@ class_name MoonCastPlayer3D
 @export var anim_death_custom:Dictionary[StringName, MoonCastAnimation] = {}
 @export_group("Camera", "camera_")
 ##The camera node for the player.
-@export var camera:Camera3D:
+@export var camera_node:Camera3D:
 	set(new_cam):
 		if is_instance_valid(new_cam) and new_cam.get_parent() == self:
-			camera = new_cam
+			camera_node = new_cam
 		else:
 			push_error("The camera node for ", name, " must be a direct child!")
 
@@ -230,8 +230,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func setup_children() -> void:
-	if not is_instance_valid(camera):
-		camera = get_viewport().get_camera_3d()
+	if not is_instance_valid(camera_node):
+		camera_node = get_viewport().get_camera_3d()
 	
 	#find the animationPlayer and other nodes
 	for nodes:Node in get_children():
@@ -697,7 +697,7 @@ func _ready() -> void:
 
 
 func pan_camera(pan_strength:Vector2) -> void:
-	if not is_instance_valid(camera):
+	if not is_instance_valid(camera_node):
 		return
 	
 	var camera_movement:Vector2 = camera_sensitivity * pan_strength
@@ -707,9 +707,9 @@ func pan_camera(pan_strength:Vector2) -> void:
 	
 	base_transform = base_transform.rotated_local(default_up_direction, camera_movement.x)
 	#TODO: Y axis (pitch) rotation, ie. full SADX-styled camera control
-	base_transform = base_transform.rotated_local(camera.global_basis.x.normalized(), camera_movement.y)
+	base_transform = base_transform.rotated_local(camera_node.global_basis.x.normalized(), camera_movement.y)
 	
-	camera.global_transform = base_transform * camera.transform
+	camera_node.global_transform = base_transform * camera_node.transform
 
 func _input(event:InputEvent) -> void:
 	#camera
@@ -758,7 +758,7 @@ func new_physics_process(delta:float) -> void:
 		if not raw_input_vec3.is_zero_approx():
 			#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
 			#camera direction; y axis of input_direction is now forward to the camera, and x is to the side.
-			spatial_input_direction = (camera.basis * raw_input_vec3).normalized()
+			spatial_input_direction = (camera_node.basis * raw_input_vec3).normalized()
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -797,7 +797,7 @@ func new_physics_process(delta:float) -> void:
 	var converted_velocity:Vector3
 	converted_velocity.y = -physics.vertical_velocity
 	
-	velocity = camera.basis * space_velocity #* physics_tick_adjust
+	velocity = camera_node.basis * space_velocity #* physics_tick_adjust
 	
 	move_and_slide()
 	
@@ -857,7 +857,7 @@ func times_physics_process(delta: float) -> void:
 		# Floor normal and up vector are the same (flat ground)
 		anim_model.rotation = Vector3.ZERO
 	
-	var cam_input_dir: Vector3 = (camera.global_basis * input_v3).normalized()
+	var cam_input_dir: Vector3 = (camera_node.global_basis * input_v3).normalized()
 	var player_input_dir:Vector3 = (anim_model.global_basis * input_v3).normalized()
 	var has_input: bool = not cam_input_dir.is_zero_approx() if not input.is_zero_approx() else false
 	
@@ -922,7 +922,7 @@ func times_physics_process(delta: float) -> void:
 				elif slope_strength > 0: # Uphill
 					add_debug_info("RUNNING UP THAT HILL")
 				
-				physics.ground_velocity += slope_strength * physics.ground_slope_factor * -slope_strength
+				physics.ground_velocity += slope_strength * physics.ground_slope_factor
 			
 			# Clamp slope speed
 			physics.ground_velocity = clampf(physics.ground_velocity, -physics.absolute_speed_cap.x, physics.absolute_speed_cap.x)

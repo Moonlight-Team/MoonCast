@@ -166,6 +166,8 @@ var ground_velocity:float:
 
 var abs_ground_velocity:float
 
+var current_animation:AnimationTypes
+
 #angle values
 
 ##Floor is too steep to be on at all
@@ -175,9 +177,6 @@ var floor_is_slip_angle:bool
 
 var slip_dot:float 
 var fall_dot:float
-
-var wall_contact:bool 
-var wall_only_contact:bool
 
 var can_jump:bool = true:
 	set(on):
@@ -284,36 +283,18 @@ func tick_down_timers(delta:float) -> void:
 		jump_spam_timer = 0
 		can_jump = true
 
-##Update player state for the ability to move
-func update_control_lock() -> void:
-	if is_crouching:
-		can_be_moving = false
-	pass
-
-func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
-	#the player can never crouch in midair
-	is_crouching = false
-	
-	#check for the jump button being released
-	if is_jumping and not jump_pressed:
-		is_jumping = false
-		#apply variable jump height
-		vertical_velocity = minf(vertical_velocity, jump_short_limit)
-	
-	if not is_rolling and roll_pressed and control_roll_enabled:
-		#activate rolling if the player can activate in midair
-		is_rolling = control_roll_midair_activate
-
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	
 	if roll_pressed:
 		if control_roll_enabled and abs_ground_velocity > rolling_min_speed:
 			if (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
 				is_rolling = true
+				current_animation = AnimationTypes.ROLL
 			
 			is_crouching = false
 		else:
 			is_crouching = true
+			current_animation = AnimationTypes.CROUCH
 			can_be_moving = false
 			is_rolling = false
 	else:
@@ -321,6 +302,7 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 	
 	if can_jump and jump_pressed:
 		is_jumping = true
+		current_animation = AnimationTypes.JUMP
 
 ##Update player state for either crouching or rolling, on the ground.
 func update_rolling_crouching(button_pressed:bool) -> void:
@@ -353,41 +335,47 @@ func update_rolling_crouching(button_pressed:bool) -> void:
 ##[param slope_dir] represents the dot product between the floor normal and the the 
 ##direction the player is facing.
 func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
+	var slope_angle:float = acos(slope_mag)
+	
 	#do not apply slope factors on ceilings
 	if slope_mag > -0.5:
 		if is_rolling:
 			#Calculate rolling
-			var prev_ground_vel_sign:float = signf(ground_velocity)
+			var prev_ground_vel_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
 			
 			#apply slope factors if we're on a hill
 			if not is_equal_approx(slope_mag, 1.0):
 				if slope_dir > 0:
 					#rolling downhill
-					ground_velocity += rolling_downhill_factor * slope_mag * slope_dir
+					ground_velocity += rolling_downhill_factor * slope_angle
 				else:
 					#rolling uphill
-					ground_velocity -= rolling_uphill_factor * slope_mag * slope_dir
+					ground_velocity -= rolling_uphill_factor * slope_angle
 			
 			#Stop the player if they turn around
-			if not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+			if prev_ground_vel_sign != 0.0 and not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
 				ground_velocity = 0.0
 				is_rolling = false
+				current_animation = AnimationTypes.STAND
+				printt("TURN AROUND SLOPE")
 		
 		else: 
 			#slope factors for being on foot
-			ground_velocity += ground_slope_factor * slope_mag * slope_dir
+			ground_velocity += ground_slope_factor * slope_angle * slope_dir
 
 ##Process ground movement. 
 ##[param velocity_dot] is the dot product between the direction of the inputs in space and the 
 ##velocity of the player, used for detection and strength of acceleration/deceleration.
 ##[param camera_dot] 
 func process_ground_input(velocity_dot:float, acceleration:float) -> void:
-	var prev_ground_sign:float = signf(ground_velocity)
+	printt("GVEL START", ground_velocity, velocity_dot, acceleration)
+	
+	var prev_ground_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
 	
 	if is_rolling:
 		#slow down the player if their input is pointed in the opposite direction of their velocity
 		if velocity_dot < 0:
-			ground_velocity -= rolling_active_stop * prev_ground_sign
+			ground_velocity -= rolling_active_stop * acceleration
 		
 		#ground friction for rolling
 		ground_velocity -= rolling_flat_factor * prev_ground_sign
@@ -396,29 +384,52 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 			if is_zero_approx(acceleration):
 				#no input has been passed in, so decelerate to a stop
 				ground_velocity -= ground_deceleration * prev_ground_sign
+				current_animation = AnimationTypes.RUN
 			elif acceleration > 0:
 				# Accelerate
-				ground_velocity += ground_acceleration * prev_ground_sign * acceleration
-			elif abs_ground_velocity > ground_skid_speed and acceleration < 0:
+				ground_velocity += ground_acceleration * acceleration
+				current_animation = AnimationTypes.RUN
+			elif acceleration < 0:
 				#skid to a stop
-				ground_velocity -= ground_skid_speed * prev_ground_sign * acceleration
+				ground_velocity -= ground_skid_speed * acceleration
+				
+				if abs_ground_velocity > ground_skid_speed:
+					current_animation = AnimationTypes.SKID
 	
 	#if the player has turned around, stop them from moving
 	#NOTE: This may have side effects if the player can accelerate/decelerate more strongly
 	#than the slope effects, allowing the player to walk up slopes when they shouldn't be able to
-	if signf(ground_velocity) != prev_ground_sign:
+	if prev_ground_sign != 0.0 and signf(ground_velocity) != prev_ground_sign:
 		ground_velocity = 0
+		current_animation = AnimationTypes.STAND
+		print("GO FLIP YOURSELF")
+	
+	printt("GVEL END", ground_velocity)
+
+func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
+	#the player can never crouch in midair
+	is_crouching = false
+	
+	#check for the jump button being released
+	if is_jumping and not jump_pressed:
+		is_jumping = false
+		#apply variable jump height
+		vertical_velocity = minf(vertical_velocity, jump_short_limit)
+	
+	if not is_rolling and roll_pressed and control_roll_enabled:
+		#activate rolling if the player can activate in midair
+		is_rolling = control_roll_midair_activate
+		current_animation = AnimationTypes.ROLL
+	
+	if is_rolling and not is_jumping:
+		can_be_moving = control_jump_roll_lock
 
 ##Process air movement. [param input_vector] is the raw inputs for forward (y axis) and 
 ##strafe (x axis, unused in 2D). [param input_dot] is the dot product between the direction
 ##of the inputs in space and the velocity of the player, used for detection and strength of
 ##acceleration/deceleration.
 func process_air_input(input_vector:Vector2, input_dot:float) -> void:
-	if input_vector.is_zero_approx():
-		#deceleration in midair
-		strafe_velocity = maxf(strafe_velocity - air_acceleration, 0.0)
-		forward_velocity = maxf(forward_velocity - air_acceleration, 0.0)
-	else:
+	if not input_vector.is_zero_approx():
 		var can_air_move:bool = true
 		if control_jump_roll_lock and is_rolling:
 			can_air_move = not is_jumping
@@ -440,17 +451,18 @@ func process_air_drag() -> void:
 
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 
 ##player is facing and the normal of the wall.
-func update_wall_contact(wall_dot:float, is_on_wall_only:bool) -> void:
+func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 	var was_pushing:bool = is_pushing
 	
-	wall_only_contact = is_on_wall_only
 	
-	if wall_dot < wall_threshold:  # Almost head-on into wall
+	if wall_dot < -wall_threshold:  # Almost head-on into wall
+		printt("WALL CONTACT")
 		ground_velocity = 0.0
-		#TODO: Actually check input before this
-		is_pushing = true
+		
+		is_pushing = input_dot < -wall_threshold
 	
 	if not was_pushing and is_pushing:
+		current_animation = AnimationTypes.PUSH
 		contact_wall.emit(self)
 
 
@@ -476,6 +488,11 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		var applied_vertical:float = sin(slope_angle) * vertical_velocity
 		
 		ground_velocity = applied_forward + applied_vertical
+		
+		if abs_ground_velocity > ground_min_speed:
+			current_animation = AnimationTypes.RUN
+		else:
+			current_animation = AnimationTypes.STAND
 		
 		#cleanup jumping stuff
 		if is_jumping:
@@ -514,6 +531,12 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 					ground_velocity = 0.0
 	else:
 		is_grounded = false
+		
+		if is_jumping:
+			current_animation = AnimationTypes.JUMP
+		else:
+			current_animation = AnimationTypes.FREE_FALL
+		
 
 ##Determine which animation should be playing for the player based on their physics state. 
 ##This does not include custom animations. This returns a value from [AnimationTypes].

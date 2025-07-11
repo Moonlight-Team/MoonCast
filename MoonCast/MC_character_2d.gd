@@ -155,7 +155,13 @@ var jump_timer:Timer = Timer.new()
 var control_lock_timer:Timer = Timer.new()
 ##The timer for the player to be able to stick to the floor.
 
-var camera:Camera2D
+##The camera node for the player.
+@export var camera:Camera2D:
+	set(new_cam):
+		if is_instance_valid(new_cam) and new_cam.get_parent() == self:
+			camera = new_cam
+		else:
+			push_error("The camera node for ", name, " must be a direct child!")
 
 #endregion
 #region API storage vars
