@@ -435,7 +435,7 @@ func setup_children() -> void:
 	raycast_wheel.add_child(ray_wall_right)
 
 ##Internal: Used for sorting the keys of anim_run and anim_skid
-func load_dictionary(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
+static func load_dictionary(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
 	var sorted_keys:PackedFloat32Array
 	#check the anim_run keys for valid values
 	for keys:float in dict.keys():

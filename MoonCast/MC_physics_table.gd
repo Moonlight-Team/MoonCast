@@ -153,10 +153,6 @@ var hold_jump_lock:bool = false
 var vertical_velocity:float
 ##The character's current velocity moving forward relative to their rotation.
 var forward_velocity:float
-##How quickly the character is turning on the yaw axis. In 2D this value is useless
-##unless you are using a 3D model for your player, but in 3D it's used for how fast
-##the player is turning.
-var strafe_velocity:float
 ##The character's velocity on the ground, regardless of rotation. This value is only useful when
 ##[member is_grounded] is true.
 var ground_velocity:float:
@@ -169,18 +165,16 @@ var abs_ground_velocity:float
 var current_animation:AnimationTypes
 
 #angle values
-
-##Floor is too steep to be on at all
-var floor_is_fall_angle:bool
-##Floor is too steep to keep grip at low speeds
-var floor_is_slip_angle:bool
-
+##A value representing the value that a ground dot has to be greater than in order to be considered
+##a shallow enough slope to not slip on.
 var slip_dot:float 
+##A value representing the value that a ground dot has to be greater than in order to be considered
+##a shallow enough slope to not fall down.
 var fall_dot:float
 
-var can_jump:bool = true:
-	set(on):
-		can_jump = on and is_zero_approx(jump_timer)
+##If true, the player can jump. This is set to [true] automatically when [jump_timer] reaches 
+##zero and was not already at 0, but can also be set manually.
+var can_jump:bool = true
 ##If true, the player can move. 
 var can_roll:bool = true:
 	set(on):
@@ -202,15 +196,9 @@ var can_be_attacking:bool = true
 ##contact_air when false, and contact_ground when true
 var is_grounded:bool
 ##If true, the player is moving.
-var is_moving:bool:
-	set(on):
-		is_moving = on
+var is_moving:bool
 ##If true, the player is rolling.
-var is_rolling:bool:
-	set(on):
-		is_rolling = on
-		if on:
-			is_attacking = not control_jump_is_vulnerable
+var is_rolling:bool
 ##If true, the player is crouching.
 var is_crouching:bool
 ##If true, the player is balacing on the edge of a platform.
@@ -224,13 +212,6 @@ var is_jumping:bool = false
 ##If the player is slipping down a slope. When set, this value will silently
 ##set [member slipping_direction] based on the current [member collision_angle].
 var is_slipping:bool = false
-	#get:
-		#return not is_zero_approx(slipping_direction)
-	#set(slip):
-		#if slip:
-			#slipping_direction = -signf(sin(collision_angle))
-		#else:
-			#slipping_direction = 0.0
 ##If the player is in an attacking state.
 var is_attacking:bool = false
 
@@ -254,6 +235,15 @@ signal state_ground(physics:MoonCastPhysicsTable)
 ##Emitted every frame when the player is in the air
 signal state_air(physics:MoonCastPhysicsTable)
 
+func _init() -> void:
+	cache_calculations()
+
+func cache_calculations() -> void:
+	fall_dot = ground_fall_angle / deg_to_rad(90.0)
+	slip_dot = ground_slip_angle / deg_to_rad(90.0)
+
+##Set up physics value monitors for this PhysicsTable, under the category of
+##[param name] in the Performance Monitors debugger tab.
 func setup_performance_monitors(name:StringName) -> void:
 	self_perf_forward_velocity = name + &"/" + perf_forward_velocity
 	self_perf_vertical_velocity = name + &"/" + perf_vertical_velocity
@@ -263,11 +253,12 @@ func setup_performance_monitors(name:StringName) -> void:
 	Performance.add_custom_monitor(self_perf_vertical_velocity, get, [&"vertical_velocity"])
 	Performance.add_custom_monitor(self_perf_ground_velocity, get, [&"ground_velocity"])
 
-##Clean up the custom performance monitors for the player
+##Clean up the custom physics value monitors for this PhysicsTable.
 func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_forward_velocity)
 	Performance.remove_custom_monitor(self_perf_vertical_velocity)
 	Performance.remove_custom_monitor(self_perf_ground_velocity)
+
 
 func start_delta_timer(seconds:float) -> float:
 	return seconds * ProjectSettings.get("physics/common/physics_ticks_per_second")
@@ -282,6 +273,13 @@ func tick_down_timers(delta:float) -> void:
 	if jump_spam_timer < 0 or is_zero_approx(jump_spam_timer):
 		jump_spam_timer = 0
 		can_jump = true
+
+##A small function to clear several state flags when enterting the air state.
+func set_air_state() -> void:
+	is_grounded = false
+	is_pushing = false
+	is_crouching = false
+	is_slipping = false
 
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	
@@ -436,7 +434,6 @@ func process_air_input(input_vector:Vector2, input_dot:float) -> void:
 		
 		if abs_ground_velocity < air_top_speed and can_air_move:
 			#accelerate in midair
-			strafe_velocity += air_acceleration * input_vector.x * input_dot
 			forward_velocity += air_acceleration * input_vector.y * input_dot
 
 func process_apply_gravity() -> void:
@@ -446,8 +443,7 @@ func process_air_drag() -> void:
 	#calculate air drag. This makes it so that the player moves at a slightly 
 	#slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 	if vertical_velocity > 0 and vertical_velocity < jump_short_limit:
-		forward_velocity -= (forward_velocity * 0.125) / 256
-		strafe_velocity -= (strafe_velocity * 0.125) / 256
+		forward_velocity -= (forward_velocity / 0.125) / 256
 
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 
 ##player is facing and the normal of the wall.
@@ -457,15 +453,17 @@ func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 	
 	if wall_dot < -wall_threshold:  # Almost head-on into wall
 		printt("WALL CONTACT")
-		ground_velocity = 0.0
 		
-		is_pushing = input_dot < -wall_threshold
+		if is_grounded:
+			ground_velocity = 0.0
+			is_pushing = input_dot < -wall_threshold
+		else:
+			forward_velocity = 0.0
+			is_pushing = false
 	
 	if not was_pushing and is_pushing:
 		current_animation = AnimationTypes.PUSH
 		contact_wall.emit(self)
-
-
 
 ##Run updates for the player landing on the ground from being in the air.
 ##[param ground_detected] is the status of being on the ground according to the player implementation's 
@@ -473,9 +471,6 @@ func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 ##[param slope_mag] is the dot product between the ground normal and the gravity normal, ie. how steep
 ##the slope the player might be landing on is.
 func process_landing(ground_detected:bool, slope_mag:float) -> void:
-	
-	fall_dot = ground_fall_angle / deg_to_rad(90.0)
-	
 	#if the slope is not steeper than a fall angle, the player can land
 	if ground_detected and slope_mag > fall_dot:
 		is_grounded = true
@@ -521,7 +516,7 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 			
 			#if the ground is steep enough, fall off entirely
 			if slope_mag < fall_dot:
-				is_grounded = false
+				set_air_state()
 				ground_velocity = 0.0
 			#if the ground is steep enough to slip on, slip
 			elif slope_mag < slip_dot:
@@ -530,13 +525,12 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 					control_lock_timer = start_delta_timer(ground_slip_time)
 					ground_velocity = 0.0
 	else:
-		is_grounded = false
+		set_air_state()
 		
 		if is_jumping:
 			current_animation = AnimationTypes.JUMP
 		else:
 			current_animation = AnimationTypes.FREE_FALL
-		
 
 ##Determine which animation should be playing for the player based on their physics state. 
 ##This does not include custom animations. This returns a value from [AnimationTypes].

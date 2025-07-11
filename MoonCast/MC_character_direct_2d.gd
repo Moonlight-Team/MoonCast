@@ -50,6 +50,8 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export_group("Animations", "anim_")
 ##If true, then all sprites are mirrored by default.
 @export var anim_sprites_left_default:bool = false
+##The default "forward" direction of the sprites. Used to determine when to flip them.
+@export var anim_default_forward:Vector2 = Vector2.RIGHT
 ##Animation nodes. These will be configured automatically if not manually set, and are exposed
 ##for manual configuration.
 @export_subgroup("Nodes", "node_")
@@ -202,6 +204,10 @@ var ground_normal:Vector2
 ##the direction of gravity.
 var ground_dot:float
 
+var ground_angle:float
+
+var wall_dot:float
+
 var self_old:MoonCastPlayer2D = MoonCastPlayer2D.new()
 
 #processing signals, for the Ability system
@@ -286,6 +292,23 @@ func draw_debug_info() -> void:
 		target_vec = wall_right_target
 		draw_line(origin_vec, target_vec, sensor_f, line_thickness)
 
+##Internal: Used for sorting the keys of anim_run and anim_skid
+static func load_dictionary(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
+	var sorted_keys:PackedFloat32Array
+	#check the anim_run keys for valid values
+	for keys:float in dict.keys():
+		var snapped_key:float = snappedf(keys, 0.001)
+		if not is_equal_approx(keys, snapped_key):
+			push_warning("Key ", keys, " is more precise than the precision cutoff")
+		sorted_keys.append(snapped_key)
+		
+		dict[snapped_key] = dict[keys]
+	#sort the keys (from least to greatest)
+	sorted_keys.sort()
+	
+	sorted_keys.reverse()
+	return sorted_keys
+
 func scan_children() -> void:
 	#find the animationPlayer and other nodes
 	for nodes:Node in get_children():
@@ -324,10 +347,13 @@ func setup_internal_children() -> void:
 	raycast_wheel.name = "Raycast Rotator"
 	add_child(raycast_wheel)
 	ray_ground_left.name = "RayGroundLeft"
+	ray_ground_left.enabled = false
 	raycast_wheel.add_child(ray_ground_left)
 	ray_ground_right.name = "RayGroundRight"
+	ray_ground_right.enabled = false
 	raycast_wheel.add_child(ray_ground_right)
 	ray_ground_central.name = "RayGroundCentral"
+	ray_ground_central.enabled = false
 	raycast_wheel.add_child(ray_ground_central)
 	ray_wall_left.name = "RayWallLeft"
 	raycast_wheel.add_child(ray_wall_left)
@@ -340,6 +366,9 @@ func setup_internal_children() -> void:
 	sfx_player.bus = sfx_bus
 	sfx_player.play()
 	sfx_playback_ref = sfx_player.get_stream_playback()
+	
+	anim_run_sorted_keys = load_dictionary(anim_run)
+	anim_skid_sorted_keys = load_dictionary(anim_skid)
 
 func setup_collision() -> void:
 	ray_query.collision_mask = collision_mask
@@ -503,11 +532,7 @@ func has_animation(anim:MoonCastAnimation) -> bool:
 	return has_anim
 
 func update_animations() -> void:
-	sprites_flip()
-	var anim:int = physics.assess_animations()
-	
-	anim = physics.current_animation
-	match anim:
+	match physics.current_animation:
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			print("Running")
 			for speeds:float in anim_run_sorted_keys:
@@ -520,10 +545,6 @@ func update_animations() -> void:
 			print("Running")
 			for speeds:float in anim_skid_sorted_keys:
 				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
-					
-					#correct the direction of the sprite
-					facing_direction.x = -facing_direction.x
-					sprites_flip()
 					
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
@@ -540,8 +561,6 @@ func update_animations() -> void:
 			elif ground_right_data.is_empty():
 				#face the ledge
 				facing_direction = Vector2.RIGHT
-			
-			sprites_flip(false)
 			if has_animation(anim_balance):
 				play_animation(anim_balance)
 			else:
@@ -564,10 +583,23 @@ func update_animations() -> void:
 		MoonCastPhysicsTable.AnimationTypes.CROUCH:
 			play_animation(anim_crouch)
 		_:
-			print("Animation: ", anim)
-
-func sprites_flip(something:bool = true) -> void:
-	pass
+			print("Animation: ", physics.current_animation)
+	
+	var sprite_2D_valid:bool = is_instance_valid(node_sprite_2d)
+	var animated_sprite_2D_valid:bool = is_instance_valid(node_animated_sprite_2d)
+	
+	#flip the sprites
+	if current_anim.can_turn_horizontal:
+		var flip:bool = anim_default_forward.dot(facing_direction) < 0
+		if animated_sprite_2D_valid:
+			node_animated_sprite_2d.flip_h = flip
+		if sprite_2D_valid:
+			node_sprite_2d.flip_h = flip
+	if current_anim.can_turn_vertically:
+		if animated_sprite_2D_valid:
+			node_animated_sprite_2d.global_rotation = visual_rotation
+		if sprite_2D_valid:
+			node_sprite_2d.global_rotation = visual_rotation
 
 func pan_camera(pan_dir:Vector2) -> void:
 	pass
@@ -603,86 +635,96 @@ func refresh_raycasts() -> int:
 	var ground_center_colliding:bool = not ground_center_data.is_empty()
 	
 	#TODO: Make the direct raycasts work again
-	#ground_left_colliding = ray_ground_left.is_colliding()
-	#ground_left_data.set("normal", ray_ground_left.get_collision_normal())
-	#ground_center_colliding = ray_ground_central.is_colliding()
-	#ground_center_data.set("normal", ray_ground_central.get_collision_normal())
-	#ground_right_colliding = ray_ground_right.is_colliding()
-	#ground_right_data.set("normal", ray_ground_right.get_collision_normal())
+	ray_ground_left.force_update_transform()
+	ray_ground_left.force_raycast_update()
+	ground_left_colliding = ray_ground_left.is_colliding()
+	ground_left_data.set("normal", ray_ground_left.get_collision_normal())
+	ray_ground_central.force_update_transform()
+	ray_ground_central.force_raycast_update()
+	ground_center_colliding = ray_ground_central.is_colliding()
+	ground_center_data.set("normal", ray_ground_central.get_collision_normal())
+	ray_ground_right.force_update_transform()
+	ray_ground_right.force_raycast_update()
+	ground_right_colliding = ray_ground_right.is_colliding()
+	ground_right_data.set("normal", ray_ground_right.get_collision_normal())
 	
 	printt("Ground data:\n", ground_left_data, "\n", ground_center_data, "\n", ground_right_data)
 	
 	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
-	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
-	#properly applies ground angle
-	var in_ground_range:bool = bool(contact_point_count)
 	
 	#player balances when two of the raycasts are over the edge
 	physics.is_balancing = contact_point_count == 1
 	
 	#calculate ground angles. This happens even in the air, because we need to 
 	#know before landing what the ground angle is/will be, to apply landing speed
-	if in_ground_range:
-		match contact_point_count:
-			1:
-				if physics.is_grounded:
-					#This bit of code usually only runs when the player runs off an upward
-					#slope but too slowly to actually "launch". If we do nothing in this scenario,
-					#it can cause an odd situation where the player is stuck on the ground but at 
-					#the angle that they launched at, which is not good.
-					ground_normal.lerp(default_up_direction, 0.01)
-				else:
-					#Don't update rotation if we were already grounded. This allows for 
-					#slope launch physics while retaining slope landing physics, by eliminating
-					#false positives caused by one raycast being the remaining raycast when 
-					#launching off a slope
+	match contact_point_count:
+		0:
+			ground_normal = ground_normal.slerp(default_up_direction, 0.01)
+		1:
+			if physics.is_grounded:
+				#This bit of code usually only runs when the player runs off an upward
+				#slope but too slowly to actually "launch". If we do nothing in this scenario,
+				#it can cause an odd situation where the player is stuck on the ground but at 
+				#the angle that they launched at, which is not good.
+				ground_normal.slerp(default_up_direction, 0.01)
+			else:
+				#Don't update rotation if we were already grounded. This allows for 
+				#slope launch physics while retaining slope landing physics, by eliminating
+				#false positives caused by one raycast being the remaining raycast when 
+				#launching off a slope
+				
+				if ground_left_colliding:
+					ground_normal = ground_left_data.get("normal", Vector2.ZERO)
 					
-					if ground_left_colliding:
-						ground_normal = ground_left_data.get("normal", Vector2.ZERO)
-						
-						facing_direction = Vector2.RIGHT #slope is to the left, face right
-					elif ground_right_colliding:
-						ground_normal = ground_right_data.get("normal", Vector2.ZERO)
-						
-						facing_direction = Vector2.LEFT #slope is to the right, face left
-			2:
+					facing_direction = Vector2.RIGHT #slope is to the left, face right
+				elif ground_right_colliding:
+					ground_normal = ground_right_data.get("normal", Vector2.ZERO)
+					
+					facing_direction = Vector2.LEFT #slope is to the right, face left
+		2:
+			var left_normal:Vector2 = ground_left_data.get("normal", Vector2.ZERO)
+			var right_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
+			
+			if ground_left_colliding and ground_right_colliding:
+				ground_normal = (left_normal + right_normal) / 2.0
+			#in these next two cases, the other contact point is the center
+			elif ground_left_colliding:
+				ground_normal = left_normal
+			elif ground_right_colliding:
+				ground_normal = right_normal
+		3:
+			if physics.is_grounded:
+				apply_floor_snap()
+				#make sure the player can't merely run into anything in front of them and 
+				#then walk up it. This check also prevents the player from flying off sudden 
+				#obtuse landscape curves
+				
+				var new_ground_normal:Vector2 = ground_center_data.get("normal", default_up_direction)
+				var wall_normal:Vector2 = wall_data.get("normal", ground_normal)
+				var wall_comparison:float = rad_to_deg(floor_max_angle) / 90.0 #TODO: better system
+				
+				ground_normal = new_ground_normal
+				
+				#if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(floor_max_angle) and not is_on_wall()):
+				if ground_normal.dot(new_ground_normal) < wall_comparison:
+					#collision_rotation = gnd_angle
+					
+					ground_normal = new_ground_normal
+			
+			else:
+				#the CharacterBody2D system has no idea what the ground normal is when its
+				#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
+				#we use the raycasts. 
 				var left_normal:Vector2 = ground_left_data.get("normal", Vector2.ZERO)
 				var right_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
 				
-				if ground_left_colliding and ground_right_colliding:
-					ground_normal = (left_normal + right_normal) / 2.0
-				#in these next two cases, the other contact point is the center
-				elif ground_left_colliding:
-					ground_normal = left_normal
-				elif ground_right_colliding:
-					ground_normal = right_normal
-			3:
-				if physics.is_grounded:
-					apply_floor_snap()
-					#make sure the player can't merely run into anything in front of them and 
-					#then walk up it. This check also prevents the player from flying off sudden 
-					#obtuse landscape curves
-					
-					var new_ground_normal:Vector2 = ground_center_data.get("normal", default_up_direction)
-					var wall_normal:Vector2 = wall_data.get("normal", ground_normal)
-					var wall_comparison:float = rad_to_deg(floor_max_angle) / 90.0 #TODO: better system
-					
-					#if (absf(angle_difference(collision_rotation, gnd_angle)) < absf(floor_max_angle) and not is_on_wall()):
-					if ground_normal.dot(new_ground_normal) < wall_comparison:
-						#collision_rotation = gnd_angle
-						
-						ground_normal = new_ground_normal
-				
-				else:
-					#the CharacterBody2D system has no idea what the ground normal is when its
-					#not on the ground. But, raycasts do. So when we aren't on the ground yet, 
-					#we use the raycasts. 
-					var left_normal:Vector2 = ground_left_data.get("normal", Vector2.ZERO)
-					var right_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
-					
-					ground_normal = (left_normal + right_normal) / 2.0
+				ground_normal = (left_normal + right_normal) / 2.0
 	
 	ground_normal = ground_normal.normalized()
+	ground_dot = ground_normal.dot(default_up_direction)
+	ground_angle = ground_normal.angle() + deg_to_rad(90.0)
+	
+	raycast_wheel.global_rotation = ground_angle
 	
 	return contact_point_count
 
@@ -729,13 +771,8 @@ func new_physics_process(delta:float) -> void:
 		input_dir #The physics table functions use y axis for forward.
 	).normalized()
 	
-	var ground_angle:float = acos(ground_normal.dot(default_up_direction))
-	
-	visual_rotation = ground_angle
-	raycast_wheel.global_rotation = ground_angle
-	
 	var cam_input_dir: Vector2 = input_vector.rotated(camera_node.global_rotation)
-	var player_input_dir:Vector2 = input_vector.rotated(ground_angle)
+	var player_input_dir:Vector2 = input_vector.rotated(0.0)
 	
 	var vel_move_dot:float = player_input_dir.dot(velocity.normalized())
 	
@@ -801,7 +838,7 @@ func new_physics_process(delta:float) -> void:
 		
 		var wall_normal:Vector2 = wall_data.get("normal", facing_direction)
 		
-		var wall_dot:float = facing_direction.dot(wall_normal)
+		wall_dot = facing_direction.dot(wall_normal)
 		var push_dot:float = player_input_dir.dot(wall_normal)
 		
 		physics.update_wall_contact(wall_dot, push_dot)
@@ -814,7 +851,7 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 10: Move the player (apply gsp to velocity)
 		
-		var applied_velocity:Vector2 = facing_direction.rotated(ground_angle) * physics.ground_velocity
+		var applied_velocity:Vector2 = facing_direction.rotated(ground_angle) * signf(sin(ground_angle)) * physics.ground_velocity
 		applied_velocity *= spatial_scale
 		
 		printt("Scaled GVEL", physics.ground_velocity * spatial_scale)
@@ -830,8 +867,6 @@ func new_physics_process(delta:float) -> void:
 		#STEP 11: Check ground angles
 		
 		var raycast_collision:int = refresh_raycasts()
-		
-		ground_dot = ground_normal.dot(default_up_direction)
 		
 		physics.process_fall_slip_checks(raycast_collision > 1, ground_dot)
 		
@@ -877,14 +912,16 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 8: Reset ground angle
 		up_direction = default_up_direction
-		ground_normal = ground_normal.slerp(default_up_direction, 0.1)
 		
 		#STEP 9: Collision checks
 		var raycast_collision:int = refresh_raycasts()
 		
-		ground_dot = ground_normal.dot(default_up_direction)
+		var wall_normal:Vector2 = wall_data.get("normal", facing_direction)
 		
-		physics.update_wall_contact(0.0, is_on_wall_only())
+		wall_dot = facing_direction.dot(wall_normal)
+		var push_dot:float = player_input_dir.dot(wall_normal)
+		
+		physics.update_wall_contact(wall_dot, push_dot)
 		
 		physics.process_landing(raycast_collision and get_slide_collision_count() > 0, ground_dot)
 		

@@ -119,11 +119,14 @@ func _get_property_list() -> Array[Dictionary]:
 		)
 	return property_list
 
-func _init() -> void:
+func _init(init_anim:String = "") -> void:
 	if collision_shape_2D != null:
 		compute_raycast_positions_2D()
 	if collision_shape_3D != null:
 		compute_raycast_positions_3D()
+	
+	if init_anim != "":
+		animation = init_anim
 
 func compute_raycast_positions_2D() -> void:
 	if is_instance_valid(collision_shape_2D):
