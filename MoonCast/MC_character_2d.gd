@@ -1103,7 +1103,7 @@ func update_collision_rotation() -> void:
 					
 					#collision_normal = ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()
 					#collision_normal /= 2.0
-				
+			
 		collision_rotation = limitAngle(-atan2(collision_normal.x, collision_normal.y) - PI)
 		collision_normal = collision_normal.normalized()
 		collision_dot = collision_normal.dot(default_up_direction)

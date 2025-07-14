@@ -141,7 +141,7 @@ const perf_state:StringName = &"Player State"
 ##The timer for the player's ability to jump after landing.
 var jump_timer:float = 0.0
 ##The timer for the player's ability to move directionally.
-var control_lock_timer:float = 0.0
+var slip_lock_timer:float = 0.0
 ##The timer for the player to be able to stick to the floor.
 
 ##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
@@ -239,8 +239,8 @@ func _init() -> void:
 	cache_calculations()
 
 func cache_calculations() -> void:
-	fall_dot = ground_fall_angle / deg_to_rad(90.0)
-	slip_dot = ground_slip_angle / deg_to_rad(90.0)
+	fall_dot = 1.0 - (ground_fall_angle / deg_to_rad(90.0))
+	slip_dot = 1.0 - (ground_slip_angle / deg_to_rad(90.0))
 
 ##Set up physics value monitors for this PhysicsTable, under the category of
 ##[param name] in the Performance Monitors debugger tab.
@@ -263,10 +263,16 @@ func cleanup_performance_monitors() -> void:
 func start_delta_timer(seconds:float) -> float:
 	return seconds * ProjectSettings.get("physics/common/physics_ticks_per_second")
 
+func reset_timers() -> void:
+	slip_lock_timer = 0
+	is_slipping = false
+	jump_spam_timer = 0
+	can_jump = true
+
 func tick_down_timers(delta:float) -> void:
-	control_lock_timer -= delta
-	if control_lock_timer < 0 or is_zero_approx(control_lock_timer):
-		control_lock_timer = 0
+	slip_lock_timer -= delta
+	if slip_lock_timer < 0 or is_zero_approx(slip_lock_timer):
+		slip_lock_timer = 0
 		is_slipping = false
 	
 	jump_spam_timer -= delta
@@ -330,7 +336,7 @@ func update_rolling_crouching(button_pressed:bool) -> void:
 
 ##Process the player's slope factors when on the ground.
 ##[param slope_mag] is the dot product between the gravity normal and the floor normal. 
-##[param slope_dir] represents the dot product between the floor normal and the the 
+##[param slope_dir] represents the dot product between the gravity normal and the the 
 ##direction the player is facing.
 func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 	var slope_angle:float = acos(slope_mag)
@@ -343,10 +349,10 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 			
 			#apply slope factors if we're on a hill
 			if not is_equal_approx(slope_mag, 1.0):
-				if slope_dir > 0:
+				if slope_dir < 0:
 					#rolling downhill
 					ground_velocity += rolling_downhill_factor * slope_angle
-				else:
+				elif slope_dir > 0:
 					#rolling uphill
 					ground_velocity -= rolling_uphill_factor * slope_angle
 			
@@ -359,15 +365,23 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 		
 		else: 
 			#slope factors for being on foot
-			ground_velocity += ground_slope_factor * slope_angle * slope_dir
+			
+			var applied_slope:float = - (ground_slope_factor * sin(slope_angle) * signf(slope_dir))
+			
+			if is_zero_approx(slope_dir) or is_zero_approx(sin(slope_angle)):
+				printt("EVEN GROUND", applied_slope)
+			elif slope_dir > 0:
+				printt("UPHILL", sin(slope_angle), applied_slope)
+			elif slope_dir < 0: 
+				printt("DOWNHILL", sin(slope_angle), applied_slope)
+			
+			ground_velocity -= ground_slope_factor * sin(slope_angle) * signf(slope_dir)
 
 ##Process ground movement. 
 ##[param velocity_dot] is the dot product between the direction of the inputs in space and the 
 ##velocity of the player, used for detection and strength of acceleration/deceleration.
 ##[param camera_dot] 
 func process_ground_input(velocity_dot:float, acceleration:float) -> void:
-	printt("GVEL START", ground_velocity, velocity_dot, acceleration)
-	
 	var prev_ground_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
 	
 	if is_rolling:
@@ -378,31 +392,44 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 		#ground friction for rolling
 		ground_velocity -= rolling_flat_factor * prev_ground_sign
 	else:
-		if abs_ground_velocity < ground_top_speed:
-			if is_zero_approx(acceleration):
-				#no input has been passed in, so decelerate to a stop
-				ground_velocity -= ground_deceleration * prev_ground_sign
-				current_animation = AnimationTypes.RUN
-			elif acceleration > 0:
-				# Accelerate
-				ground_velocity += ground_acceleration * acceleration
-				current_animation = AnimationTypes.RUN
-			elif acceleration < 0:
-				#skid to a stop
-				ground_velocity -= ground_skid_speed * acceleration
-				
-				if abs_ground_velocity > ground_skid_speed:
-					current_animation = AnimationTypes.SKID
+		if is_zero_approx(acceleration):
+			
+			#no input has been passed in, so decelerate to a stop
+			#the trick of subtracting abs_ground_velocity comes courtesy of Harmony Framework
+			ground_velocity -= ground_deceleration * prev_ground_sign
+			
+			#if the player falls under minimum speed, stop them. We only check this in deceleration
+			#because if it's always checked, the player won't be allowed to move from a standstill 
+			#if their ground_acceleration isn't high enough to make abs_ground_velocity larger than
+			# ground_min_speed within one frame.
+			if abs_ground_velocity < ground_min_speed:
+				ground_velocity = 0.0
+				current_animation = AnimationTypes.STAND
+		
+		#acceleration is not zero, ie. the player is trying to move
+		elif abs_ground_velocity < ground_top_speed and velocity_dot >= 0:
+			# Accelerate
+			ground_velocity += ground_acceleration * acceleration
+			current_animation = AnimationTypes.RUN
+		#we also don't want the player to be able to accidentally moonwalk into negative infinity
+		#if they manage to go into negative ground_velocity and then *also* decelerate
+		elif velocity_dot < 0 and abs_ground_velocity > 0:
+			printt("skid")
+			#skid to a stop
+			ground_velocity -= ground_skid_speed * acceleration
+			
+			if abs_ground_velocity < ground_min_speed:
+				ground_velocity = 0.0
+				current_animation = AnimationTypes.STAND
+			else:
+				current_animation = AnimationTypes.SKID
 	
 	#if the player has turned around, stop them from moving
 	#NOTE: This may have side effects if the player can accelerate/decelerate more strongly
 	#than the slope effects, allowing the player to walk up slopes when they shouldn't be able to
-	if prev_ground_sign != 0.0 and signf(ground_velocity) != prev_ground_sign:
-		ground_velocity = 0
+	if (prev_ground_sign != 0.0 and signf(ground_velocity) != prev_ground_sign):
+		ground_velocity = 0.0
 		current_animation = AnimationTypes.STAND
-		print("GO FLIP YOURSELF")
-	
-	printt("GVEL END", ground_velocity)
 
 func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	#the player can never crouch in midair
@@ -428,9 +455,9 @@ func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool)
 ##acceleration/deceleration.
 func process_air_input(input_vector:Vector2, input_dot:float) -> void:
 	if not input_vector.is_zero_approx():
-		var can_air_move:bool = true
+		var can_air_move:bool = can_be_moving
 		if control_jump_roll_lock and is_rolling:
-			can_air_move = not is_jumping
+			can_air_move = can_air_move and not is_jumping
 		
 		if abs_ground_velocity < air_top_speed and can_air_move:
 			#accelerate in midair
@@ -471,18 +498,43 @@ func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 ##[param slope_mag] is the dot product between the ground normal and the gravity normal, ie. how steep
 ##the slope the player might be landing on is.
 func process_landing(ground_detected:bool, slope_mag:float) -> void:
-	#if the slope is not steeper than a fall angle, the player can land
-	if ground_detected and slope_mag > fall_dot:
-		is_grounded = true
+	if ground_detected:
 		#apply spatial velocity to ground velocity
 		
-		#TODO: Optimize this section
-		var slope_angle:float = acos(slope_mag)
+		#old landing code
+		#var applied_velocity:Vector2 = (Vector2.from_angle(acos(slope_mag)) * Vector2(forward_velocity, vertical_velocity)).abs()
+		#ground_velocity = applied_velocity.x + applied_velocity.y
 		
-		var applied_forward:float = cos(slope_angle) * forward_velocity
-		var applied_vertical:float = sin(slope_angle) * vertical_velocity
+		#landing code based somewhat on Harmony Framework
 		
-		ground_velocity = applied_forward + applied_vertical
+		#TODO: Make this a configurable variable, ofc
+		const flat_ground_threshold:float = 1.0 - (23.0 / 90.0)
+		
+		#landing code for normal ground
+		if slope_mag > 0:
+			print("grounded! floored")
+			is_grounded = true
+			ground_velocity = forward_velocity
+			
+			#if the player is on a "steeper than flat" slope
+			if slope_mag < flat_ground_threshold:
+				if slope_mag <= 0.5: #steeper than 45 degrees, could be changed to use ground_fall_angle?
+					ground_velocity = maxf(forward_velocity, vertical_velocity)
+				else:
+					ground_velocity = maxf(forward_velocity, vertical_velocity / 2.0)
+		#landing code for ceilings
+		elif slope_mag < 0:
+			
+			if slope_mag > -0.5:
+				#player can only land when they're traveling more up than forward
+				if absf(forward_velocity) < absf(vertical_velocity):
+					print("grounded! ceiling")
+					is_grounded = true
+					ground_velocity = vertical_velocity
+			else:
+				print("ceiling grounding failed")
+				#*bonk*, no landing for you
+				vertical_velocity = 0.0
 		
 		if abs_ground_velocity > ground_min_speed:
 			current_animation = AnimationTypes.RUN
@@ -495,14 +547,6 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 			can_jump = false
 			
 			jump_timer = start_delta_timer(jump_spam_timer)
-		
-		#make the player slip if necessary
-		var slip_mag:float = ground_slip_angle / deg_to_rad(90.0)
-		
-		if slope_mag < slip_mag:
-			is_slipping = true
-			
-			control_lock_timer = start_delta_timer(ground_slip_time)
 
 ##Run updates for the player falling or slipping down slopes and leaving the ground.
 ##[param ground_detected] is the status of being on the ground according to the player implementation's 
@@ -522,7 +566,7 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 			elif slope_mag < slip_dot:
 				if not is_slipping:
 					is_slipping = true
-					control_lock_timer = start_delta_timer(ground_slip_time)
+					slip_lock_timer = start_delta_timer(ground_slip_time)
 					ground_velocity = 0.0
 	else:
 		set_air_state()
