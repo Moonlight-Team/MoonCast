@@ -105,7 +105,7 @@ metadata/_tab_index = 4
 [node name="Camera" type="TextEdit" parent="TabContainer"]
 visible = false
 layout_mode = 2
-text = "The camera systems in MoonCast have not been specifically planned out nor implemented as of this time."
+text = "The camera systems in MoonCast do different things in 2D and 3D, yet hopefully feel intuitive in both. In both 2D and 3D, the MoonCastPlayer has a function called \"pan_camera\": in 2D, this moves the camera offset; in 3D, this pans the camera around the player locally."
 editable = false
 virtual_keyboard_enabled = false
 wrap_mode = 1

@@ -873,7 +873,7 @@ directional_shadow_mode = 0
 environment = SubResource("Environment_noruf")
 
 [node name="MC_3D" parent="." instance=ExtResource("1_73jpb")]
-space_scale = 160.0
+space_scale = 2.5
 camera_sensitivity = Vector2(0.1, 0.1)
 
 [node name="Camera3D" type="Camera3D" parent="MC_3D"]

@@ -21,7 +21,7 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var gravity_up_direction:Vector2 = Vector2.UP
 ##An arbitrary scaler applied to all physics values before being applied in order to scale
 ##them to any sized game scale.
-@export var spatial_scale:float = 60.0
+@export var space_scale:float = 60.0
 
 @export_group("Camera")
 ##The camera node for the player.
@@ -48,8 +48,6 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export_range(0.0, 1.0) var rotation_adjustment_speed:float = 0.2
 
 @export_group("Animations", "anim_")
-##If true, then all sprites are mirrored by default.
-@export var anim_sprites_left_default:bool = false
 ##The default "forward" direction of the sprites. Used to determine when to flip them.
 @export var anim_default_forward:Vector2 = Vector2.RIGHT
 ##Animation nodes. These will be configured automatically if not manually set, and are exposed
@@ -76,13 +74,13 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 ##The animation for rolling.
 @export var anim_roll:MoonCastAnimation = MoonCastAnimation.new()
 ##The animations for when the player is walking or running on the ground.
-##[br]The key is the minimum percentage of [member ground_velocity] in relation
+##[br]The key is the minimum percentage of [member physics.ground_velocity] in relation
 ##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
 @export var anim_run:Dictionary[float, MoonCastAnimation] = {}
 ##The animations for when the player is skidding to a halt.
-##The key is the minimum percentage of [member ground_velocity] in relation
+##The key is the minimum percentage of [member physics.ground_velocity] in relation
 ##to [member physics.ground_top_speed] that the player must be going for this animation
 ##to play, and the value for that key is the animation that will play.
 ##[br]Note: Keys should not use decimal values more precise than thousandths.
@@ -127,13 +125,15 @@ var sfx_playback_ref:AudioStreamPlaybackPolyphonic
 ##themselves as a state ability, which can implement an entirely new state for the player.
 var state_abilities:Array[StringName]
 
-##The current animation
+##The current [MoonCastAnimation] animation playing.
 var current_anim:MoonCastAnimation = MoonCastAnimation.new()
 
 var animation_set:bool = false
+
 var animation_custom:bool = false
 
 var anim_run_sorted_keys:PackedFloat32Array = []
+
 var anim_skid_sorted_keys:PackedFloat32Array = []
 
 ##The shape owner IDs of all the collision shapes provided by the user
@@ -543,6 +543,8 @@ func has_animation(anim:MoonCastAnimation) -> bool:
 ##Update the player animations based on the current physics state.
 func update_animations() -> void:
 	match physics.current_animation:
+		MoonCastPhysicsTable.AnimationTypes.DEFAULT:
+			play_animation(anim_stand)
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:
 				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
@@ -714,13 +716,12 @@ func refresh_raycasts() -> int:
 				#obtuse landscape curves
 				
 				var new_ground_normal:Vector2 = ground_center_data.get("normal", gravity_up_direction)
-				var wall_comparison:float = rad_to_deg(floor_max_angle) / 90.0 #TODO: better system
+				var wall_comparison:float = floor_max_angle / rad_to_deg(90.0) #TODO: better system
 				
-				ground_normal = new_ground_normal
+				#ground_normal = new_ground_normal
 				
+				#check to make sure the new "ground" is not basically a wall compared to the current ground
 				if ground_normal.dot(new_ground_normal) > wall_comparison:
-					#collision_rotation = gnd_angle
-					
 					ground_normal = new_ground_normal
 			
 			else:
@@ -774,6 +775,7 @@ func reposition_raycasts(left_corner:Vector2, right_corner:Vector2, center:Vecto
 	wall_left_target.x = left_corner.x - 1
 	wall_right_target.x = right_corner.x + 1
 
+##Process physics movement and input
 func new_physics_process(delta:float) -> void:
 	
 	#reset this flag specifically
@@ -781,18 +783,21 @@ func new_physics_process(delta:float) -> void:
 	
 	#poll input
 	var input_dir:float = Input.get_axis(controls.direction_left, controls.direction_right)
+	
 	var input_vector:Vector2 = Vector2(
-		0.0,
-		input_dir #The physics table functions use y axis for forward.
+		input_dir,
+		0.0 #The physics table functions use y axis for forward.
 	)
 	var jump_pressed:bool = Input.is_action_pressed(controls.action_jump)
 	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	var has_input:bool = not is_zero_approx(input_dir)
 	
 	#TODO: Use this to properly flip inputs to match the camera
-	#var cam_input_dir: Vector2 = input_vector.rotated(camera_node.global_rotation)
+	var cam_input_dir: Vector2 = input_vector.rotated(camera_node.global_rotation)
 	
 	var player_input_dir:Vector2 = input_vector.rotated(ground_angle)
+	
+	var turn_locked:bool = physics.is_grounded and not is_zero_approx(physics.ground_velocity) 
 	
 	if not physics.is_grounded or is_zero_approx(physics.ground_velocity):
 		#allow the player to turn around if they aren't skidding
@@ -810,7 +815,11 @@ func new_physics_process(delta:float) -> void:
 	
 	var vel_move_dot:float = facing_direction.dot(player_input_dir)
 	
-	#printt("vel dot", vel_move_dot)
+	if turn_locked and has_input:
+		if vel_move_dot < 0:
+			print("Move: Skid")
+		else:
+			printt("Move: Acceleration")
 	
 	#emit pre-physics before running any state functions
 	pre_physics.emit(self_old)
@@ -851,11 +860,12 @@ func new_physics_process(delta:float) -> void:
 		
 		physics.process_ground_slope(ground_dot, facing_dot)
 		
-		#STEP 4: Check for starting a jump. Done earlier with update_ground_actions
+		#STEP 4: Check for starting a jump.
+		# Done earlier with update_ground_actions, though not acted on until the end of the frame.
 		
 		#STEP 5: Direction input factors, friction/deceleration
 		
-		physics.process_ground_input(vel_move_dot, input_dir)
+		physics.process_ground_input(vel_move_dot, absf(input_dir))
 		
 		#STEP 6: Check crouching, balancing, etc.
 		
@@ -874,17 +884,13 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 9: Handle camera bounds (not gonna worry about that)
 		
-		#STEP 10: Move the player (apply gsp to velocity)
-		
-		var applied_velocity:Vector2 = facing_direction * physics.ground_velocity
-		applied_velocity *= spatial_scale
-		
-		velocity = applied_velocity
+		#STEP 10: Move the player (apply ground_velocity to velocity)
+		velocity = facing_direction * physics.ground_velocity * space_scale
 		
 		move_and_slide()
 		
-		physics.forward_velocity = velocity.x / spatial_scale
-		physics.vertical_velocity = -velocity.y / spatial_scale
+		physics.forward_velocity = velocity.x / space_scale
+		physics.vertical_velocity = -velocity.y / space_scale
 		
 		#STEP 11: Check ground angles
 		
@@ -903,6 +909,7 @@ func new_physics_process(delta:float) -> void:
 				physics.vertical_velocity += -jump_direction.y
 				physics.forward_velocity += jump_direction.x
 				
+				#physics.jump.emit()
 				jump.emit(self)
 			
 			up_direction = gravity_up_direction
@@ -918,17 +925,17 @@ func new_physics_process(delta:float) -> void:
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
 		#STEP 3: Directional input
-		physics.process_air_input(input_vector, 1.0)
+		physics.process_air_input(absf(input_dir), signf(input_dir))
 		
 		#STEP 4: Air drag
 		physics.process_air_drag()
 		
 		#STEP 5: Move the player
 		
-		velocity = Vector2(physics.forward_velocity, -physics.vertical_velocity) * spatial_scale
+		velocity = Vector2(physics.forward_velocity, -physics.vertical_velocity) * space_scale
 		move_and_slide()
-		physics.forward_velocity = velocity.x / spatial_scale
-		physics.vertical_velocity = -velocity.y / spatial_scale
+		physics.forward_velocity = velocity.x / space_scale
+		physics.vertical_velocity = -velocity.y / space_scale
 		
 		#STEP 6: Apply gravity
 		physics.process_apply_gravity()
@@ -953,6 +960,8 @@ func new_physics_process(delta:float) -> void:
 		if physics.is_grounded:
 			#TODO: Determine left/right direction of slope in order to properly flip direction for
 			#landing momentum
+			
+			facing_direction
 			
 			contact_ground.emit(self_old)
 		else:

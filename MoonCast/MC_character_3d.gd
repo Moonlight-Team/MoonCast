@@ -8,9 +8,9 @@ class_name MoonCastPlayer3D
 ##The control settings for this player.
 @export var controls:MoonCastControlSettings = MoonCastControlSettings.new()
 ##The default direction of gravity.
-@export var default_up_direction:Vector3 = Vector3.UP
+@export var gravity_up_direction:Vector3 = Vector3.UP
 ##An arbitrary scaler to scale physics values to the space of your game.
-@export var space_scale:float = 1.0
+@export var space_scale:float = 2.0
 
 @export_group("Rotation", "rotation_")
 ##The default "forward" axis. This should be forward for your model and camera.
@@ -104,7 +104,9 @@ var spatial_input_direction:Vector3
 ##The direction the player is facing
 var model_facing_direction:Vector3
 
-var collision_rotation:Vector3
+var ground_normal:Vector3
+
+var slope_mag_dot: float
 
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
@@ -434,11 +436,6 @@ func update_animations(extern:int = 0) -> void:
 						play_animation(anim_look_up)
 				else:
 					play_animation(anim_stand)
-			_:
-				pass #print("Animation: ", anim)
-
-		
-		match anim:
 			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
 				#print("Default anim")
 				play_animation(anim_stand)
@@ -462,12 +459,6 @@ func update_animations(extern:int = 0) -> void:
 				if current_anim != anim_roll:
 					print("Rolling")
 				play_animation(anim_roll)
-			MoonCastPhysicsTable.AnimationTypes.RUN:
-				if current_anim != anim_stand:
-					print("Running")
-			MoonCastPhysicsTable.AnimationTypes.SKID:
-				if current_anim != anim_stand:
-					print("*oddly realistic tire squeal noise*")
 			_:
 				print("Implement animation ", anim)
 		#TODO: Match statement for anim
@@ -504,64 +495,61 @@ func update_collision_rotation() -> bool:
 		contact_count += int(ray_ground_left.is_colliding())
 		contact_count += int(ray_ground_right.is_colliding())
 	
-	if contact_count > 0:
-		#NOTE: for 3 and 4, we are assuming the central ray is one of the contacting rays.
-		match contact_count:
-			1:
-				if central_contact:
-					if physics.is_grounded:
-						pass
-					else:
-						#we just ran off a ledge; don't update collision rotation
-						collision_rotation.lerp(Vector3.ZERO, 0.01)
-				else:
-					#we aren't grounded; still calculate angles, because we may land
-					if ray_ground_forward.is_colliding():
-						collision_rotation = ray_ground_forward.get_collision_normal()
-					elif ray_ground_back.is_colliding():
-						collision_rotation = ray_ground_back.get_collision_normal()
-					elif ray_ground_left.is_colliding():
-						collision_rotation = ray_ground_left.get_collision_normal()
-					elif ray_ground_right.is_colliding():
-						collision_rotation = ray_ground_right.get_collision_normal()
-			2:
-				if central_contact:
-					#we are grounded, likely standing on the edge of some small fence or smth
-					collision_rotation = ray_ground_central.get_collision_normal()
-					is_grounded = true
-				elif forward_axis_contact:
-					collision_rotation = (ray_ground_forward.get_collision_normal() + ray_ground_back.get_collision_normal()) / 2.0
-					is_grounded = true
-				elif side_axis_contact:
-					collision_rotation = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
-					is_grounded = true
-				else:
-					#we are NOT grounded, because the two contacting rays do not span an axis
-					#(ie. we are on the edge of something)
-					collision_rotation.slerp(Vector3.ZERO, 0.01)
-					is_grounded = false
-			3: 
-				if central_contact:
-					pass
-				else:
-					#This realistically shouldn't happen, but
-					pass
-			4, 5:
-				physics.is_balancing = false
-				
-				if physics.is_grounded:
-					#definitely grounded; just grab it from CharacterBody API
-					apply_floor_snap()
-					collision_rotation = get_floor_normal()
-				else:
-					collision_rotation = ray_ground_central.get_collision_normal()
-				
+	#NOTE: for 3 and 4, we are assuming the central ray is one of the contacting rays.
+	match contact_count:
+		0:
+			ground_normal.slerp(gravity_up_direction, 0.01)
+		1:
+			if central_contact:
+				if not physics.is_grounded:
+					#we just ran off a ledge; don't update collision rotation
+					ground_normal.slerp(gravity_up_direction, 0.01)
+			else:
+				#we aren't grounded; still calculate angles, because we may land
+				if ray_ground_forward.is_colliding():
+					ground_normal = ray_ground_forward.get_collision_normal()
+				elif ray_ground_back.is_colliding():
+					ground_normal = ray_ground_back.get_collision_normal()
+				elif ray_ground_left.is_colliding():
+					ground_normal = ray_ground_left.get_collision_normal()
+				elif ray_ground_right.is_colliding():
+					ground_normal = ray_ground_right.get_collision_normal()
+		2:
+			if central_contact:
+				#we are grounded, likely standing on the edge of some small fence or smth
+				ground_normal = ray_ground_central.get_collision_normal()
 				is_grounded = true
-			_:
-				assert(false, "How did we get here")
+			elif forward_axis_contact:
+				ground_normal = (ray_ground_forward.get_collision_normal() + ray_ground_back.get_collision_normal()) / 2.0
+				is_grounded = true
+			elif side_axis_contact:
+				ground_normal = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
+				is_grounded = true
+			else:
+				#we are NOT grounded, because the two contacting rays do not span an axis
+				#(ie. we are on the edge of something)
+				ground_normal.slerp(Vector3.ZERO, 0.01)
+				is_grounded = false
+		3: 
+			if central_contact:
+				pass
+			else:
+				#This realistically shouldn't happen, but
+				pass
+		4, 5:
+			physics.is_balancing = false
+			
+			if physics.is_grounded:
+				apply_floor_snap()
+				ground_normal = ray_ground_central.get_collision_normal()
+			
+			is_grounded = true
 	
 	if not physics.is_grounded:
 		is_grounded = is_grounded and get_slide_collision_count() > 0
+	
+	#negative if the ground is a ceiling
+	slope_mag_dot = ground_normal.dot(gravity_up_direction)
 	
 	return is_grounded
 
@@ -621,29 +609,29 @@ func refresh_raycasts() -> void:
 						pass
 					else:
 						#we just ran off a ledge; don't update collision rotation
-						collision_rotation.lerp(Vector3.ZERO, 0.01)
+						ground_normal.lerp(Vector3.ZERO, 0.01)
 				else:
 					#we aren't grounded; still calculate angles, because we may land
 					if ray_ground_forward.is_colliding():
-						collision_rotation = ray_ground_forward.get_collision_normal()
+						ground_normal = ray_ground_forward.get_collision_normal()
 					elif ray_ground_back.is_colliding():
-						collision_rotation = ray_ground_back.get_collision_normal()
+						ground_normal = ray_ground_back.get_collision_normal()
 					elif ray_ground_left.is_colliding():
-						collision_rotation = ray_ground_left.get_collision_normal()
+						ground_normal = ray_ground_left.get_collision_normal()
 					elif ray_ground_right.is_colliding():
-						collision_rotation = ray_ground_right.get_collision_normal()
+						ground_normal = ray_ground_right.get_collision_normal()
 			2:
 				if central_contact:
 					#we are grounded, likely standing on the edge of some small fence or smth
-					collision_rotation = ray_ground_central.get_collision_normal()
+					ground_normal = ray_ground_central.get_collision_normal()
 				elif forward_axis_contact:
-					collision_rotation = (ray_ground_forward.get_collision_normal() + ray_ground_back.get_collision_normal()) / 2.0
+					ground_normal = (ray_ground_forward.get_collision_normal() + ray_ground_back.get_collision_normal()) / 2.0
 				elif side_axis_contact:
-					collision_rotation = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
+					ground_normal = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
 				else:
 					#we are NOT grounded, because the two contacting rays do not span an axis
 					#(ie. we are on the edge of something)
-					collision_rotation.slerp(Vector3.ZERO, 0.01)
+					ground_normal.slerp(Vector3.ZERO, 0.01)
 			3: 
 				if central_contact:
 					pass
@@ -656,11 +644,11 @@ func refresh_raycasts() -> void:
 				if physics.is_grounded:
 					#definitely grounded; just grab it from CharacterBody API
 					apply_floor_snap()
-					collision_rotation = get_floor_normal()
+					ground_normal = get_floor_normal()
 				else:
-					collision_rotation = ray_ground_central.get_collision_normal()
-			_:
-				assert(false, "How did we get here")
+					ground_normal = ray_ground_central.get_collision_normal()
+	
+	ground_normal = ground_normal.normalized()
 
 func _ready() -> void: 
 	Input.mouse_mode = camera_mouse_capture_mode
@@ -705,7 +693,7 @@ func pan_camera(pan_strength:Vector2) -> void:
 	#rotate the camera around the player without actually rotating the parent node in the process
 	var base_transform:Transform3D = global_transform
 	
-	base_transform = base_transform.rotated_local(default_up_direction, camera_movement.x)
+	base_transform = base_transform.rotated_local(gravity_up_direction, camera_movement.x)
 	#TODO: Y axis (pitch) rotation, ie. full SADX-styled camera control
 	base_transform = base_transform.rotated_local(camera_node.global_basis.x.normalized(), camera_movement.y)
 	
@@ -773,7 +761,7 @@ func new_physics_process(delta:float) -> void:
 	
 	if not skip_builtin_states:
 		if physics.is_grounded:
-			physics.process_ground(up_direction.dot(collision_rotation), 0.0, input_direction)
+			physics.process_ground(up_direction.dot(ground_normal), 0.0, input_direction)
 			#If we're still on the ground, call the state function
 			if physics.is_grounded:
 				state_ground.emit(self)
@@ -787,8 +775,6 @@ func new_physics_process(delta:float) -> void:
 	#But this is *before* actually moving, or else it'd be nearly
 	#the same as pre_physics
 	post_physics.emit(self)
-	
-	const physics_tick_adjust:float = 60.0
 	
 	var space_velocity:Vector3 = physics.space_velocity
 	
@@ -839,6 +825,8 @@ func times_physics_process(delta: float) -> void:
 		controls.direction_left, controls.direction_right, 
 		controls.direction_down, controls.direction_up
 	)
+	var jump_pressed:bool = Input.is_action_pressed(controls.action_jump)
+	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	
 	var input_v3:Vector3 = Vector3(
 		input.x, 
@@ -847,17 +835,18 @@ func times_physics_process(delta: float) -> void:
 	)
 	
 	# Calculate rotation that aligns body "down" with floor normal
-	var axis: Vector3 = default_up_direction.cross(collision_rotation).normalized()
+	var axis: Vector3 = gravity_up_direction.cross(ground_normal).normalized()
 	
 	if not axis.is_zero_approx():
-		var quat_rotate: Quaternion = Quaternion(axis, acos(collision_rotation.dot(default_up_direction)))
+		var quat_rotate: Quaternion = Quaternion(axis, acos(ground_normal.dot(gravity_up_direction)))
 		
 		anim_model.rotation = quat_rotate.get_euler()
 	else:
 		# Floor normal and up vector are the same (flat ground)
 		anim_model.rotation = Vector3.ZERO
 	
-	var cam_input_dir: Vector3 = (camera_node.global_basis * input_v3).normalized()
+	var cam_input_dir: Vector3 = camera_node.global_basis * input_v3
+	cam_input_dir = cam_input_dir.normalized()
 	var player_input_dir:Vector3 = (anim_model.global_basis * input_v3).normalized()
 	var has_input: bool = not cam_input_dir.is_zero_approx() if not input.is_zero_approx() else false
 	
@@ -879,11 +868,10 @@ func times_physics_process(delta: float) -> void:
 	
 	add_debug_info("Cam move dot: " + str(cam_move_dot))
 	
+	#process turning with input
+	
 	if physics.is_grounded:
 		#STEP 1: Check for crouching, balancing, etc.
-		
-		var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
-		var jump_pressed:bool = Input.is_action_pressed(controls.action_jump)
 		
 		physics.update_ground_actions(jump_pressed, crouch_pressed, has_input)
 		
@@ -891,11 +879,9 @@ func times_physics_process(delta: float) -> void:
 		
 		#STEP 3: Slope factors
 		
-		#negative if the ground is a ceiling
-		var slope_mag_dot: float = collision_rotation.dot(default_up_direction)
-		# positive if the slope and movement are in the same direction;
-		#ie. if the player is running downhill
-		var slope_dir_dot: float = player_input_dir.dot(collision_rotation)
+		# positive if movement and gravity are in the same direction;
+		#ie. if the player is facing uphill
+		var slope_dir_dot: float = player_input_dir.dot(gravity_up_direction)
 		
 		add_debug_info("Ground Angle " + str(rad_to_deg(acos(slope_mag_dot))))
 		
@@ -907,28 +893,7 @@ func times_physics_process(delta: float) -> void:
 		add_debug_info("Slope magnitude: " + str(slope_mag_dot))
 		add_debug_info("Slope direction: " + str(slope_dir_dot))
 		
-		#slope factors do NOT apply on ceilings. 
-		if slope_mag_dot > -0.5:
-			if physics.is_rolling:
-				if slope_strength < 0: # Downhill
-					add_debug_info("SPINNING DOWNHILL")
-					physics.ground_velocity += slope_strength * physics.rolling_downhill_factor
-				elif slope_strength > 0: # Uphill
-					add_debug_info("SPINNING UPHILL")
-					physics.ground_velocity -= slope_strength * physics.rolling_uphill_factor
-			else:
-				if slope_strength < 0: # Downhill
-					add_debug_info("RUNNING DOWNHILL")
-				elif slope_strength > 0: # Uphill
-					add_debug_info("RUNNING UP THAT HILL")
-				
-				physics.ground_velocity += slope_strength * physics.ground_slope_factor
-			
-			# Clamp slope speed
-			physics.ground_velocity = clampf(physics.ground_velocity, -physics.absolute_speed_cap.x, physics.absolute_speed_cap.x)
-		else:
-			#WIP: Keep the player from sliding during a spindash
-			physics.ground_velocity = 0
+		physics.process_ground_slope(slope_mag_dot, slope_dir_dot)
 		
 		#STEP 4: Check for starting a jump
 		if jump_pressed:
@@ -938,46 +903,49 @@ func times_physics_process(delta: float) -> void:
 		
 		var current_friction: float = physics.rolling_flat_factor if physics.is_rolling else physics.ground_deceleration
 		
-		# Detect skidding
-		if has_input:
-			if move_dir != Vector3.ZERO:
-				if vel_move_dot <= -0.16 and physics.abs_ground_velocity > physics.ground_skid_speed:
-					skidding = true
-				elif vel_move_dot > 0.25:
-					skidding = false
-		else:
-			skidding = vel_move_dot > 0.25
-		
-		if skidding:
-			# Stop skidding if speed is very low
-			if physics.abs_ground_velocity < physics.ground_min_speed:
-				skidding = false
-			else:
-				# Apply extra friction while skidding
-				physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, physics.abs_ground_velocity / 15.0 * 0.7)
-		
-		elif not physics.is_crouching: 
-			# Rotate toward new input direction
+		# Rotate toward new input direction
+		if current_anim.can_turn_horizontal:
 			var turn_speed: float = clampf(1.0 - (physics.abs_ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
 			
 			move_dir = move_dir.slerp(cam_input_dir, turn_speed).normalized()
 			#recompute this
 			cam_move_dot = move_dir.dot(cam_input_dir)
-			
-			if physics.abs_ground_velocity < physics.ground_top_speed:
-				# Accelerate
-				if cam_move_dot > 0:
-					physics.ground_velocity = minf(physics.ground_velocity + physics.ground_acceleration, physics.ground_top_speed)
-				elif cam_move_dot < 0:
-					physics.ground_velocity = maxf(physics.ground_velocity - physics.ground_deceleration, -physics.ground_top_speed)
-		else:
-			# Apply friction when no input
-			physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
 		
-		#Rolling friction
-		if physics.is_rolling:
-			if has_input:
-				physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
+		# Detect skidding
+		#if has_input:
+			#if move_dir != Vector3.ZERO:
+				#if vel_move_dot <= -0.16 and physics.abs_ground_velocity > physics.ground_skid_speed:
+					#skidding = true
+				#elif vel_move_dot > 0.25:
+					#skidding = false
+		#else:
+			#skidding = vel_move_dot > 0.25
+		#
+		#if skidding:
+			## Stop skidding if speed is very low
+			#if physics.abs_ground_velocity < physics.ground_min_speed:
+				#skidding = false
+			#else:
+				## Apply extra friction while skidding
+				#physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, physics.abs_ground_velocity / 15.0 * 0.7)
+		#
+		#elif not physics.is_crouching: 
+			#if physics.abs_ground_velocity < physics.ground_top_speed:
+				## Accelerate
+				#if cam_move_dot > 0:
+					#physics.ground_velocity = minf(physics.ground_velocity + physics.ground_acceleration, physics.ground_top_speed)
+				#elif cam_move_dot < 0:
+					#physics.ground_velocity = maxf(physics.ground_velocity - physics.ground_deceleration, -physics.ground_top_speed)
+		#else:
+			## Apply friction when no input
+			#physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
+		#
+		##Rolling friction
+		#if physics.is_rolling:
+			#if has_input:
+				#physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
+		
+		physics.process_ground_input(vel_move_dot, cam_move_dot)
 		
 		#STEP 6: Check crouching, balancing, etc.
 		
@@ -991,7 +959,7 @@ func times_physics_process(delta: float) -> void:
 		if ray_wall_forward.is_colliding() and get_slide_collision_count() > 0:
 			var wall_dot: float = ray_wall_forward.target_position.dot(ray_wall_forward.get_collision_normal())
 			
-			physics.update_wall_contact(wall_dot, is_on_wall_only())
+			#physics.update_wall_contact(wall_dot, is_on_wall_only())
 		
 		#STEP 8: Check for doing a roll
 		
@@ -1001,117 +969,97 @@ func times_physics_process(delta: float) -> void:
 		#STEP 9: Handle camera bounds (not gonna worry about that)
 		
 		#STEP 10: Move the player (apply physics.ground_velocity to velocity)
-		physics.ground_velocity = clampf(physics.ground_velocity, -physics.absolute_speed_cap.x, physics.absolute_speed_cap.x)
-		
 		add_debug_info("Ground Speed: " + str(physics.ground_velocity))
 		
 		var move_vector: Vector3 = move_dir * physics.ground_velocity
-		#velocity.x = move_vector.x
-		#velocity.z = move_vector.z
-		velocity = move_vector
-		
-		if physics.is_jumping:
-			velocity += collision_rotation * physics.jump_velocity
+		velocity = move_vector * space_scale
 		
 		move_and_slide()
+		
+		physics.forward_velocity = velocity.z / space_scale
+		physics.vertical_velocity = velocity.y / space_scale
 		
 		#STEP 11: Check ground angles
 		
 		var now_grounded:bool = update_collision_rotation()
 		
-		if now_grounded:
-			apply_floor_snap()
-		
-		physics.is_grounded = now_grounded
-		
 		#STEP 12: Check slipping/falling
 		
-		var threshold: float = 10.0
+		physics.process_fall_slip_checks(now_grounded, slope_mag_dot)
 		
-		slope_mag_dot = collision_rotation.dot(default_up_direction)
 		
-		# If on a steep slope (close to wall) and vertical speed along slope is low, detach
-		if physics.abs_ground_velocity < threshold:
-			if slope_mag_dot < 0: 
-				physics.is_grounded = false
-				up_direction = default_up_direction
-				add_debug_info("GROUND UNSTICK")
+		if physics.is_grounded:
+			up_direction = ground_normal
+			apply_floor_snap()
+			state_ground.emit(self)
+			
+			if physics.ground_velocity > physics.ground_stick_speed:
+				add_debug_info("GROUND STICK")
+			elif physics.is_slipping:
+				add_debug_info("GROUND SLIPPING")
 			else:
 				add_debug_info("GROUND NEUTRAL")
 		else:
-			up_direction = collision_rotation
-			add_debug_info("GROUND STICK")
-			# Optionally reset or reduce speed when detaching
-			# velocity.y = 0
-	
+			if physics.is_jumping:
+				var jump_direction:Vector3 = ground_normal * physics.jump_velocity
+				
+				physics.vertical_velocity += jump_direction.y
+				#TODO: Better determination of horizontal velocity
+				physics.forward_velocity += jump_direction.z + jump_direction.x / 2.0
+				
+				jump.emit(self)
+			
+			up_direction = gravity_up_direction
+			
+			contact_air.emit(self)
+			
+			add_debug_info("GROUND UNSTICK")
+
 	else: #not physics.is_grounded
 		#STEP 1: check for jump button release
-		if physics.is_jumping and not Input.is_action_pressed(controls.action_jump):
-			if velocity.y > 0:
-				velocity.y *= 0.5  # You can tweak this (e.g. 0.4–0.6)
-			physics.is_jumping = false  # Prevent multiple reductions
+		
+		physics.update_air_actions(jump_pressed, crouch_pressed, has_input)
 		
 		add_debug_info("Jumping: " + str(physics.is_jumping))
 		
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
 		#STEP 3: Directional input
+		physics.process_air_input(input_direction.y, cam_move_dot)
 		
-		var current_h_velocity: Vector3 = Vector3(velocity.x, 0, velocity.z)
-		var current_speed: float = current_h_velocity.length()
-		#var current_h_dir: Vector3 = current_h_velocity.normalized() if current_speed > 0.01 else Vector3.ZERO
-		
-		if has_input:
-			# Smoothly rotate move_dir toward cam_input_dir in the air
-			var turn_speed: float = clampf(1.0 - (absf(physics.ground_velocity) / physics.air_top_speed) * physics.control_3d_turn_speed, 0.05, 1.0) * 0.5
-			move_dir = move_dir.slerp(cam_input_dir, turn_speed).normalized()
-			
-			#recompute this
-			cam_move_dot = move_dir.dot(cam_input_dir)
-			
-			if physics.abs_ground_velocity < physics.air_top_speed:
-				# Adjust acceleration based on input alignment
-				physics.ground_velocity = clampf(physics.ground_velocity + physics.air_acceleration * cam_move_dot, -physics.air_top_speed, physics.air_top_speed)
-		else:
-			# No input — slowly reduce physics.ground_velocity
-			physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, physics.air_acceleration)
-		
-		# STEP 3: Apply horizontal air velocity based on physics.ground_velocity and move_dir
-		physics.ground_velocity = clampf(physics.ground_velocity, -physics.air_top_speed, physics.air_top_speed)
-		
-		add_debug_info("Ground Speed: " + str(physics.ground_velocity))
-		
-		var move_vector: Vector3 = move_dir * physics.ground_velocity
-		velocity.x = move_vector.x
-		velocity.z = move_vector.z
 		#STEP 4: Air drag
 		
-		# Airborne or spindash - let slope speed decay
-		#physics.ground_velocity = move_toward(physics.ground_velocity, 0, DEC * delta)
+		physics.process_air_drag()
 		
 		#STEP 5: Move the player
+		velocity = Vector3(physics.forward_velocity, physics.vertical_velocity, physics.forward_velocity) * space_scale
+		
 		move_and_slide()
+		physics.forward_velocity = velocity.z / space_scale
+		physics.vertical_velocity = velocity.y / space_scale
 		
 		#STEP 6: Apply gravity
-		velocity += -default_up_direction * physics.air_gravity_strength
+		
+		physics.process_apply_gravity()
 		
 		#STEP 7: Check underwater for reduced gravity (not gonna worry about that)
 		
 		#STEP 8: Reset ground angle
-		collision_rotation = default_up_direction
+		ground_normal = gravity_up_direction
 		
 		#STEP 9: Collision checks
 		var now_grounded:bool = update_collision_rotation()
 		
-		if now_grounded:
-			physics.is_grounded = true
-			
-			#WIP: Apply velocity to ground (slope) speed
-			physics.ground_velocity += (1.0 - collision_rotation.dot(default_up_direction)) * velocity.length()
+		physics.process_landing(now_grounded, slope_mag_dot)
+		
+		if physics.is_grounded:
+			contact_ground.emit(self)
+		else:
+			state_air.emit(self)
 	
 	# --- Model rotation and tilt ---
 	if move_dir != Vector3.ZERO:
-		rotate_model(collision_rotation)
+		rotate_model(ground_normal)
 		
 		#if current_anim.can_turn_horizontal:
 			#rotate_toward_direction(model_default, move_dir, delta, 10.0)
@@ -1124,7 +1072,9 @@ func times_physics_process(delta: float) -> void:
 				#tilt_to_normal(model_default, delta, 6.0, 20.0, -2.5)
 		#else:
 			#tilt_to_normal(model_default, delta, 6.0, 20.0, -2.5)
+	
 	update_animations()
+	
 	#if skidding:
 		#for speeds:float in anim_skid_sorted_keys:
 			#if physics.abs_ground_velocity > physics.ground_top_speed * speeds:

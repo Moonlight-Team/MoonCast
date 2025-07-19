@@ -165,6 +165,8 @@ var abs_ground_velocity:float
 var current_animation:AnimationTypes
 
 #angle values
+#a dot product between the ground normal and gravity normal must be *larger* than these, eg.
+#if it's less than slip_dot, the slope is slippable.
 ##A value representing the value that a ground dot has to be greater than in order to be considered
 ##a shallow enough slope to not slip on.
 var slip_dot:float 
@@ -214,6 +216,8 @@ var is_jumping:bool = false
 var is_slipping:bool = false
 ##If the player is in an attacking state.
 var is_attacking:bool = false
+##If the player is on a wall.
+var is_on_wall:bool = false
 
 ##The name of the custom performance monitor for vertical_velocity.
 var self_perf_vertical_velocity:StringName
@@ -288,7 +292,6 @@ func set_air_state() -> void:
 	is_slipping = false
 
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
-	
 	if roll_pressed:
 		if control_roll_enabled and abs_ground_velocity > rolling_min_speed:
 			if (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
@@ -361,21 +364,20 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 				ground_velocity = 0.0
 				is_rolling = false
 				current_animation = AnimationTypes.STAND
-				printt("TURN AROUND SLOPE")
+				printt("SLOPE: TURN AROUND")
 		
 		else: 
 			#slope factors for being on foot
 			
-			var applied_slope:float = - (ground_slope_factor * sin(slope_angle) * signf(slope_dir))
+			var applied_slope:float = - (ground_slope_factor * sin(slope_angle) * slope_dir)
 			
-			if is_zero_approx(slope_dir) or is_zero_approx(sin(slope_angle)):
-				printt("EVEN GROUND", applied_slope)
-			elif slope_dir > 0:
-				printt("UPHILL", sin(slope_angle), applied_slope)
-			elif slope_dir < 0: 
-				printt("DOWNHILL", sin(slope_angle), applied_slope)
+			if not is_zero_approx(sin(slope_angle)):
+				if slope_dir > 0:
+					printt("SLOPE: UPHILL", sin(slope_angle), applied_slope)
+				elif slope_dir < 0: 
+					printt("SLOPE: DOWNHILL", sin(slope_angle), applied_slope)
 			
-			ground_velocity -= ground_slope_factor * sin(slope_angle) * signf(slope_dir)
+			ground_velocity -= ground_slope_factor * sin(slope_angle) * slope_dir
 
 ##Process ground movement. 
 ##[param velocity_dot] is the dot product between the direction of the inputs in space and the 
@@ -414,7 +416,7 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 		#we also don't want the player to be able to accidentally moonwalk into negative infinity
 		#if they manage to go into negative ground_velocity and then *also* decelerate
 		elif velocity_dot < 0 and abs_ground_velocity > 0:
-			printt("skid")
+			printt("physics: skid")
 			#skid to a stop
 			ground_velocity -= ground_skid_speed * acceleration
 			
@@ -453,15 +455,15 @@ func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool)
 ##strafe (x axis, unused in 2D). [param input_dot] is the dot product between the direction
 ##of the inputs in space and the velocity of the player, used for detection and strength of
 ##acceleration/deceleration.
-func process_air_input(input_vector:Vector2, input_dot:float) -> void:
-	if not input_vector.is_zero_approx():
+func process_air_input(acceleration:float, input_dot:float) -> void:
+	if not is_zero_approx(acceleration):
 		var can_air_move:bool = can_be_moving
 		if control_jump_roll_lock and is_rolling:
 			can_air_move = can_air_move and not is_jumping
 		
 		if abs_ground_velocity < air_top_speed and can_air_move:
 			#accelerate in midair
-			forward_velocity += air_acceleration * input_vector.y * input_dot
+			forward_velocity += air_acceleration * acceleration * input_dot
 
 func process_apply_gravity() -> void:
 	vertical_velocity -= air_gravity_strength
@@ -481,16 +483,22 @@ func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 	if wall_dot < -wall_threshold:  # Almost head-on into wall
 		printt("WALL CONTACT")
 		
+		if not is_on_wall:
+			contact_wall.emit(self)
+		
+		is_on_wall = true
+		
 		if is_grounded:
 			ground_velocity = 0.0
-			is_pushing = input_dot < -wall_threshold
+			if input_dot < -wall_threshold:
+				is_pushing = true
+				current_animation = AnimationTypes.PUSH
+			else:
+				is_pushing = false
+				current_animation = AnimationTypes.STAND
 		else:
 			forward_velocity = 0.0
 			is_pushing = false
-	
-	if not was_pushing and is_pushing:
-		current_animation = AnimationTypes.PUSH
-		contact_wall.emit(self)
 
 ##Run updates for the player landing on the ground from being in the air.
 ##[param ground_detected] is the status of being on the ground according to the player implementation's 
@@ -501,11 +509,10 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 	if ground_detected:
 		#apply spatial velocity to ground velocity
 		
-		#old landing code
-		#var applied_velocity:Vector2 = (Vector2.from_angle(acos(slope_mag)) * Vector2(forward_velocity, vertical_velocity)).abs()
-		#ground_velocity = applied_velocity.x + applied_velocity.y
-		
 		#landing code based somewhat on Harmony Framework
+		
+		var abs_forward:float = absf(forward_velocity)
+		var abs_vertical:float = absf(vertical_velocity)
 		
 		#TODO: Make this a configurable variable, ofc
 		const flat_ground_threshold:float = 1.0 - (23.0 / 90.0)
@@ -514,32 +521,36 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		if slope_mag > 0:
 			print("grounded! floored")
 			is_grounded = true
-			ground_velocity = forward_velocity
+			ground_velocity = abs_forward
 			
 			#if the player is on a "steeper than flat" slope
 			if slope_mag < flat_ground_threshold:
 				if slope_mag <= 0.5: #steeper than 45 degrees, could be changed to use ground_fall_angle?
-					ground_velocity = maxf(forward_velocity, vertical_velocity)
+					ground_velocity = maxf(abs_forward, abs_vertical)
 				else:
-					ground_velocity = maxf(forward_velocity, vertical_velocity / 2.0)
+					ground_velocity = maxf(abs_forward, abs_vertical / 2.0)
+			
+			contact_ground.emit(self)
 		#landing code for ceilings
 		elif slope_mag < 0:
 			
 			if slope_mag > -0.5:
 				#player can only land when they're traveling more up than forward
-				if absf(forward_velocity) < absf(vertical_velocity):
+				if abs_forward < abs_vertical:
 					print("grounded! ceiling")
 					is_grounded = true
-					ground_velocity = vertical_velocity
-			else:
-				print("ceiling grounding failed")
-				#*bonk*, no landing for you
-				vertical_velocity = 0.0
+					ground_velocity = abs_vertical
+					contact_ground.emit(self)
+				else:
+					print("ceiling grounding failed")
+					#*bonk*, no landing for you
+					vertical_velocity = 0.0
 		
-		if abs_ground_velocity > ground_min_speed:
-			current_animation = AnimationTypes.RUN
-		else:
-			current_animation = AnimationTypes.STAND
+		if is_grounded:
+			if abs_ground_velocity > ground_min_speed:
+				current_animation = AnimationTypes.RUN
+			else:
+				current_animation = AnimationTypes.STAND
 		
 		#cleanup jumping stuff
 		if is_jumping:
@@ -547,6 +558,11 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 			can_jump = false
 			
 			jump_timer = start_delta_timer(jump_spam_timer)
+
+##Apply [member ground_velocity] to [member forward_velocity] and [member vertical_velocity] so that
+##momentum can be properly transfered into physical space speeds.
+func process_apply_ground_velocity() -> void:
+	pass
 
 ##Run updates for the player falling or slipping down slopes and leaving the ground.
 ##[param ground_detected] is the status of being on the ground according to the player implementation's 
