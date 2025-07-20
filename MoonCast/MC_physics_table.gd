@@ -289,7 +289,6 @@ func set_air_state() -> void:
 	is_grounded = false
 	is_pushing = false
 	is_crouching = false
-	is_slipping = false
 
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	if roll_pressed:
@@ -394,8 +393,7 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 		#ground friction for rolling
 		ground_velocity -= rolling_flat_factor * prev_ground_sign
 	else:
-		if is_zero_approx(acceleration):
-			
+		if is_zero_approx(acceleration) or is_slipping:
 			#no input has been passed in, so decelerate to a stop
 			#the trick of subtracting abs_ground_velocity comes courtesy of Harmony Framework
 			ground_velocity -= ground_deceleration * prev_ground_sign
@@ -571,19 +569,17 @@ func process_apply_ground_velocity() -> void:
 ##the slope the player might be landing on is.
 func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 	if ground_detected and not is_jumping:
-		if ground_velocity < ground_stick_speed:
-			#we must manually check that the player can still be grounded
-			
+		#if the ground is steep enough to slip on, and the player is too slow, slip
+		if ground_velocity < ground_stick_speed and slope_mag < slip_dot:
 			#if the ground is steep enough, fall off entirely
 			if slope_mag < fall_dot:
 				set_air_state()
 				ground_velocity = 0.0
-			#if the ground is steep enough to slip on, slip
-			elif slope_mag < slip_dot:
-				if not is_slipping:
-					is_slipping = true
-					slip_lock_timer = start_delta_timer(ground_slip_time)
-					ground_velocity = 0.0
+			
+			if not is_slipping:
+				is_slipping = true
+				slip_lock_timer = start_delta_timer(ground_slip_time)
+				ground_velocity = 0.0
 	else:
 		set_air_state()
 		

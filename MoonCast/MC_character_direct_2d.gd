@@ -784,10 +784,7 @@ func new_physics_process(delta:float) -> void:
 	#poll input
 	var input_dir:float = Input.get_axis(controls.direction_left, controls.direction_right)
 	
-	var input_vector:Vector2 = Vector2(
-		input_dir,
-		0.0 #The physics table functions use y axis for forward.
-	)
+	var input_vector:Vector2 = Vector2(signf(input_dir), 0.0)
 	var jump_pressed:bool = Input.is_action_pressed(controls.action_jump)
 	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	var has_input:bool = not is_zero_approx(input_dir)
@@ -799,21 +796,20 @@ func new_physics_process(delta:float) -> void:
 	
 	var turn_locked:bool = physics.is_grounded and not is_zero_approx(physics.ground_velocity) 
 	
+	var vel_move_dot:float = facing_direction.dot(player_input_dir)
+	
 	if not physics.is_grounded or is_zero_approx(physics.ground_velocity):
 		#allow the player to turn around if they aren't skidding
-		if input_dir > 0: 
-			if facing_direction.dot(player_input_dir) < 0:
-				printt("FLIP RIGHT", facing_direction, player_input_dir)
-			
-			facing_direction = Vector2.RIGHT.rotated(ground_angle)
 		
-		elif input_dir < 0:
-			if facing_direction.dot(player_input_dir) < 0:
+		if vel_move_dot < 0:
+			if input_dir > 0:
+				printt("FLIP RIGHT", facing_direction, player_input_dir)
+			elif input_dir < 0:
 				printt("FLIP LEFT", facing_direction, player_input_dir)
-			
-			facing_direction = Vector2.LEFT.rotated(ground_angle)
-	
-	var vel_move_dot:float = facing_direction.dot(player_input_dir)
+		
+		facing_direction = player_input_dir
+		
+		vel_move_dot = 1.0
 	
 	if turn_locked and has_input:
 		if vel_move_dot < 0:

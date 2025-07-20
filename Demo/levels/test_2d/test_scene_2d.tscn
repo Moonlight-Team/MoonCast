@@ -273,7 +273,6 @@ show_behind_parent = true
 texture = ExtResource("7_2q626")
 
 [node name="mrneedlemouse_direct" parent="." node_paths=PackedStringArray("camera_node") instance=ExtResource("2_ul801")]
-position = Vector2(1445, -86)
 floor_stop_on_slope = false
 floor_constant_speed = true
 floor_block_on_wall = false

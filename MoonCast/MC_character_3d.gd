@@ -126,6 +126,8 @@ var animation_custom:bool = false
 ##The current animation
 var current_anim:MoonCastAnimation = MoonCastAnimation.new()
 
+var camera_vector:Vector2
+
 #sorted arrays of the keys for anim_run and anim_skid
 var anim_run_sorted_keys:PackedFloat32Array = []
 var anim_skid_sorted_keys:PackedFloat32Array = []
@@ -382,86 +384,82 @@ func setup_collision() -> void:
 	#place the raycasts based on the above derived values
 	reposition_raycasts(ground_forward_point, ground_back_point, ground_left_point, ground_right_point, def_ray_gnd_center)
 
-func update_animations(extern:int = 0) -> void:
-	if not animation_set:
-		var anim:int = extern
-		
-		if extern != 0:
-			anim = physics.assess_animations()
-		
-		match anim:
-			MoonCastPhysicsTable.AnimationTypes.RUN:
-				for speeds:float in anim_run_sorted_keys:
-					if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
-						#They were snapped earlier, but I find that it still won't work
-						#unless I snap them here
-						play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
-						break
-			MoonCastPhysicsTable.AnimationTypes.SKID:
-				for speeds:float in anim_skid_sorted_keys:
-					if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
-						
-						#correct the direction of the sprite
-						#facing_direction = -facing_direction
-						#sprites_flip()
-						
-						#They were snapped earlier, but I find that it still won't work
-						#unless I snap them here
-						play_animation(anim_skid.get(snappedf(speeds, 0.001), &"RESET"), true)
-						
-						#only play skid anim once while skidding
-						if not anim_skid.values().has(current_anim):
-							#play_sound_effect(sfx_skid_name)
-							pass
-						break
-						
-			MoonCastPhysicsTable.AnimationTypes.BALANCE:
-				#if ground_left_data.is_empty():
-					#face the ledge
-					#facing_direction = -1.0
-				#elif ground_right_data.is_empty():
-					#face the ledge
-					#facing_direction = 1.0
-				
-				#sprites_flip(false)
-				#if has_animation(anim_balance):
-				if false:
-					play_animation(anim_balance)
-				else:
-					play_animation(anim_stand)
-			MoonCastPhysicsTable.AnimationTypes.STAND:
-				if Input.is_action_pressed(controls.direction_up):
-					#TODO: Change this to be used by moving the camera up.
-					if current_anim != anim_look_up:
-						play_animation(anim_look_up)
-				else:
-					play_animation(anim_stand)
-			MoonCastPhysicsTable.AnimationTypes.DEFAULT:
-				#print("Default anim")
-				play_animation(anim_stand)
-			MoonCastPhysicsTable.AnimationTypes.STAND:
-				if current_anim != anim_stand:
-					print("Standing")
-				play_animation(anim_stand)
-			MoonCastPhysicsTable.AnimationTypes.LOOK_UP:
-				play_animation(anim_look_up)
-			MoonCastPhysicsTable.AnimationTypes.BALANCE:
+func update_animations() -> void:
+	match physics.current_animation:
+		MoonCastPhysicsTable.AnimationTypes.RUN:
+			for speeds:float in anim_run_sorted_keys:
+				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+					#They were snapped earlier, but I find that it still won't work
+					#unless I snap them here
+					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
+					break
+		MoonCastPhysicsTable.AnimationTypes.SKID:
+			for speeds:float in anim_skid_sorted_keys:
+				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+					
+					#correct the direction of the sprite
+					#facing_direction = -facing_direction
+					#sprites_flip()
+					
+					#They were snapped earlier, but I find that it still won't work
+					#unless I snap them here
+					play_animation(anim_skid.get(snappedf(speeds, 0.001), &"RESET"), true)
+					
+					#only play skid anim once while skidding
+					if not anim_skid.values().has(current_anim):
+						#play_sound_effect(sfx_skid_name)
+						pass
+					break
+					
+		MoonCastPhysicsTable.AnimationTypes.BALANCE:
+			#if ground_left_data.is_empty():
+				#face the ledge
+				#facing_direction = -1.0
+			#elif ground_right_data.is_empty():
+				#face the ledge
+				#facing_direction = 1.0
+			
+			#sprites_flip(false)
+			#if has_animation(anim_balance):
+			if false:
 				play_animation(anim_balance)
-			MoonCastPhysicsTable.AnimationTypes.CROUCH:
-				if current_anim != anim_crouch:
-					print("Crouching")
-				play_animation(anim_crouch)
-			MoonCastPhysicsTable.AnimationTypes.FREE_FALL:
-				if current_anim != anim_free_fall:
-					print("Falling")
-				play_animation(anim_free_fall)
-			MoonCastPhysicsTable.AnimationTypes.ROLL:
-				if current_anim != anim_roll:
-					print("Rolling")
-				play_animation(anim_roll)
-			_:
-				print("Implement animation ", anim)
-		#TODO: Match statement for anim
+			else:
+				play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.STAND:
+			if Input.is_action_pressed(controls.direction_up):
+				#TODO: Change this to be used by moving the camera up.
+				
+				if current_anim != anim_look_up:
+					play_animation(anim_look_up)
+			else:
+				play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.DEFAULT:
+			#print("Default anim")
+			play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.STAND:
+			if current_anim != anim_stand:
+				print("Standing")
+			play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.LOOK_UP:
+			play_animation(anim_look_up)
+		MoonCastPhysicsTable.AnimationTypes.BALANCE:
+			play_animation(anim_balance)
+		MoonCastPhysicsTable.AnimationTypes.CROUCH:
+			if current_anim != anim_crouch:
+				print("Crouching")
+			play_animation(anim_crouch)
+		MoonCastPhysicsTable.AnimationTypes.FREE_FALL:
+			if current_anim != anim_free_fall:
+				print("Falling")
+			play_animation(anim_free_fall)
+		MoonCastPhysicsTable.AnimationTypes.ROLL:
+			if current_anim != anim_roll:
+				print("Rolling")
+			play_animation(anim_roll)
+		MoonCastPhysicsTable.AnimationTypes.JUMP:
+			play_animation(anim_jump)
+		_:
+			print("Implement animation ", physics.current_animation)
 
 ##Rotate the player model to [new_rotation], in global coordinates.
 func rotate_model(new_rotation:Vector3) -> void:
@@ -702,15 +700,14 @@ func pan_camera(pan_strength:Vector2) -> void:
 func _input(event:InputEvent) -> void:
 	#camera
 	
-	var camera_movement:Vector2
 	if camera_use_mouse:
 		if event is InputEventMouseMotion:
-			camera_movement = Vector2(-event.relative.x, event.relative.y)
+			camera_vector = Vector2(-event.relative.x, event.relative.y)
 	else:
-		camera_movement = Input.get_vector(controls.camera_left, controls.camera_right, 
+		camera_vector = Input.get_vector(controls.camera_left, controls.camera_right, 
 		controls.camera_down, controls.camera_up)
 	
-	pan_camera(camera_movement)
+	pan_camera(camera_vector)
 
 func _physics_process(delta: float) -> void:
 	debug_label.text = ""
@@ -864,8 +861,6 @@ func times_physics_process(delta: float) -> void:
 	var movement_dot:float
 	var vel_move_dot: float = cam_input_dir.dot(velocity.normalized())
 	
-	var skidding:bool = false
-	
 	add_debug_info("Cam move dot: " + str(cam_move_dot))
 	
 	#process turning with input
@@ -884,12 +879,6 @@ func times_physics_process(delta: float) -> void:
 		var slope_dir_dot: float = player_input_dir.dot(gravity_up_direction)
 		
 		add_debug_info("Ground Angle " + str(rad_to_deg(acos(slope_mag_dot))))
-		
-		# Get slope tilt from model forward tilt
-		var forward_vec: Vector3 = -anim_model.transform.basis.z.normalized()
-		var slope_strength: float = snappedf(forward_vec.y, 0.01)
-		
-		add_debug_info("Slope strength: " + str(slope_strength))
 		add_debug_info("Slope magnitude: " + str(slope_mag_dot))
 		add_debug_info("Slope direction: " + str(slope_dir_dot))
 		
@@ -901,8 +890,6 @@ func times_physics_process(delta: float) -> void:
 		
 		#STEP 5: Direction input factors, friction/deceleration
 		
-		var current_friction: float = physics.rolling_flat_factor if physics.is_rolling else physics.ground_deceleration
-		
 		# Rotate toward new input direction
 		if current_anim.can_turn_horizontal:
 			var turn_speed: float = clampf(1.0 - (physics.abs_ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
@@ -910,40 +897,6 @@ func times_physics_process(delta: float) -> void:
 			move_dir = move_dir.slerp(cam_input_dir, turn_speed).normalized()
 			#recompute this
 			cam_move_dot = move_dir.dot(cam_input_dir)
-		
-		# Detect skidding
-		#if has_input:
-			#if move_dir != Vector3.ZERO:
-				#if vel_move_dot <= -0.16 and physics.abs_ground_velocity > physics.ground_skid_speed:
-					#skidding = true
-				#elif vel_move_dot > 0.25:
-					#skidding = false
-		#else:
-			#skidding = vel_move_dot > 0.25
-		#
-		#if skidding:
-			## Stop skidding if speed is very low
-			#if physics.abs_ground_velocity < physics.ground_min_speed:
-				#skidding = false
-			#else:
-				## Apply extra friction while skidding
-				#physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, physics.abs_ground_velocity / 15.0 * 0.7)
-		#
-		#elif not physics.is_crouching: 
-			#if physics.abs_ground_velocity < physics.ground_top_speed:
-				## Accelerate
-				#if cam_move_dot > 0:
-					#physics.ground_velocity = minf(physics.ground_velocity + physics.ground_acceleration, physics.ground_top_speed)
-				#elif cam_move_dot < 0:
-					#physics.ground_velocity = maxf(physics.ground_velocity - physics.ground_deceleration, -physics.ground_top_speed)
-		#else:
-			## Apply friction when no input
-			#physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
-		#
-		##Rolling friction
-		#if physics.is_rolling:
-			#if has_input:
-				#physics.ground_velocity = move_toward(physics.ground_velocity, 0.0, current_friction)
 		
 		physics.process_ground_input(vel_move_dot, cam_move_dot)
 		

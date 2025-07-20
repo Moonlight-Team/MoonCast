@@ -7,7 +7,7 @@
 #### DISCLAIMER: THIS SOFTWARE IS IN A PRE-RELEASE STATE AND IS SUBJECT TO POTENTIALLY LARGE AND BACKWARDS COMPATIBILITY BREAKING CHANGES DURING DEVELOPMENT
 
 ## Features:
-* 3D and 2D character support. (3D is in-progress)
+* 3D and 2D character support.
 * Tight and complementary integration into Godot's physics engine and other systems.
 * Custom Resource types that can be used for both the 3D and 2D systems.
 * Easy to use script API for adding and extending player abilities in a modular way.
@@ -54,13 +54,14 @@ The one exception is the splash video found in `video/`, which can be used as an
 ## Credits:
 ### MoonCast Engine:
 * The [Sonic Retro Sonic Physics Guide](https://info.sonicretro.org/Sonic_Physics_Guide), for a LOT (and I mean a **LOT**) of physics behavior referencing. 
-* [Flow Engine (and by extension, coderman64)](https://github.com/coderman64/flow-engine/tree/godot-4): Some code used as a basis for the 2D engine physics, as well as general inspiration on project organization.
-* [Sonic Worlds Next](https://github.com/Techokami/SonicWorldsNext): Motivation for the creation of this engine, and the derivation of some ideas/concepts (such as the physics tables)
-* [Godot Engine](https://github.com/godotengine/godot): Being an excellent basis for projects like this 
+* [Flow Engine (and by extension, coderman64)](https://github.com/coderman64/flow-engine/tree/godot-4): Some code used as a basis for the legacy 2D engine physics, as well as general inspiration on project organization.
+* [Hyper Framework (and by extension, Time209)](https://github.com/Time-rgb-dev): A reference for the handling of certain things in the 3D portion of the Engine, and also inspiration for the general 2nd iteration of the Engine's internal design.
+* [Sonic Worlds Next](https://github.com/Techokami/SonicWorldsNext): Motivation for the creation of this engine, and the derivation of some ideas/concepts (such as the physics tables).
+* [Godot Engine](https://github.com/godotengine/godot): Being an excellent basis for projects like this.
 * Sonic Moonlight: The fangame that served as a catalyst for this engine to come into fruition.
 * [KlashiCola](https://github.com/Klashicola): Engine assets, programming.
 * [c08oprkiua](https://github.com/c08oprkiua): Main programmer.
-* .[GhoulX](https://github.com/Ghoul-webp).: Editor icons, tweaked spindash speeds.
+* [GhoulX](https://github.com/Ghoul-webp): Editor icons, tweaked spindash speeds.
 * [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting.
 ### Demo/Framework:
 * [KlashiCola](https://github.com/Klashicola): 3D modeling.
