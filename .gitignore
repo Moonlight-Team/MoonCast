@@ -19,3 +19,4 @@ showcase.avi
 /addons/gdscript2all
 /MoonCastC++/mooncast/__pycache__
 *.o
+*.pyc

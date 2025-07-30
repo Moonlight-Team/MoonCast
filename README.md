@@ -65,7 +65,7 @@ The one exception is the splash video found in `video/`, which can be used as an
 * [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting.
 ### Demo/Framework:
 * [KlashiCola](https://github.com/Klashicola): 3D modeling.
-* [SS](https://github.com/SS-SoStupid): Sonic sprites, level art.
+* [SS](https://github.com/SS-SoStupid): Sonic sprites, level art, 3D modeling.
 * .[GhoulX](https://github.com/Ghoul-webp) Concept Art, promotional art.
 * [FrostyFoxTeals](https://github.com/Real-FrostyFoxTeals): Playtesting, level design.
 * [c08oprkiua](https://github.com/c08oprkiua): Level design, ability programmer.

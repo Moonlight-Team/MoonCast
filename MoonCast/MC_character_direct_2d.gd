@@ -803,19 +803,13 @@ func new_physics_process(delta:float) -> void:
 		
 		if vel_move_dot < 0:
 			if input_dir > 0:
-				printt("FLIP RIGHT", facing_direction, player_input_dir)
+				printt("2D: FLIP RIGHT", facing_direction, player_input_dir)
 			elif input_dir < 0:
-				printt("FLIP LEFT", facing_direction, player_input_dir)
+				printt("2D: FLIP LEFT", facing_direction, player_input_dir)
 		
 		facing_direction = player_input_dir
 		
 		vel_move_dot = 1.0
-	
-	if turn_locked and has_input:
-		if vel_move_dot < 0:
-			print("Move: Skid")
-		else:
-			printt("Move: Acceleration")
 	
 	#emit pre-physics before running any state functions
 	pre_physics.emit(self_old)
@@ -881,7 +875,9 @@ func new_physics_process(delta:float) -> void:
 		#STEP 9: Handle camera bounds (not gonna worry about that)
 		
 		#STEP 10: Move the player (apply ground_velocity to velocity)
-		velocity = facing_direction * physics.ground_velocity * space_scale
+		#velocity = facing_direction * physics.ground_velocity * space_scale
+		physics.process_apply_ground_velocity(ground_dot)
+		velocity = facing_direction * Vector2(physics.forward_velocity, physics.vertical_velocity) * space_scale
 		
 		move_and_slide()
 		
@@ -975,6 +971,7 @@ func _notification(what: int) -> void:
 				draw_debug_info()
 		NOTIFICATION_READY:
 			set_physics_process(true)
+			set_meta(&"is_player", true)
 			setup_internal_children()
 			scan_children()
 			setup_collision()

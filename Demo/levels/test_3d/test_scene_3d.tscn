@@ -25,16 +25,10 @@
 [ext_resource type="Texture2D" uid="uid://bwf6ggqpwd0lv" path="res://Demo/player/mooncast_sonic_2d/idle/standing.tres" id="23_p8uau"]
 
 [sub_resource type="Environment" id="Environment_noruf"]
-background_mode = 3
-background_color = Color(0.838897, 0.838897, 0.838897, 1)
-background_energy_multiplier = 2.25
-background_canvas_max_layer = -100
+background_mode = 1
+background_color = Color(0, 0.454902, 0.839216, 1)
 ambient_light_source = 3
-ambient_light_color = Color(0.71213, 0.712129, 0.712129, 1)
-ambient_light_sky_contribution = 0.0
-ambient_light_energy = 0.0
-reflected_light_source = 2
-tonemap_exposure = 1.22
+ambient_light_color = Color(0.817521, 0.817521, 0.817521, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y7b7r"]
 resource_name = "10___Default"
@@ -860,14 +854,6 @@ repeat_times = 2
 [node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/Parallax2D"]
 position = Vector2(-36, 39.6667)
 texture = ExtResource("23_1pam8")
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
-light_color = Color(0.731584, 0.742832, 0.91334, 1)
-light_energy = 0.778
-light_indirect_energy = 2.29
-shadow_enabled = true
-directional_shadow_mode = 0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_noruf")

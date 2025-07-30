@@ -1,0 +1,4 @@
+#ifndef MOONCAST_PLAYER_2D_H
+#define MOONCAST_PLAYER_2D_H
+
+#endif

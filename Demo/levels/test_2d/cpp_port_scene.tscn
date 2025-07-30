@@ -1,0 +1,55 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1qc24qu53k3u"]
+
+[ext_resource type="Texture2D" uid="uid://jmdb77nxv6xr" path="res://Demo/player/classic_sonic/walk_run/stand_1.tres" id="1_xpbx1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bcihq"]
+size = Vector2(512, 16)
+
+[node name="CPPPortScene" type="Node2D"]
+
+[node name="GroundBodies" type="StaticBody2D" parent="."]
+
+[node name="Floor" type="CollisionShape2D" parent="GroundBodies"]
+position = Vector2(134, 248)
+shape = SubResource("RectangleShape2D_bcihq")
+debug_color = Color(0, 0.592157, 0.690196, 1)
+
+[node name="Ceiling" type="CollisionShape2D" parent="GroundBodies"]
+position = Vector2(134, -280)
+shape = SubResource("RectangleShape2D_bcihq")
+debug_color = Color(0, 0.592157, 0.690196, 1)
+
+[node name="RightWall" type="CollisionShape2D" parent="GroundBodies"]
+position = Vector2(398, -16)
+rotation = 1.5708
+shape = SubResource("RectangleShape2D_bcihq")
+debug_color = Color(0, 0.592157, 0.690196, 1)
+
+[node name="LeftWall" type="CollisionShape2D" parent="GroundBodies"]
+position = Vector2(-130, -16)
+rotation = 1.5708
+shape = SubResource("RectangleShape2D_bcihq")
+debug_color = Color(0, 0.592157, 0.690196, 1)
+
+[node name="BottomRight" type="CollisionPolygon2D" parent="GroundBodies"]
+position = Vector2(262, 240)
+rotation = -1.5708
+polygon = PackedVector2Array(0, 0, 32, 64, 64, 96, 128, 128, 0, 128)
+
+[node name="TopLeft" type="CollisionPolygon2D" parent="GroundBodies"]
+position = Vector2(6, -272)
+rotation = 1.5708
+polygon = PackedVector2Array(0, 0, 32, 64, 64, 96, 128, 128, 0, 128)
+
+[node name="TopRight" type="CollisionPolygon2D" parent="GroundBodies"]
+position = Vector2(390, -144)
+rotation = -3.14159
+polygon = PackedVector2Array(0, 0, 32, 64, 64, 96, 128, 128, 0, 128)
+
+[node name="BottomLeft" type="CollisionPolygon2D" parent="GroundBodies"]
+position = Vector2(-122, 112)
+polygon = PackedVector2Array(0, 0, 32, 64, 64, 96, 128, 128, 0, 128)
+
+[node name="Sprite-ref" type="Sprite2D" parent="."]
+position = Vector2(146, 216)
+texture = ExtResource("1_xpbx1")

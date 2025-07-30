@@ -26,7 +26,6 @@ enum AnimationTypes {
 	FREE_FALL,
 	##Death animation
 	DEATH,
-	
 	##Running animation
 	RUN,
 	##Skidding animation
@@ -36,7 +35,7 @@ enum AnimationTypes {
 const perf_forward_velocity:StringName = &"Forward Velocity"
 const perf_vertical_velocity:StringName = &"Vertical Velocity"
 const perf_ground_velocity:StringName = &"Ground Velocity"
-const perf_state:StringName = &"Player State"
+const perf_slope:StringName = &"Ground Angle"
 
 @export_group("Control Options", "control_")
 @export_subgroup("3D Options", "control_3d_")
@@ -162,6 +161,8 @@ var ground_velocity:float:
 
 var abs_ground_velocity:float
 
+var ground_slope:float
+
 var current_animation:AnimationTypes
 
 #angle values
@@ -206,13 +207,9 @@ var is_crouching:bool
 ##If true, the player is balacing on the edge of a platform.
 ##This causes certain core abilities to be disabled.
 var is_balancing:bool = false
-var is_pushing:bool = false:
-	set(now_pushing):
-		if can_be_pushing:
-			is_pushing = now_pushing
+var is_pushing:bool = false
 var is_jumping:bool = false
-##If the player is slipping down a slope. When set, this value will silently
-##set [member slipping_direction] based on the current [member collision_angle].
+##If the player is slipping down a slope. This means they cannot move.
 var is_slipping:bool = false
 ##If the player is in an attacking state.
 var is_attacking:bool = false
@@ -225,8 +222,8 @@ var self_perf_vertical_velocity:StringName
 var self_perf_forward_velocity:StringName
 ##The name of the custom performance monitor for ground_velocity.
 var self_perf_ground_velocity:StringName
-##The name of the custom performance monitor for state
-var self_perf_state:StringName
+##The name of the custom performance monitor for ground slope.
+var self_perf_slope:StringName
 
 ##Emitted when the player makes contact with the ground
 signal contact_ground(physics:MoonCastPhysicsTable)
@@ -252,10 +249,11 @@ func setup_performance_monitors(name:StringName) -> void:
 	self_perf_forward_velocity = name + &"/" + perf_forward_velocity
 	self_perf_vertical_velocity = name + &"/" + perf_vertical_velocity
 	self_perf_ground_velocity = name + &"/" + perf_ground_velocity
-	self_perf_state = name + &"/" + perf_state
+	self_perf_slope = name + &"/" + perf_slope
 	Performance.add_custom_monitor(self_perf_forward_velocity, get, [&"forward_velocity"])
 	Performance.add_custom_monitor(self_perf_vertical_velocity, get, [&"vertical_velocity"])
 	Performance.add_custom_monitor(self_perf_ground_velocity, get, [&"ground_velocity"])
+	Performance.add_custom_monitor(self_perf_slope, get, [&"ground_slope"])
 
 ##Clean up the custom physics value monitors for this PhysicsTable.
 func cleanup_performance_monitors() -> void:
@@ -305,6 +303,7 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 			is_rolling = false
 	else:
 		is_crouching = false
+		can_be_moving = true
 	
 	if can_jump and jump_pressed:
 		is_jumping = true
@@ -341,7 +340,7 @@ func update_rolling_crouching(button_pressed:bool) -> void:
 ##[param slope_dir] represents the dot product between the gravity normal and the the 
 ##direction the player is facing.
 func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
-	var slope_angle:float = acos(slope_mag)
+	ground_slope = acos(slope_mag)
 	
 	#do not apply slope factors on ceilings
 	if slope_mag > -0.5:
@@ -353,10 +352,10 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 			if not is_equal_approx(slope_mag, 1.0):
 				if slope_dir < 0:
 					#rolling downhill
-					ground_velocity += rolling_downhill_factor * slope_angle
+					ground_velocity += rolling_downhill_factor * ground_slope
 				elif slope_dir > 0:
 					#rolling uphill
-					ground_velocity -= rolling_uphill_factor * slope_angle
+					ground_velocity -= rolling_uphill_factor * ground_slope
 			
 			#Stop the player if they turn around
 			if prev_ground_vel_sign != 0.0 and not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
@@ -368,15 +367,16 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 		else: 
 			#slope factors for being on foot
 			
-			var applied_slope:float = - (ground_slope_factor * sin(slope_angle) * slope_dir)
+			var applied_slope:float = - (ground_slope_factor * sin(ground_slope) * slope_dir)
 			
-			if not is_zero_approx(sin(slope_angle)):
+			if not is_zero_approx(sin(ground_slope)):
 				if slope_dir > 0:
-					printt("SLOPE: UPHILL", sin(slope_angle), applied_slope)
+					printt("SLOPE: UPHILL", sin(ground_slope), applied_slope)
 				elif slope_dir < 0: 
-					printt("SLOPE: DOWNHILL", sin(slope_angle), applied_slope)
+					printt("SLOPE: DOWNHILL", sin(ground_slope), applied_slope)
 			
-			ground_velocity -= ground_slope_factor * sin(slope_angle) * slope_dir
+				#ground_velocity -= ground_slope_factor * sin(ground_slope) * slope_dir
+				ground_velocity -= sin(ground_slope)
 
 ##Process ground movement. 
 ##[param velocity_dot] is the dot product between the direction of the inputs in space and the 
@@ -387,13 +387,13 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 	
 	if is_rolling:
 		#slow down the player if their input is pointed in the opposite direction of their velocity
-		if velocity_dot < 0:
+		if velocity_dot < 0 and can_be_moving:
 			ground_velocity -= rolling_active_stop * acceleration
 		
 		#ground friction for rolling
 		ground_velocity -= rolling_flat_factor * prev_ground_sign
 	else:
-		if is_zero_approx(acceleration) or is_slipping:
+		if is_slipping or not can_be_moving or is_zero_approx(acceleration):
 			#no input has been passed in, so decelerate to a stop
 			#the trick of subtracting abs_ground_velocity comes courtesy of Harmony Framework
 			ground_velocity -= ground_deceleration * prev_ground_sign
@@ -463,21 +463,19 @@ func process_air_input(acceleration:float, input_dot:float) -> void:
 			#accelerate in midair
 			forward_velocity += air_acceleration * acceleration * input_dot
 
+##Apply gravity to the player.
 func process_apply_gravity() -> void:
 	vertical_velocity -= air_gravity_strength
 
+##Apply air drag to the player. This makes it so that the player moves at a slightly 
+##slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 func process_air_drag() -> void:
-	#calculate air drag. This makes it so that the player moves at a slightly 
-	#slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 	if vertical_velocity > 0 and vertical_velocity < jump_short_limit:
-		forward_velocity -= (forward_velocity / 0.125) / 256
+		forward_velocity -= (forward_velocity / 0.125) / 256 #TODO: Un-hardcode whatever this is
 
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 
 ##player is facing and the normal of the wall.
 func update_wall_contact(wall_dot:float, input_dot:float) -> void:
-	var was_pushing:bool = is_pushing
-	
-	
 	if wall_dot < -wall_threshold:  # Almost head-on into wall
 		printt("WALL CONTACT")
 		
@@ -488,7 +486,7 @@ func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 		
 		if is_grounded:
 			ground_velocity = 0.0
-			if input_dot < -wall_threshold:
+			if can_be_pushing and input_dot < -wall_threshold:
 				is_pushing = true
 				current_animation = AnimationTypes.PUSH
 			else:
@@ -517,7 +515,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		
 		#landing code for normal ground
 		if slope_mag > 0:
-			print("grounded! floored")
+			print("GROUNDING: Ground floored")
 			is_grounded = true
 			ground_velocity = abs_forward
 			
@@ -535,12 +533,12 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 			if slope_mag > -0.5:
 				#player can only land when they're traveling more up than forward
 				if abs_forward < abs_vertical:
-					print("grounded! ceiling")
+					print("GROUNDING: Ceiling floored")
 					is_grounded = true
 					ground_velocity = abs_vertical
 					contact_ground.emit(self)
 				else:
-					print("ceiling grounding failed")
+					print("GROUNDING: Ceiling grounding failed")
 					#*bonk*, no landing for you
 					vertical_velocity = 0.0
 		
@@ -559,8 +557,10 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 
 ##Apply [member ground_velocity] to [member forward_velocity] and [member vertical_velocity] so that
 ##momentum can be properly transfered into physical space speeds.
-func process_apply_ground_velocity() -> void:
-	pass
+func process_apply_ground_velocity(slope_mag:float) -> void:
+	ground_slope = acos(slope_mag) #TODO: Optimize
+	forward_velocity = absf(cos(ground_slope)) * ground_velocity
+	vertical_velocity = absf(cos(ground_slope)) * ground_velocity
 
 ##Run updates for the player falling or slipping down slopes and leaving the ground.
 ##[param ground_detected] is the status of being on the ground according to the player implementation's 
@@ -587,33 +587,3 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 			current_animation = AnimationTypes.JUMP
 		else:
 			current_animation = AnimationTypes.FREE_FALL
-
-##Determine which animation should be playing for the player based on their physics state. 
-##This does not include custom animations. This returns a value from [AnimationTypes].
-func assess_animations() -> int:
-	#rolling is rolling, whether the player is in the air or on the ground
-	if is_rolling:
-		return AnimationTypes.ROLL
-	elif is_jumping: #air animations
-		return AnimationTypes.JUMP
-	elif is_grounded:
-		if is_pushing:
-			return AnimationTypes.PUSH
-		# set player animations based on ground velocity
-		#These use percents to scale to the stats
-		elif not is_zero_approx(forward_velocity):
-			return AnimationTypes.RUN
-		else: #standing still
-			#not balancing on a ledge
-			if is_balancing:
-				return AnimationTypes.BALANCE
-			else:
-				#TODO: Move looking up to animation
-				if is_crouching:
-					return AnimationTypes.CROUCH
-				else:
-					return AnimationTypes.STAND
-	elif not is_grounded and not is_slipping:
-		return AnimationTypes.FREE_FALL
-	else:
-		return AnimationTypes.DEFAULT

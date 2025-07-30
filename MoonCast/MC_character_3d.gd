@@ -33,8 +33,12 @@ class_name MoonCastPlayer3D
 @export_group("Animations", "anim_")
 ##The color of animation collision when in the editor.
 @export var anim_collision_debug_color:Color = ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.AQUA)
+@export_subgroup("Nodes", "node_")
+##The AnimationPlayer for all the animations triggered by the player.
+##If you have an [class AnimatedSprite2D], you do not need a child [class Sprite2D] nor [class AnimationPlayer].
+@export var node_animation_player:AnimationPlayer = null
 ##The node for the player model.
-@export var anim_model:Node3D
+@export var node_anim_model:Node3D
 ##The animation to play when standing still.
 @export var anim_stand:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for looking up.
@@ -276,9 +280,12 @@ func setup_children() -> void:
 	ray_wall_forward.enabled = false #we force update it JIT
 	rotation_root.add_child(ray_wall_forward)
 	
-	if not is_instance_valid(anim_model):
+	if not is_instance_valid(node_anim_model):
 		push_error("No player model found for ", name)
-		anim_model = Node3D.new()
+		node_anim_model = Node3D.new()
+	
+	if not is_instance_valid(node_animation_player):
+		push_error("No AnimationPlayer found for ", name)
 
 func setup_collision() -> void:
 	#find the two "lowest" and farthest out points among the shapes, and the lowest 
@@ -464,11 +471,11 @@ func update_animations() -> void:
 ##Rotate the player model to [new_rotation], in global coordinates.
 func rotate_model(new_rotation:Vector3) -> void:
 	if current_anim.can_turn_horizontal:
-		anim_model.global_rotation.y = new_rotation.y
+		node_anim_model.global_rotation.y = new_rotation.y
 	if current_anim.can_turn_vertically:
-		anim_model.global_rotation.x = new_rotation.x
+		node_anim_model.global_rotation.x = new_rotation.x
 	
-	model_facing_direction = anim_model.global_rotation
+	model_facing_direction = node_anim_model.global_rotation
 
 func update_collision_rotation() -> bool:
 	#Sidenote: I think this could be handled more efficiently with bitfields, but 
@@ -837,14 +844,14 @@ func times_physics_process(delta: float) -> void:
 	if not axis.is_zero_approx():
 		var quat_rotate: Quaternion = Quaternion(axis, acos(ground_normal.dot(gravity_up_direction)))
 		
-		anim_model.rotation = quat_rotate.get_euler()
+		node_anim_model.rotation = quat_rotate.get_euler()
 	else:
 		# Floor normal and up vector are the same (flat ground)
-		anim_model.rotation = Vector3.ZERO
+		node_anim_model.rotation = Vector3.ZERO
 	
 	var cam_input_dir: Vector3 = camera_node.global_basis * input_v3
 	cam_input_dir = cam_input_dir.normalized()
-	var player_input_dir:Vector3 = (anim_model.global_basis * input_v3).normalized()
+	var player_input_dir:Vector3 = (node_anim_model.global_basis * input_v3).normalized()
 	var has_input: bool = not cam_input_dir.is_zero_approx() if not input.is_zero_approx() else false
 	
 	add_debug_info("Input: " + str(input))
@@ -906,7 +913,7 @@ func times_physics_process(delta: float) -> void:
 		
 		const wall_raycast_scaler:float = 5.0
 		
-		ray_wall_forward.target_position = -anim_model.global_transform.basis.z.normalized() * wall_raycast_scaler
+		ray_wall_forward.target_position = -node_anim_model.global_transform.basis.z.normalized() * wall_raycast_scaler
 		ray_wall_forward.force_raycast_update()
 		
 		if ray_wall_forward.is_colliding() and get_slide_collision_count() > 0:
