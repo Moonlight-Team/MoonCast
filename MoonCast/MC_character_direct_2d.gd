@@ -112,6 +112,8 @@ const sfx_hurt_name:StringName = &"player_base_hurt"
 @export var sfx_custom:Dictionary[StringName, AudioStream]
 
 #node references
+##The group name used for this player's Ability nodes
+var ability_group_name:StringName
 ##The [VisibleOnScreenNotifier2D] node for this player.
 var onscreen_checker:VisibleOnScreenNotifier2D = VisibleOnScreenNotifier2D.new()
 ##The sfx player node
@@ -195,9 +197,16 @@ var visual_rotation:float
 var collision_rotation:float
 
 ##The direction the player is facing in space, relative to their orientation to the ground.
-##For example, this vector would be pointing up if they are facing uphill, and down if they are
-##facing downhill.
-var facing_direction:Vector2 = anim_default_forward
+##For example, this vector would be pointing up if they are running up a wall, and down if they are
+##running down a wall.
+var facing_direction:Vector2 = anim_default_forward:
+	set(new_dir):
+		facing_direction = new_dir
+		
+		facing_behind = anim_default_forward.rotated(ground_angle).dot(facing_direction) < 0
+##True if the player is facing the opposite direction to their [member anim_default_forward] direction.
+var facing_behind:bool
+
 
 var facing_left:bool = anim_default_forward.dot(Vector2.RIGHT) < 0
 ##This is the ground's normal vector. Meaning, this vector points directly up/out compared to
@@ -328,10 +337,11 @@ func scan_children() -> void:
 		if not is_instance_valid(node_animated_sprite_2d) and nodes is AnimatedSprite2D:
 			node_animated_sprite_2d = nodes
 		#Patch for the inability for get_class to return GDScript classes
-		if nodes.has_meta(&"Ability_flag"):
-			#abilities.append(nodes.name)
-			#nodes.call(&"setup_ability", physics)
-			nodes.call(&"setup_ability_2D", self_old)
+		if nodes.has_meta(&"Ability_flag") and nodes.active:
+			nodes.add_to_group(ability_group_name)
+			
+			nodes.call(&"setup_ability", physics)
+			#nodes.call(&"setup_ability_2D", self_old)
 	
 	#if not is_instance_valid(camera_node):
 	#	camera_node = get_window().get_camera_2d()
@@ -600,11 +610,11 @@ func update_animations() -> void:
 	
 	#flip the sprites
 	if current_anim.can_turn_horizontal:
-		var flip:bool = anim_default_forward.dot(facing_direction) < 0
+		
 		if animated_sprite_2D_valid:
-			node_animated_sprite_2d.flip_h = flip
+			node_animated_sprite_2d.flip_h = facing_behind
 		if sprite_2D_valid:
-			node_sprite_2d.flip_h = flip
+			node_sprite_2d.flip_h = facing_behind
 	if current_anim.can_turn_vertically:
 		if animated_sprite_2D_valid:
 			node_animated_sprite_2d.global_rotation = visual_rotation
@@ -924,6 +934,8 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 5: Move the player
 		
+		facing_direction
+		
 		velocity = Vector2(physics.forward_velocity, -physics.vertical_velocity) * space_scale
 		move_and_slide()
 		physics.forward_velocity = velocity.x / space_scale
@@ -982,6 +994,7 @@ func _notification(what: int) -> void:
 		NOTIFICATION_ENTER_TREE:
 			if not Engine.is_editor_hint():
 				physics.setup_performance_monitors(name)
+				ability_group_name = name + &"Abilities"
 		NOTIFICATION_EXIT_TREE:
 			if not Engine.is_editor_hint():
 				physics.cleanup_performance_monitors()

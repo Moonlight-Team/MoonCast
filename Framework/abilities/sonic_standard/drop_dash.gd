@@ -38,10 +38,10 @@ func set_charged() -> void:
 	charged = can_charge and charging and charge_pressed
 	charging = false
 
-func _air_contact_2D(_player:MoonCastPlayer2D) -> void:
+func _air_contact(physics:MoonCastPhysicsTable) -> void:
 	jump_held = Input.is_action_pressed(charge_button)
 
-func _air_state_2D(player:MoonCastPlayer2D) -> void:
+func _air_state(player:MoonCastPlayer2D) -> void:
 	jump_held = jump_held and Input.is_action_pressed(charge_button)
 	charge_pressed = (charge_pressed or Input.is_action_pressed(charge_button)) and not jump_held
 	

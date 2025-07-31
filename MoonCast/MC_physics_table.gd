@@ -52,7 +52,7 @@ const perf_slope:StringName = &"Ground Angle"
 ##If enabled, the character can initiate a roll in midair while falling.
 @export var control_roll_midair_activate:bool = false
 @export_subgroup("Jumping Options", "control_jump_")
-##If enabled, the player is vulnerable when jumping.
+##If enabled, the player is vulnerable when jumping. = 0.
 @export var control_jump_is_vulnerable:bool = false
 ##If enabled, the player will be unable to control their air movement if rolling in midair.
 @export var control_jump_roll_lock:bool = false
@@ -113,6 +113,8 @@ const perf_slope:StringName = &"Ground Angle"
 @export var air_top_speed:float = 6.0
 ##How much the player will accelerate in the air each physics frame.
 @export var air_acceleration:float = 0.1
+##The drag effect that is applied to the player.
+@export var air_drag_effect:float = 0.031
 ##How much the player will fall in the air each physics frame.
 @export var air_gravity_strength:float = 0.21875
 
@@ -471,7 +473,7 @@ func process_apply_gravity() -> void:
 ##slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 func process_air_drag() -> void:
 	if vertical_velocity > 0 and vertical_velocity < jump_short_limit:
-		forward_velocity -= (forward_velocity / 0.125) / 256 #TODO: Un-hardcode whatever this is
+		forward_velocity -= forward_velocity * air_drag_effect
 
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 
 ##player is facing and the normal of the wall.
@@ -527,8 +529,8 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 					ground_velocity = maxf(abs_forward, abs_vertical / 2.0)
 			
 			contact_ground.emit(self)
-		#landing code for ceilings
-		elif slope_mag < 0:
+		
+		elif slope_mag < 0: #landing code for ceilings
 			
 			if slope_mag > -0.5:
 				#player can only land when they're traveling more up than forward

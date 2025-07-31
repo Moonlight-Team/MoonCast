@@ -33,6 +33,7 @@ ground_speed_cap = 16.0
 air_custom_gravity = true
 air_top_speed = 6.0
 air_acceleration = 0.1
+air_drag_effect = 0.031
 air_gravity_strength = 0.21875
 rolling_min_speed = 1.0
 rolling_active_stop = 0.5

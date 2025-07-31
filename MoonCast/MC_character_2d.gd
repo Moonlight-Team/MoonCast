@@ -165,8 +165,8 @@ var control_lock_timer:Timer = Timer.new()
 
 #endregion
 #region API storage vars
-##The names of all the abilities of this character.
-var abilities:Array[StringName]
+##The group name used for this player's Ability nodes
+var ability_group_name:StringName
 ##A custom data pool for the ability ECS.
 ##It's the responsibility of the different abilities to be implemented in a way that 
 ##does not abuse this pool.
@@ -362,30 +362,6 @@ var self_perf_ground_angle:StringName
 ##The name of the custom performance monitor for state
 var self_perf_state:StringName
 
-#processing signals, for the Ability system
-##Emitted before processing physics 
-signal pre_physics(player:MoonCastPlayer2D)
-##Emitted after processing physics
-signal post_physics(player:MoonCastPlayer2D)
-##Emitted when the player jumps
-signal jump(player:MoonCastPlayer2D)
-##Emitted when the player is hurt
-@warning_ignore("unused_signal")
-signal hurt(player:MoonCastPlayer2D)
-##Emitted when the player collects something, like a shield or ring
-@warning_ignore("unused_signal")
-signal collectible_recieved(player:MoonCastPlayer2D)
-##Emitted when the player makes contact with the ground
-signal contact_ground(player:MoonCastPlayer2D)
-##Emitted when the player makes contact with a wall
-signal contact_wall(player:MoonCastPlayer2D)
-##Emitted when the player is now airborne
-signal contact_air(player:MoonCastPlayer2D)
-##Emitted every frame when the player is touching the ground
-signal state_ground(player:MoonCastPlayer2D)
-##Emitted every frame when the player is in the air
-signal state_air(player:MoonCastPlayer2D)
-
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func scan_children() -> void:
@@ -399,8 +375,8 @@ func scan_children() -> void:
 			node_animated_sprite = nodes
 		#Patch for the inability for get_class to return GDScript classes
 		if not Engine.is_editor_hint() and nodes.has_meta(&"Ability_flag"):
-			abilities.append(nodes.name)
-			nodes.call(&"setup_ability_2D", self)
+			
+			nodes.add_to_group(ability_group_name)
 
 ##Sets up internally used children.
 func setup_children() -> void:
@@ -537,14 +513,17 @@ func has_animation(anim:MoonCastAnimation) -> bool:
 ##Find out if a character has a given ability.
 ##Ability names are dictated by the name of the node.
 func has_ability(ability_name:StringName) -> bool:
-	return abilities.has(ability_name)
+	return get_tree().get_nodes_in_group(ability_group_name).has(ability_name)
 
 ##Add an ability to the character at runtime.
 ##Ability names are dictated by the name of the node.
 func add_ability(ability_name:MoonCastAbility) -> void:
-	add_child(ability_name)
-	abilities.append(ability_name.name)
-	ability_name.call(&"setup_ability_2D", self)
+	if not ability_name.get_parent() == self:
+		add_child(ability_name)
+	ability_name.add_to_group(ability_group_name)
+	#we use call() because these functions may or may not have an implementation in the node
+	ability_name.call(&"_setup", physics)
+	ability_name.call(&"_setup_2D", self)	
 
 ##Get the MoonCastAbility of the named ability, if the player has it.
 ##This will return null and show a warning if the ability is not found.
@@ -558,13 +537,32 @@ func get_ability(ability_name:StringName) -> MoonCastAbility:
 ##Remove an ability from the character at runtime.
 ##Ability names are dictated by the name of the node.
 func remove_ability(ability_name:StringName) -> void:
+	var ability_group:Array = get_tree().get_nodes_in_group(ability_group_name)
+	
 	if has_ability(ability_name):
-		abilities.remove_at(abilities.find(ability_name))
+		ability_group.remove_at(ability_group.find(ability_name))
 		var removing:MoonCastAbility = get_node(NodePath(ability_name))
 		remove_child(removing)
 		removing.queue_free()
 	else:
 		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\" that was called to be removed")
+
+##Activate an Ability callback
+func activate_ability(callback_name:String):
+	var tree:SceneTree = get_tree()
+	
+	assert(is_inside_tree() and tree)
+	
+	var base_name:String = "_" + callback_name
+	
+	printt(name, base_name)
+	
+	for node:Node in tree.get_nodes_in_group(ability_group_name):
+		printt("\t", node.name, node.has_method(base_name), node.has_method(base_name + "_2D"))
+	
+	tree.call_group(ability_group_name, StringName(base_name), physics)
+	tree.call_group(ability_group_name, StringName(base_name + "_2D"), self)
+
 #endregion
 #region Sound Effect API
 ##Add or update a sound effect on this player.
@@ -717,7 +715,6 @@ func setup_collision() -> void:
 			var this_shape:Shape2D = shape_owner_get_shape(collision_shapes, shapes)
 			#Get the shape's node, for stuff like position
 			var this_shape_node:Node2D = shape_owner_get_owner(collision_shapes)
-			
 			#If this shape's node isn't higher up than the player's origin
 			#(ie. it's on the player's lower half)
 			if this_shape_node.position.y >= 0:
@@ -923,7 +920,8 @@ func process_ground() -> void:
 	#Check if the player wants to (and can) jump
 	if Input.is_action_pressed(controls.action_jump) and can_jump:
 		is_jumping = true
-		jump.emit(self)
+		
+		activate_ability("jump")
 		#Add velocity to the jump
 		space_velocity += collision_normal * physics.jump_velocity
 		
@@ -971,7 +969,7 @@ func enter_air() -> void:
 	collision_normal = default_up_direction
 	up_direction = default_up_direction
 	
-	contact_air.emit(self)
+	activate_ability("air_contact")
 
 ##A function that is called when the player lands on the ground
 ##from previously being in the air
@@ -1005,7 +1003,7 @@ func land_on_ground() -> void:
 		jump_timer.start(physics.jump_spam_timer)
 	is_jumping = false
 	
-	contact_ground.emit(self)
+	activate_ability("ground_contact")
 
 #this is likely the most complicated part of this whole codebase LOL
 ##Update collision and rotation.
@@ -1037,7 +1035,7 @@ func update_collision_rotation() -> void:
 					space_velocity.x = minf(space_velocity.x, 0.0)
 		
 		if not was_pushing and is_pushing:
-			contact_wall.emit(self)
+			activate_ability("contact_wall")
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
@@ -1391,6 +1389,9 @@ func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
 
 #endregion
 
+func _init() -> void:
+	ability_group_name = name + &"_Abilities"
+
 func _ready() -> void:
 	#scan for children. This can happen even in the editor.
 	scan_children()
@@ -1468,6 +1469,7 @@ func _notification(what: int) -> void:
 			if not Engine.is_editor_hint():
 				cleanup_performance_monitors()
 		NOTIFICATION_CHILD_ORDER_CHANGED:
+			
 			scan_children()
 			update_configuration_warnings()
 
@@ -1487,7 +1489,7 @@ func _physics_process(_delta: float) -> void:
 	else:
 		input_direction = 0.0
 	
-	pre_physics.emit(self)
+	activate_ability("pre_physics")
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -1505,16 +1507,16 @@ func _physics_process(_delta: float) -> void:
 			process_ground()
 			#If we're still on the ground, call the state function
 			if is_grounded:
-				state_ground.emit(self)
+				activate_ability("ground_state")
 		else:
 			process_air()
 			#If we're still in the air, call the state function
 			if not is_grounded:
-				state_air.emit(self)
+				activate_ability("air_state")
 	#Make the callback for physics post-calculation
 	#But this is *before* actually moving, or else it'd be nearly
 	#the same as pre_physics
-	post_physics.emit(self)
+	activate_ability("post_physics")
 	
 	const physics_adjust:float = 60.0
 	var raw_velocity:Vector2 = space_velocity * physics_adjust
