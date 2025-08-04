@@ -1,6 +1,7 @@
-[gd_scene load_steps=27 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=28 format=3 uid="uid://l6j7c0hm73c"]
 
 [ext_resource type="PackedScene" uid="uid://h5b7bs6th3qc" path="res://Demo/player/classic_sonic/classic_sonic.tscn" id="2_ul801"]
+[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_yu4ht"]
 [ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
@@ -279,3 +280,7 @@ floor_block_on_wall = false
 camera_node = NodePath("Camera2D2")
 
 [node name="Camera2D2" type="Camera2D" parent="mrneedlemouse_direct"]
+
+[node name="MoonCastDebugMode" type="Node" parent="mrneedlemouse_direct"]
+script = ExtResource("3_yu4ht")
+metadata/_custom_type_script = "uid://chxrofx7moh6c"

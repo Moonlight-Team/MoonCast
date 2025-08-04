@@ -194,7 +194,7 @@ var ground_right_target:Vector2 = Vector2.ZERO
 var ground_center_target:Vector2 = Vector2.ZERO
 
 var visual_rotation:float
-var collision_rotation:float
+var collision_angle:float
 
 ##The direction the player is facing in space, relative to their orientation to the ground.
 ##For example, this vector would be pointing up if they are running up a wall, and down if they are
@@ -339,9 +339,8 @@ func scan_children() -> void:
 		#Patch for the inability for get_class to return GDScript classes
 		if nodes.has_meta(&"Ability_flag") and nodes.active:
 			nodes.add_to_group(ability_group_name)
-			
-			nodes.call(&"setup_ability", physics)
-			#nodes.call(&"setup_ability_2D", self_old)
+	activate_ability("setup")
+	
 	
 	#if not is_instance_valid(camera_node):
 	#	camera_node = get_window().get_camera_2d()
@@ -550,10 +549,58 @@ func has_animation(anim:MoonCastAnimation) -> bool:
 		has_anim = has_anim or node_animated_sprite_2d.sprite_frames.has_animation(anim.animation)
 	return has_anim
 
+##Find out if a character has a given ability.
+##Ability names are dictated by the name of the node.
+func has_ability(ability_name:StringName) -> bool:
+	return get_tree().get_nodes_in_group(ability_group_name).has(ability_name)
+
+##Add an ability to the character at runtime.
+##Ability names are dictated by the name of the node.
+func add_ability(ability_name:MoonCastAbility) -> void:
+	if not ability_name.get_parent() == self:
+		add_child(ability_name)
+	ability_name.add_to_group(ability_group_name)
+	#we use call() because these functions may or may not have an implementation in the node
+	ability_name.call(&"_setup", physics)
+	ability_name.call(&"_setup_2D", self)	
+
+##Get the MoonCastAbility of the named ability, if the player has it.
+##This will return null and show a warning if the ability is not found.
+func get_ability(ability_name:StringName) -> MoonCastAbility:
+	if has_ability(ability_name):
+		return get_node(NodePath(ability_name))
+	else:
+		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\"")
+		return null
+
+##Remove an ability from the character at runtime.
+##Ability names are dictated by the name of the node.
+func remove_ability(ability_name:StringName) -> void:
+	var ability_group:Array = get_tree().get_nodes_in_group(ability_group_name)
+	
+	if has_ability(ability_name):
+		ability_group.remove_at(ability_group.find(ability_name))
+		var removing:MoonCastAbility = get_node(NodePath(ability_name))
+		remove_child(removing)
+		removing.queue_free()
+	else:
+		push_warning("The character ", name, " doesn't have the ability \"", ability_name, "\" that was called to be removed")
+
+##Activate an Ability callback.
+func activate_ability(callback_name:String) -> void:
+	var tree:SceneTree = get_tree()
+	assert(is_inside_tree() and tree)
+	
+	var base_name:String = "_" + callback_name
+	
+	tree.call_group(ability_group_name, StringName(base_name), physics)
+	tree.call_group(ability_group_name, StringName(base_name + "_2D"), self)
+
 ##Update the player animations based on the current physics state.
 func update_animations() -> void:
 	match physics.current_animation:
-		MoonCastPhysicsTable.AnimationTypes.DEFAULT:
+		MoonCastPhysicsTable.AnimationTypes.CUSTOM:
+			pass
 			play_animation(anim_stand)
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:

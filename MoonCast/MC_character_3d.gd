@@ -440,9 +440,9 @@ func update_animations() -> void:
 					play_animation(anim_look_up)
 			else:
 				play_animation(anim_stand)
-		MoonCastPhysicsTable.AnimationTypes.DEFAULT:
-			#print("Default anim")
-			play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.CUSTOM:
+			print("Custom animation playing!")
+			return
 		MoonCastPhysicsTable.AnimationTypes.STAND:
 			if current_anim != anim_stand:
 				print("Standing")

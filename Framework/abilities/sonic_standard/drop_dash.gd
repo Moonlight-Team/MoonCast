@@ -38,10 +38,10 @@ func set_charged() -> void:
 	charged = can_charge and charging and charge_pressed
 	charging = false
 
-func _air_contact(physics:MoonCastPhysicsTable) -> void:
+func _air_contact(_player:MoonCastPhysicsTable) -> void:
 	jump_held = Input.is_action_pressed(charge_button)
 
-func _air_state(player:MoonCastPlayer2D) -> void:
+func _air_state(physics:MoonCastPhysicsTable) -> void:
 	jump_held = jump_held and Input.is_action_pressed(charge_button)
 	charge_pressed = (charge_pressed or Input.is_action_pressed(charge_button)) and not jump_held
 	
@@ -49,12 +49,14 @@ func _air_state(player:MoonCastPlayer2D) -> void:
 	if charge_pressed and not Input.is_action_pressed(charge_button):
 		can_charge = false
 		charged = false
-	
+
+func _air_state_2D(player:MoonCastPlayer2D) -> void:
 	if can_charge:
 		var charge_held:bool = Input.is_action_pressed(charge_button)
 		
 		#If they pressed the charge button and let go of it when it was the jump button
 		if charge_held and not jump_held:
+			player.physics.current_animation = MoonCastPhysicsTable.AnimationTypes.CUSTOM
 			player.play_animation(anim_charge, true)
 			
 			#start the chargeup timer
@@ -68,7 +70,12 @@ func _air_state(player:MoonCastPlayer2D) -> void:
 				charge_timer.stop()
 				can_charge = false
 				charging = false
+				player.physics.current_animation = MoonCastPhysicsTable.AnimationTypes.ROLL
 				player.play_animation(player.anim_roll, true)
+
+func _air_state_3D(player:MoonCastPlayer3D) -> void:
+	pass
+
 
 func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
 	if charged:

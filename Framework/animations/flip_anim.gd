@@ -16,7 +16,7 @@ func _animation_start() -> void:
 	can_flip = false
 
 func _animation_process() -> void:
-	var abs_collision:float = absf(player.collision_rotation)
+	var abs_collision:float = absf(player.collision_angle)
 	can_flip = abs_collision > flip_range_start and abs_collision < flip_range_end
 
 func _animation_cease() -> void:

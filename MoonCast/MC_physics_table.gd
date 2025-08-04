@@ -6,8 +6,8 @@ class_name MoonCastPhysicsTable
 
 ##Animation types returned by [process_animations].
 enum AnimationTypes {
-	##Default animation
-	DEFAULT,
+	##Custom animations
+	CUSTOM,
 	##Standing animation
 	STAND,
 	##Looking up animation
@@ -180,7 +180,7 @@ var fall_dot:float
 ##If true, the player can jump. This is set to [true] automatically when [jump_timer] reaches 
 ##zero and was not already at 0, but can also be set manually.
 var can_jump:bool = true
-##If true, the player can move. 
+##If true, the player can roll. 
 var can_roll:bool = true:
 	set(on):
 		if control_roll_enabled:
@@ -191,8 +191,11 @@ var can_roll:bool = true:
 				can_roll = on
 		else:
 			can_roll = false
+
 var can_be_pushing:bool = true
+
 var can_be_moving:bool = true
+
 var can_be_attacking:bool = true
 
 ##If true, the player is on what the physics consider 
@@ -209,7 +212,9 @@ var is_crouching:bool
 ##If true, the player is balacing on the edge of a platform.
 ##This causes certain core abilities to be disabled.
 var is_balancing:bool = false
+##If true, the player is pushing a wall they are up against.
 var is_pushing:bool = false
+##If true, the player is jumping.
 var is_jumping:bool = false
 ##If the player is slipping down a slope. This means they cannot move.
 var is_slipping:bool = false

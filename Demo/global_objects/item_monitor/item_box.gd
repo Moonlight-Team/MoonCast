@@ -29,14 +29,12 @@ const sprite_speedshoes:Texture2D = preload("res://Demo/global_objects/item_moni
 @onready var item_sprite:Sprite2D = $"ItemType"
 
 func _ready() -> void:
+	set_physics_process(true)
+	
 	if popped:
 		pop_monitor()
 	else:
 		un_pop_monitor()
-
-func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		return
 
 func _on_vertical_player_contact(player:MoonCastPlayer2D) -> void:
 	if not popped and player.is_attacking:
@@ -58,6 +56,7 @@ func pop_monitor() -> void:
 	box_sprite.texture = sprite_box_broken
 	item_sprite.hide()
 	set_deferred(&"process_mode", Node.PROCESS_MODE_DISABLED)
+	call_deferred(&"set_physics_process", false)
 
 func un_pop_monitor() -> void:
 	popped = false
