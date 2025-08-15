@@ -60,8 +60,11 @@ const physics_adjust:float = 60.0
 @export var camera_max_bounds:Rect2i = Rect2i(0, 0, 20, 20)
 
 @export_group("Animations", "anim_")
-##If true, then all sprites are mirrored by default.
+##If true, then all sprites are mirrored by default. Legacy only, use [anim_default_forward] in new physics.
 @export var anim_sprites_left_default:bool = false
+##The default "forward" direction of the sprites. Used to determine when to flip them.
+##New physics only, use [anim_sprites_left_default] in legacy physics.
+@export var anim_default_forward:Vector2 = Vector2.RIGHT
 ##The animation to play when standing still.
 @export var anim_stand:MoonCastAnimation = MoonCastAnimation.new()
 ##The animation for looking up.
@@ -190,7 +193,17 @@ var anim_skid_sorted_keys:PackedFloat32Array = []
 #region physics vars
 ##The direction the player is facing. Either -1 for left or 1 for right.
 var facing_direction:float = 1.0
-var facing_direction_v:Vector2
+##The direction the player is accelerating in space, relative to their orientation to the ground.
+##For example, this vector would be pointing up if they are running up a wall, and down if they are
+##running down a wall.
+var forward_velocity_dir:Vector2 = anim_default_forward:
+	set(new_dir):
+		forward_velocity_dir = new_dir
+		
+		facing_behind = anim_default_forward.rotated(collision_angle).dot(new_dir) < 0
+
+##True if the player is facing the opposite direction to their [member anim_default_forward] direction.
+var facing_behind:bool
 
 ##The direction the player is slipping in. If this value is 1.0, for example, 
 ##the player is slipping left (slope is on the right).
@@ -668,22 +681,6 @@ func overlay_remove_lib(lib_name:StringName, free_lib:bool = true) -> void:
 
 #endregion
 #region State API
-##Checks if the player is going left.
-func is_going_left() -> bool:
-	if is_grounded:
-		return is_moving and ground_velocity < 0
-	else:
-		#TODO: Make this properly check relative to gravity_up_direction
-		return space_velocity.x < 0
-
-##Checks if the player is going right.
-func is_going_right() -> bool:
-	if is_grounded:
-		return is_moving and ground_velocity > 0
-	else:
-		#TODO: Make this properly check relative to gravity_up_direction
-		return space_velocity.x > 0
-
 #Note: In C++, I would overwrite set_collision_layer in order to automatically 
 #update the child raycasts with it. But, I cannot overwrite it in GDScript, so...
 ##Set which collision layers will be considered ground for the player.
@@ -860,7 +857,7 @@ func process_ground() -> void:
 			#Allow the player to actively slow down if they try to move in the opposite direction
 			if is_equal_approx(signf(input_direction), -signf(ground_velocity)):
 				ground_velocity = move_toward(ground_velocity, 0.0, physics.rolling_active_stop)
-				sprites_flip()
+				legacy_sprites_flip()
 		
 	else: #slope factors for being on foot
 		
@@ -901,7 +898,7 @@ func process_ground() -> void:
 					
 					#correct the direction of the sprite
 					facing_direction = -facing_direction
-					sprites_flip()
+					legacy_sprites_flip()
 					
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
@@ -1071,9 +1068,9 @@ func land_on_ground() -> void:
 ##Update collision and rotation.
 func update_collision_rotation() -> void:
 	#figure out if we've hit a wall
-	wall_contact = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
+	var now_wall_contact:bool = ray_wall_left.is_colliding() or ray_wall_right.is_colliding()
 	
-	if wall_contact:
+	if now_wall_contact:
 		var was_pushing:bool = is_pushing
 		
 		if ray_wall_left.is_colliding():
@@ -1096,11 +1093,14 @@ func update_collision_rotation() -> void:
 				else:
 					space_velocity.x = minf(space_velocity.x, 0.0)
 		
-		if not was_pushing and is_pushing:
-			activate_ability("contact_wall")
 	else:
 		#The player obviously isn't going to be pushing a wall they aren't touching
 		is_pushing = false
+	
+	if now_wall_contact and not wall_contact:
+		activate_ability("contact_wall")
+	
+	wall_contact = now_wall_contact
 	
 	var contact_point_count:int = int(ray_ground_left.is_colliding()) + int(ray_ground_central.is_colliding()) + int(ray_ground_right.is_colliding())
 	#IMPORTANT: Do NOT set is_grounded until angle is calculated, so that landing on the ground 
@@ -1259,7 +1259,7 @@ func refresh_raycasts() -> int:
 	#update the state data of all our raycasts
 	var space:PhysicsDirectSpaceState2D = PhysicsServer2D.space_get_direct_state(PhysicsServer2D.body_get_space(get_rid()))
 	
-	if facing_direction_v.x < 0.0:
+	if forward_velocity_dir.x < 0.0:
 		ray_query.from = global_position + ray_wall_left.position
 		ray_query.to = global_position + ray_wall_left.target_position
 	else:
@@ -1324,11 +1324,11 @@ func refresh_raycasts() -> int:
 				if ground_left_colliding:
 					collision_normal = ground_left_data.get("normal", collision_normal).normalized()
 					
-					facing_direction_v = Vector2.RIGHT.rotated(collision_angle) #slope is to the left, face right
+					forward_velocity_dir = Vector2.RIGHT.rotated(collision_angle) #slope is to the left, face right
 				elif ground_right_colliding:
 					collision_normal = ground_right_data.get("normal", collision_normal)
 					
-					facing_direction_v = Vector2.LEFT.rotated(collision_angle) #slope is to the right, face left
+					forward_velocity_dir = Vector2.LEFT.rotated(collision_angle) #slope is to the right, face left
 		2:
 			var left_normal:Vector2 = ground_left_data.get("normal", collision_normal)
 			var right_normal:Vector2 = ground_right_data.get("normal", collision_normal)
@@ -1375,17 +1375,14 @@ func refresh_raycasts() -> int:
 	
 	return contact_point_count
 
+##MoonCast's custom implementation of [CharacterBody2D.move_and_slide].
+func mooncast_move_and_slide() -> void:
+	pass
+
 #endregion
 #region Sprite/Animation processing
-##Update the rotation of the character when they are in the air
-func update_animations() -> void:
-	if legacy_enabled:
-		old_update_animations()
-	else:
-		new_update_animations()
-
-func old_update_animations() -> void:
-	sprites_flip()
+func legacy_update_animations() -> void:
+	legacy_sprites_flip()
 	#rolling is rolling, whether the player is in the air or on the ground
 	if is_rolling:
 		play_animation(anim_roll)
@@ -1410,7 +1407,7 @@ func old_update_animations() -> void:
 				elif not ray_ground_right.is_colliding():
 					#face the ledge
 					facing_direction = 1.0
-				sprites_flip(false)
+				legacy_sprites_flip(false)
 				if has_animation(anim_balance):
 					play_animation(anim_balance)
 				else:
@@ -1427,7 +1424,7 @@ func old_update_animations() -> void:
 					play_animation(anim_stand, true)
 	else: #air animations
 		if is_jumping: 
-			sprites_flip(false)
+			legacy_sprites_flip(false)
 			play_animation(anim_jump)
 		else:
 			#This is so that slipping and falling doesn't look weird
@@ -1436,7 +1433,8 @@ func old_update_animations() -> void:
 				play_animation(anim_free_fall)
 
 func new_update_animations() -> void:
-	sprites_flip()
+	new_sprites_flip()
+	
 	var anim:int = physics.current_animation
 	
 	match anim:
@@ -1445,18 +1443,18 @@ func new_update_animations() -> void:
 		
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:
-				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+				if physics.ground_velocity > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
 					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
 					break
 		MoonCastPhysicsTable.AnimationTypes.SKID:
 			for speeds:float in anim_skid_sorted_keys:
-				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+				if physics.ground_velocity > physics.ground_top_speed * speeds:
 					
 					#correct the direction of the sprite
 					facing_direction = -facing_direction
-					sprites_flip()
+					#legacy_sprites_flip()
 					
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
@@ -1474,7 +1472,7 @@ func new_update_animations() -> void:
 				#face the ledge
 				facing_direction = 1.0
 			
-			sprites_flip(false)
+			#legacy_sprites_flip(false)
 			if has_animation(anim_balance):
 				play_animation(anim_balance)
 			else:
@@ -1489,7 +1487,7 @@ func new_update_animations() -> void:
 		_:
 			pass
 
-##Draw debug information, like the current hitbox
+##Draw debug information, like the current hitbox.
 func draw_debug_info() -> void:
 	#draw the collision shape
 	if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
@@ -1543,7 +1541,7 @@ func draw_debug_info() -> void:
 
 ##Flip the sprites for the player based on the direction the player is facing.
 ##If [check_speed] is set to true, it will also check that the player is moving.
-func sprites_flip(check_speed:bool = true) -> void:
+func legacy_sprites_flip(check_speed:bool = true) -> void:
 	if current_anim.can_turn_horizontal:
 		var does_flip:bool = false
 		if check_speed:
@@ -1565,6 +1563,13 @@ func sprites_flip(check_speed:bool = true) -> void:
 					node_sprite_2d.flip_h = anim_sprites_left_default
 				if is_instance_valid(node_animated_sprite):
 					node_animated_sprite.flip_h = anim_sprites_left_default
+
+func new_sprites_flip() -> void:
+	if current_anim.can_turn_horizontal:
+		if is_instance_valid(node_animated_sprite):
+			node_animated_sprite.flip_h = facing_behind
+		if is_instance_valid(node_sprite_2d):
+			node_sprite_2d.flip_h = facing_behind
 
 ##Set the rotation of the sprites, in radians. This is required in order to preserve
 ##physics behavior while still implementing certain visual rotation features.
@@ -1821,7 +1826,7 @@ func legacy_physics_process(_delta:float) -> void:
 			else:
 				ground_velocity = 0.0
 	
-	update_animations()
+	legacy_update_animations()
 
 ##Process physics movement and input
 func new_physics_process(delta:float) -> void:
@@ -1842,20 +1847,20 @@ func new_physics_process(delta:float) -> void:
 	
 	var player_input_dir:Vector2 = input_vector.rotated(collision_angle)
 	
-	var turn_locked:bool = physics.is_grounded and not is_zero_approx(physics.ground_velocity) 
+	var turn_locked:bool = (physics.is_grounded and physics.is_moving)
 	
-	var vel_move_dot:float = facing_direction_v.dot(player_input_dir)
+	var vel_move_dot:float = forward_velocity_dir.dot(player_input_dir)
 	
-	if not physics.is_grounded or is_zero_approx(physics.ground_velocity):
-		#allow the player to turn around if they aren't skidding
+	if not turn_locked:
 		
 		if vel_move_dot < 0:
 			if input_dir > 0:
-				printt("2D: FLIP RIGHT", facing_direction_v, player_input_dir)
+				printt("2D: FLIP RIGHT", forward_velocity_dir, player_input_dir)
+				
 			elif input_dir < 0:
-				printt("2D: FLIP LEFT", facing_direction_v, player_input_dir)
+				printt("2D: FLIP LEFT", forward_velocity_dir, player_input_dir)
 		
-		facing_direction_v = player_input_dir
+		forward_velocity_dir = player_input_dir
 		
 		vel_move_dot = 1.0
 	
@@ -1892,7 +1897,7 @@ func new_physics_process(delta:float) -> void:
 		#This represents the dot product between the direction the player is facing and
 		#the normal of the slope, for determining if the current slope is considered
 		#"uphill" or "downhill"
-		var facing_dot:float = signf(facing_direction_v.dot(gravity_up_direction))
+		var facing_dot:float = signf(forward_velocity_dir.dot(gravity_up_direction))
 		
 		#printt(facing_direction, collision_normal, facing_dot)
 		
@@ -1909,11 +1914,11 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 7: Push/wall sensors
 		
-		var wall_normal:Vector2 = wall_data.get("normal", facing_direction_v)
+		var wall_normal:Vector2 = wall_data.get("normal", forward_velocity_dir)
 		
 		var wall_dot:float
 		
-		wall_dot = facing_direction_v.dot(wall_normal)
+		wall_dot = forward_velocity_dir.dot(wall_normal)
 		var push_dot:float = player_input_dir.dot(wall_normal)
 		
 		physics.update_wall_contact(wall_dot, push_dot)
@@ -1927,7 +1932,7 @@ func new_physics_process(delta:float) -> void:
 		#STEP 10: Move the player (apply ground_velocity to velocity)
 		#velocity = facing_direction * physics.ground_velocity * space_scale
 		physics.process_apply_ground_velocity(ground_dot)
-		velocity = facing_direction * Vector2(physics.forward_velocity, physics.vertical_velocity) * physics_adjust * space_scale
+		velocity = forward_velocity_dir * Vector2(physics.forward_velocity, -physics.vertical_velocity) * physics_adjust * space_scale
 		
 		move_and_slide()
 		
@@ -1967,19 +1972,18 @@ func new_physics_process(delta:float) -> void:
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
 		#STEP 3: Directional input
-		physics.process_air_input(absf(input_dir), signf(input_dir))
+		physics.process_air_input(input_dir, 1.0)
 		
 		#STEP 4: Air drag
 		physics.process_air_drag()
 		
 		#STEP 5: Move the player
-		
-		facing_direction
-		
-		velocity = Vector2(physics.forward_velocity, -physics.vertical_velocity) * space_scale
+		#TODO: this will break if gravity is not Vector2.UP
+		velocity = Vector2(physics.forward_velocity * input_dir, -physics.vertical_velocity) * physics_adjust * space_scale
 		move_and_slide()
-		physics.forward_velocity = velocity.x / space_scale
-		physics.vertical_velocity = -velocity.y / space_scale
+		
+		physics.forward_velocity = velocity.x / (physics_adjust * space_scale)
+		physics.vertical_velocity = -velocity.y / (physics_adjust * space_scale)
 		
 		#STEP 6: Apply gravity
 		physics.process_apply_gravity()
@@ -1992,9 +1996,9 @@ func new_physics_process(delta:float) -> void:
 		#STEP 9: Collision checks
 		var raycast_collision:int = refresh_raycasts()
 		
-		var wall_normal:Vector2 = wall_data.get("normal", facing_direction_v)
+		var wall_normal:Vector2 = wall_data.get("normal", forward_velocity_dir)
 		
-		var wall_dot:float = facing_direction_v.dot(wall_normal)
+		var wall_dot:float = forward_velocity_dir.dot(wall_normal)
 		var push_dot:float = player_input_dir.dot(wall_normal)
 		
 		physics.update_wall_contact(wall_dot, push_dot)
@@ -2014,4 +2018,4 @@ func new_physics_process(delta:float) -> void:
 	#emit post-physics
 	activate_ability("post_physics")
 	
-	update_animations()
+	new_update_animations()

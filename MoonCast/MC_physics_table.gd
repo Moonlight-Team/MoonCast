@@ -154,14 +154,20 @@ var hold_jump_lock:bool = false
 var vertical_velocity:float
 ##The character's current velocity moving forward relative to their rotation.
 var forward_velocity:float
-##The character's velocity on the ground, regardless of rotation. This value is only useful when
-##[member is_grounded] is true.
+##The character's absolute velocity on the ground, regardless of *any* orientation. 
+##This value is only useful when [member is_grounded] is true. Furthermore, it is absolute: 
+##It cannot be set below 0, and will be positive even when the player is traveling "backwards". For 
+##the sake of compatibility between 2D and 3D, respective player implementations decide when the player
+##is traveling backwards or forwards.
 var ground_velocity:float:
 	set(new_gsp):
-		ground_velocity = new_gsp
-		abs_ground_velocity = absf(new_gsp)
+		if new_gsp > ground_min_speed:
+			ground_velocity = new_gsp
+			is_moving = true
+		else:
+			is_moving = false
+			ground_velocity = maxf(new_gsp, 0.0)
 
-var abs_ground_velocity:float
 
 var ground_slope:float
 
@@ -203,7 +209,7 @@ var can_be_attacking:bool = true
 ##A signal is emitted whenever this value is changed;
 ##contact_air when false, and contact_ground when true
 var is_grounded:bool
-##If true, the player is moving.
+##If true, the player is moving. This means [member ground_velocity] is greater than [member ground_min_speed].
 var is_moving:bool
 ##If true, the player is rolling.
 var is_rolling:bool
@@ -297,7 +303,7 @@ func set_air_state() -> void:
 
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	if roll_pressed:
-		if control_roll_enabled and abs_ground_velocity > rolling_min_speed:
+		if control_roll_enabled and ground_velocity > rolling_min_speed:
 			if (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
 				is_rolling = true
 				current_animation = AnimationTypes.ROLL
@@ -320,7 +326,7 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 func update_rolling_crouching(button_pressed:bool) -> void:
 	if button_pressed:
 		if is_grounded:
-			if abs_ground_velocity > rolling_min_speed and control_roll_enabled:
+			if ground_velocity > rolling_min_speed and control_roll_enabled:
 				is_rolling = true
 				is_crouching = false
 			else:
@@ -353,7 +359,7 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 	if slope_mag > -0.5:
 		if is_rolling:
 			#Calculate rolling
-			var prev_ground_vel_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
+			#var prev_ground_vel_sign:float = signf(ground_velocity) if ground_velocity > ground_min_speed else 0.0
 			
 			#apply slope factors if we're on a hill
 			if not is_equal_approx(slope_mag, 1.0):
@@ -364,9 +370,13 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 					#rolling uphill
 					ground_velocity -= rolling_uphill_factor * ground_slope
 			
+			
+			
 			#Stop the player if they turn around
-			if prev_ground_vel_sign != 0.0 and not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
-				ground_velocity = 0.0
+			#if prev_ground_vel_sign != 0.0 and not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
+			#	ground_velocity = 0.0
+			
+			if not is_moving:
 				is_rolling = false
 				current_animation = AnimationTypes.STAND
 				printt("SLOPE: TURN AROUND")
@@ -390,7 +400,7 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 ##velocity of the player, used for detection and strength of acceleration/deceleration.
 ##[param camera_dot] 
 func process_ground_input(velocity_dot:float, acceleration:float) -> void:
-	var prev_ground_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
+	var prev_ground_sign:float = signf(ground_velocity) if ground_velocity > ground_min_speed else 0.0
 	
 	if is_rolling:
 		#slow down the player if their input is pointed in the opposite direction of their velocity
@@ -402,30 +412,30 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 	else:
 		if is_slipping or not can_be_moving or is_zero_approx(acceleration):
 			#no input has been passed in, so decelerate to a stop
-			#the trick of subtracting abs_ground_velocity comes courtesy of Harmony Framework
+			#the trick of subtracting ground_velocity comes courtesy of Harmony Framework
 			ground_velocity -= ground_deceleration * prev_ground_sign
 			
 			#if the player falls under minimum speed, stop them. We only check this in deceleration
 			#because if it's always checked, the player won't be allowed to move from a standstill 
 			#if their ground_acceleration isn't high enough to make abs_ground_velocity larger than
 			# ground_min_speed within one frame.
-			if abs_ground_velocity < ground_min_speed:
+			if ground_velocity < ground_min_speed:
 				ground_velocity = 0.0
 				current_animation = AnimationTypes.STAND
 		
 		#acceleration is not zero, ie. the player is trying to move
-		elif abs_ground_velocity < ground_top_speed and velocity_dot >= 0:
+		elif ground_velocity < ground_top_speed and velocity_dot >= 0:
 			# Accelerate
 			ground_velocity += ground_acceleration * acceleration
 			current_animation = AnimationTypes.RUN
 		#we also don't want the player to be able to accidentally moonwalk into negative infinity
 		#if they manage to go into negative ground_velocity and then *also* decelerate
-		elif velocity_dot < 0 and abs_ground_velocity > 0:
+		elif velocity_dot < 0 and ground_velocity > 0:
 			printt("physics: skid")
 			#skid to a stop
 			ground_velocity -= ground_skid_speed * acceleration
 			
-			if abs_ground_velocity < ground_min_speed:
+			if ground_velocity < ground_min_speed:
 				ground_velocity = 0.0
 				current_animation = AnimationTypes.STAND
 			else:
@@ -466,7 +476,7 @@ func process_air_input(acceleration:float, input_dot:float) -> void:
 		if control_jump_roll_lock and is_rolling:
 			can_air_move = can_air_move and not is_jumping
 		
-		if abs_ground_velocity < air_top_speed and can_air_move:
+		if ground_velocity < air_top_speed and can_air_move:
 			#accelerate in midair
 			forward_velocity += air_acceleration * acceleration * input_dot
 
@@ -550,7 +560,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 					vertical_velocity = 0.0
 		
 		if is_grounded:
-			if abs_ground_velocity > ground_min_speed:
+			if ground_velocity > ground_min_speed:
 				current_animation = AnimationTypes.RUN
 			else:
 				current_animation = AnimationTypes.STAND

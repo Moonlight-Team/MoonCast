@@ -910,7 +910,7 @@ func times_physics_process(delta: float) -> void:
 		
 		# Rotate toward new input direction
 		if current_anim.can_turn_horizontal:
-			var turn_speed: float = clampf(1.0 - (physics.abs_ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
+			var turn_speed: float = clampf(1.0 - (physics.ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
 			
 			move_dir = move_dir.slerp(cam_input_dir, turn_speed).normalized()
 			#recompute this
