@@ -108,8 +108,11 @@ var spatial_input_direction:Vector3
 ##The direction the player is facing
 var model_facing_direction:Vector3
 
-var ground_normal:Vector3
-
+var ground_normal:Vector3:
+	set(new_normal):
+		ground_normal = new_normal
+		slope_mag_dot = new_normal.dot(gravity_up_direction)
+##negative if the ground is a ceiling
 var slope_mag_dot: float
 
 ##The names of all the abilities of this character.
@@ -553,8 +556,7 @@ func update_collision_rotation() -> bool:
 	if not physics.is_grounded:
 		is_grounded = is_grounded and get_slide_collision_count() > 0
 	
-	#negative if the ground is a ceiling
-	slope_mag_dot = ground_normal.dot(gravity_up_direction)
+	
 	
 	return is_grounded
 
@@ -697,12 +699,17 @@ func pan_camera(pan_strength:Vector2) -> void:
 	
 	#rotate the camera around the player without actually rotating the parent node in the process
 	var base_transform:Transform3D = global_transform
+	var base_quat:Quaternion = global_basis.get_rotation_quaternion()
 	
 	base_transform = base_transform.rotated_local(gravity_up_direction, camera_movement.x)
+	base_quat = base_quat * Quaternion(gravity_up_direction, camera_movement.x)
+	
 	#TODO: Y axis (pitch) rotation, ie. full SADX-styled camera control
 	base_transform = base_transform.rotated_local(camera_node.global_basis.x.normalized(), camera_movement.y)
+	base_quat = base_quat * Quaternion(camera_node.global_basis.x.normalized(), camera_movement.y)
 	
 	camera_node.global_transform = base_transform * camera_node.transform
+	#camera_node.rotation = base_quat.get_euler()
 
 func _input(event:InputEvent) -> void:
 	#camera
@@ -838,13 +845,17 @@ func times_physics_process(delta: float) -> void:
 		-input.y
 	)
 	
-	# Calculate rotation that aligns body "down" with floor normal
+	# Find the localized "x" axis by getting the cross product between the gravity and slope vectors.
 	var axis: Vector3 = gravity_up_direction.cross(ground_normal).normalized()
 	
+	var slope_mag_angle:float = acos(slope_mag_dot)
+	
+	#TODO: Rotate input.angle() to match camera here
+	var input_quat:Quaternion = Quaternion(gravity_up_direction, input.angle())
+	var slope_quat:Quaternion = Quaternion(axis, slope_mag_angle)
+	
 	if not axis.is_zero_approx():
-		var quat_rotate: Quaternion = Quaternion(axis, acos(ground_normal.dot(gravity_up_direction)))
-		
-		node_anim_model.rotation = quat_rotate.get_euler()
+		node_anim_model.rotation = slope_quat.get_euler()
 	else:
 		# Floor normal and up vector are the same (flat ground)
 		node_anim_model.rotation = Vector3.ZERO
@@ -859,7 +870,7 @@ func times_physics_process(delta: float) -> void:
 	add_debug_info("Player-localized Input: " + str(player_input_dir))
 	
 	# Predict intended direction if no new move_dir yet
-	if has_input and move_dir.is_zero_approx():
+	if has_input and move_dir > Vector3.ZERO:
 		#move_dir = cam_input_dir
 		move_dir = player_input_dir
 	
@@ -885,7 +896,7 @@ func times_physics_process(delta: float) -> void:
 		#ie. if the player is facing uphill
 		var slope_dir_dot: float = player_input_dir.dot(gravity_up_direction)
 		
-		add_debug_info("Ground Angle " + str(rad_to_deg(acos(slope_mag_dot))))
+		add_debug_info("Ground Angle " + str(rad_to_deg(slope_mag_angle)))
 		add_debug_info("Slope magnitude: " + str(slope_mag_dot))
 		add_debug_info("Slope direction: " + str(slope_dir_dot))
 		
@@ -1019,7 +1030,11 @@ func times_physics_process(delta: float) -> void:
 	
 	# --- Model rotation and tilt ---
 	if move_dir != Vector3.ZERO:
-		rotate_model(ground_normal)
+		
+		rotation = (input_quat * slope_quat).normalized().get_euler()
+		
+		
+		#rotate_model(move_dir)
 		
 		#if current_anim.can_turn_horizontal:
 			#rotate_toward_direction(model_default, move_dir, delta, 10.0)

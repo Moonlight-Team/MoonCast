@@ -400,8 +400,7 @@ shape = SubResource("RectangleShape2D_x7kbe")
 texture_filter = 1
 position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
-animation = &"walk"
-frame_progress = 0.479735
+frame_progress = 0.653313
 
 [node name="SkinSwitcher" type="Node" parent="."]
 script = ExtResource("8_ax5uv")

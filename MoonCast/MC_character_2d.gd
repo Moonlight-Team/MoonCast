@@ -224,6 +224,18 @@ var ground_left_data:Dictionary
 var ground_right_data:Dictionary
 var ground_center_data:Dictionary
 
+var wall_left_origin:Vector2 = Vector2.ZERO
+var wall_right_origin:Vector2 = Vector2.ZERO
+var ground_left_origin:Vector2 = Vector2.ZERO
+var ground_right_origin:Vector2 = Vector2.ZERO
+var ground_center_origin:Vector2 = Vector2.ZERO
+
+var wall_left_target:Vector2 = Vector2.ZERO
+var wall_right_target:Vector2 = Vector2.ZERO
+var ground_left_target:Vector2 = Vector2.ZERO
+var ground_right_target:Vector2 = Vector2.ZERO
+var ground_center_target:Vector2 = Vector2.ZERO
+
 ##The ground velocity. This is how fast the player is 
 ##travelling on the ground, regardless of angles.
 var ground_velocity:float = 0.0:
@@ -401,6 +413,7 @@ func scan_children() -> void:
 		if not Engine.is_editor_hint() and nodes.has_meta(&"Ability_flag"):
 			
 			nodes.add_to_group(ability_group_name)
+			add_ability(nodes)
 
 ##Sets up internally used children.
 func setup_children() -> void:
@@ -547,8 +560,10 @@ func add_ability(ability_name:MoonCastAbility) -> void:
 		add_child(ability_name)
 	ability_name.add_to_group(ability_group_name)
 	#we use call() because these functions may or may not have an implementation in the node
-	ability_name.call(&"_setup", physics)
-	ability_name.call(&"_setup_2D", self)	
+	if ability_name.has_method(&"_setup"):
+		ability_name.call(&"_setup", physics)
+	if ability_name.has_method(&"_setup_2D"):
+		ability_name.call(&"_setup_2D", self)
 
 ##Get the MoonCastAbility of the named ability, if the player has it.
 ##This will return null and show a warning if the ability is not found.
@@ -700,12 +715,18 @@ func reposition_raycasts(left_corner:Vector2, right_corner:Vector2, center:Vecto
 	ray_ground_left.position.x = left_corner.x
 	#point the raycast down to the corner, and then beyond that by the margin
 	ray_ground_left.target_position.y = left_corner.y + ground_safe_margin
+	ground_left_origin.x = left_corner.x
+	ground_left_target.y = left_corner.y + ground_safe_margin
 	
 	ray_ground_right.position.x = right_corner.x
 	ray_ground_right.target_position.y = right_corner.y + ground_safe_margin
+	ground_right_origin.x = right_corner.x
+	ground_right_target.y = right_corner.y + ground_safe_margin
 	
 	ray_ground_central.position.x = center.x
 	ray_ground_central.target_position.y = center.y + ground_safe_margin
+	ground_center_origin.x = center.x
+	ground_center_target.y = center.y + ground_safe_margin
 	
 	#TODO: Place these better; they should be targeting the x pos of the absolute
 	#farthest horizontal collision boxes, not only the ground-valid boxes
@@ -1247,16 +1268,16 @@ func refresh_raycasts() -> int:
 	
 	wall_data = space.intersect_ray(ray_query)
 	
-	ray_query.from = global_position + ray_ground_left.position
-	ray_query.to = global_position + ray_ground_left.target_position
+	ray_query.from = global_position + ground_left_origin
+	ray_query.to = global_position + ground_left_target
 	ground_left_data = space.intersect_ray(ray_query)
 	
-	ray_query.from = global_position + ray_ground_right.position
-	ray_query.to = global_position + ray_ground_right.target_position
+	ray_query.from = global_position + ground_right_origin
+	ray_query.to = global_position + ground_right_target
 	ground_right_data = space.intersect_ray(ray_query)
 	
-	ray_query.from = global_position + ray_ground_central.position
-	ray_query.to = global_position + ray_ground_central.target_position
+	ray_query.from = global_position + ground_center_origin
+	ray_query.to = global_position + ground_center_target
 	ground_center_data = space.intersect_ray(ray_query)
 	
 	var ground_left_colliding:bool = not ground_left_data.is_empty()
@@ -1468,6 +1489,58 @@ func new_update_animations() -> void:
 		_:
 			pass
 
+##Draw debug information, like the current hitbox
+func draw_debug_info() -> void:
+	#draw the collision shape
+	if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
+		current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
+	else:
+		RenderingServer.canvas_item_clear(get_canvas_item())
+	
+	#Draw the ray sensor lines
+	
+	#const order: left, then right; down, up, and wall
+	const sensor_a:Color = Color8(0, 240, 0)
+	const sensor_b:Color = Color8(56, 255, 162)
+	const sensor_c:Color = Color8(0, 174, 239)
+	const sensor_d:Color = Color8(255, 242, 56)
+	const sensor_e:Color = Color8(255, 56, 255)
+	const sensor_f:Color = Color8(255, 84, 84)
+	
+	const line_thickness:float = 1.0
+	
+	var target_vec:Vector2
+	var origin_vec:Vector2
+	
+	if physics.forward_velocity < 0.0:
+		#draw left side rays
+		origin_vec = ground_left_origin
+		target_vec = Vector2(origin_vec.x, ground_left_target.y)
+		
+		if physics.is_grounded or physics.vertical_velocity < 0.0:
+			draw_line(origin_vec, target_vec, sensor_a, line_thickness)
+		else:
+			target_vec.y = -target_vec.y + int(floor_snap_length)
+			draw_line(origin_vec, target_vec, sensor_c, line_thickness)
+		
+		origin_vec = wall_left_origin
+		target_vec = wall_left_target
+		draw_line(origin_vec, target_vec, sensor_e, line_thickness)
+	else:
+		#draw right side rays
+		
+		origin_vec = ground_right_origin
+		target_vec = Vector2(origin_vec.x, ground_right_target.y)
+		if physics.is_grounded or physics.vertical_velocity < 0.0:
+			draw_line(origin_vec, target_vec, sensor_b, line_thickness)
+		else:
+			target_vec.y = -target_vec.y + int(floor_snap_length)
+			draw_line(origin_vec, target_vec, sensor_d, line_thickness)
+		
+		origin_vec = wall_right_origin
+		target_vec = wall_right_target
+		draw_line(origin_vec, target_vec, sensor_f, line_thickness)
+
 ##Flip the sprites for the player based on the direction the player is facing.
 ##If [check_speed] is set to true, it will also check that the player is moving.
 func sprites_flip(check_speed:bool = true) -> void:
@@ -1607,11 +1680,8 @@ func _validate_property(property: Dictionary) -> void:
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_DRAW:
-			if is_visible_in_tree() and get_tree().debug_collisions_hint or Engine.is_editor_hint():
-				if current_anim.override_collision and is_instance_valid(current_anim.collision_shape_2D):
-					current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
-				else:
-					RenderingServer.canvas_item_clear(get_canvas_item())
+			if OS.is_debug_build() and is_visible_in_tree():
+				draw_debug_info()
 		NOTIFICATION_ENTER_TREE:
 			if Engine.is_editor_hint():
 				notify_property_list_changed()
@@ -1698,7 +1768,7 @@ func legacy_physics_process(_delta:float) -> void:
 	activate_ability("post_physics")
 	
 	
-	var raw_velocity:Vector2 = space_velocity * physics_adjust
+	var raw_velocity:Vector2 = space_velocity * physics_adjust * space_scale
 	
 	velocity = raw_velocity
 	
@@ -1737,7 +1807,7 @@ func legacy_physics_process(_delta:float) -> void:
 					pass
 	
 	if feedback_physics:
-		space_velocity = velocity / physics_adjust
+		space_velocity = velocity / (physics_adjust * space_scale)
 		
 		#TODO: Ground physics feedback
 	else:
@@ -1768,7 +1838,7 @@ func new_physics_process(delta:float) -> void:
 	var has_input:bool = not is_zero_approx(input_dir)
 	
 	#TODO: Use this to properly flip inputs to match the camera
-	var cam_input_dir: Vector2 = input_vector.rotated(node_camera.global_rotation)
+	var cam_input_dir: Vector2 = input_vector.rotated(node_camera.global_rotation * signf(input_dir))
 	
 	var player_input_dir:Vector2 = input_vector.rotated(collision_angle)
 	
@@ -1861,8 +1931,8 @@ func new_physics_process(delta:float) -> void:
 		
 		move_and_slide()
 		
-		physics.forward_velocity = velocity.x / space_scale
-		physics.vertical_velocity = -velocity.y / space_scale
+		physics.forward_velocity = velocity.x / (physics_adjust * space_scale)
+		physics.vertical_velocity = -velocity.y / (physics_adjust * space_scale)
 		
 		#STEP 11: Check ground angles
 		
