@@ -1,5 +1,5 @@
 @icon("res://MoonCast/assets/2dplayer.svg")
-extends CharacterBody2D
+extends PhysicsBody2D
 
 class_name MoonCastPlayer2DPhysicsDirect
 
@@ -225,6 +225,11 @@ var ground_dot:float
 var ground_angle:float
 
 var wall_dot:float
+
+const floor_snap_length:float = 15.0
+var velocity:Vector2 = Vector2.ZERO
+var up_direction:Vector2 = gravity_up_direction
+var slide_collision_count:int
 
 var self_old:MoonCastPlayer2D = MoonCastPlayer2D.new()
 
@@ -604,14 +609,14 @@ func update_animations() -> void:
 			play_animation(anim_stand)
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:
-				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+				if physics.ground_velocity > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
 					play_animation(anim_run.get(snappedf(speeds, 0.001), &"RESET"))
 					break
 		MoonCastPhysicsTable.AnimationTypes.SKID:
 			for speeds:float in anim_skid_sorted_keys:
-				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+				if physics.ground_velocity > physics.ground_top_speed * speeds:
 					
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
@@ -767,13 +772,13 @@ func refresh_raycasts() -> int:
 				ground_normal = right_normal
 		3:
 			if physics.is_grounded:
-				apply_floor_snap()
+				#apply_floor_snap()
 				#make sure the player can't merely run into anything in front of them and 
 				#then walk up it. This check also prevents the player from flying off sudden 
 				#obtuse landscape curves
 				
 				var new_ground_normal:Vector2 = ground_center_data.get("normal", gravity_up_direction)
-				var wall_comparison:float = floor_max_angle / rad_to_deg(90.0) #TODO: better system
+				var wall_comparison:float = physics.ground_fall_angle / rad_to_deg(90.0) #TODO: better system
 				
 				#ground_normal = new_ground_normal
 				
@@ -936,7 +941,8 @@ func new_physics_process(delta:float) -> void:
 		physics.process_apply_ground_velocity(ground_dot)
 		velocity = facing_direction * Vector2(physics.forward_velocity, physics.vertical_velocity) * space_scale
 		
-		move_and_slide()
+		#move_and_slide()
+		mooncast_move_and_slide()
 		
 		physics.forward_velocity = velocity.x / space_scale
 		physics.vertical_velocity = -velocity.y / space_scale
@@ -949,7 +955,7 @@ func new_physics_process(delta:float) -> void:
 		
 		if physics.is_grounded:
 			up_direction = ground_normal
-			apply_floor_snap()
+			#apply_floor_snap()
 			state_ground.emit(self_old)
 		else:
 			if physics.is_jumping:
@@ -984,7 +990,8 @@ func new_physics_process(delta:float) -> void:
 		facing_direction
 		
 		velocity = Vector2(physics.forward_velocity, -physics.vertical_velocity) * space_scale
-		move_and_slide()
+		#move_and_slide()
+		mooncast_move_and_slide()
 		physics.forward_velocity = velocity.x / space_scale
 		physics.vertical_velocity = -velocity.y / space_scale
 		
@@ -1006,7 +1013,7 @@ func new_physics_process(delta:float) -> void:
 		
 		physics.update_wall_contact(wall_dot, push_dot)
 		
-		physics.process_landing(raycast_collision and get_slide_collision_count() > 0, ground_dot)
+		physics.process_landing(raycast_collision and slide_collision_count > 0, ground_dot)
 		
 		if physics.is_grounded:
 			#TODO: Determine left/right direction of slope in order to properly flip direction for
@@ -1023,6 +1030,16 @@ func new_physics_process(delta:float) -> void:
 	
 	update_animations()
 
+func mooncast_move_and_slide() -> void:
+	var delta:float = get_physics_process_delta_time()
+	
+	
+	
+	pass
+
+func mooncast_floor_snap() -> void:
+	pass
+
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_DRAW:
@@ -1035,9 +1052,10 @@ func _notification(what: int) -> void:
 			scan_children()
 			setup_collision()
 		NOTIFICATION_CHILD_ORDER_CHANGED:
-			scan_children()
-			if Engine.is_editor_hint():
-				update_configuration_warnings()
+			if is_inside_tree():
+				scan_children()
+				if Engine.is_editor_hint():
+					update_configuration_warnings()
 		NOTIFICATION_ENTER_TREE:
 			if not Engine.is_editor_hint():
 				physics.setup_performance_monitors(name)

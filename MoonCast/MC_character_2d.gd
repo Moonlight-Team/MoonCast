@@ -1856,7 +1856,7 @@ func new_physics_process(delta:float) -> void:
 		if vel_move_dot < 0:
 			if input_dir > 0:
 				printt("2D: FLIP RIGHT", forward_velocity_dir, player_input_dir)
-				
+			
 			elif input_dir < 0:
 				printt("2D: FLIP LEFT", forward_velocity_dir, player_input_dir)
 		
@@ -1972,7 +1972,7 @@ func new_physics_process(delta:float) -> void:
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
 		#STEP 3: Directional input
-		physics.process_air_input(input_dir, 1.0)
+		physics.process_air_input(input_dir, vel_move_dot)
 		
 		#STEP 4: Air drag
 		physics.process_air_drag()

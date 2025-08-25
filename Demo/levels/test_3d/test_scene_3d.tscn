@@ -885,7 +885,7 @@ transform = Transform3D(17085.2, 0, 0, 0, 17085.2, 0, 0, 0, 17085.2, 47.2359, 71
 material_override = SubResource("ShaderMaterial_y4126")
 mesh = ExtResource("8_3vjrc")
 
-[node name="Sprite3D" type="Sprite3D" parent="."]
+[node name="2DRef" type="Sprite3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.30295, -9.9568, 0)
 pixel_size = 0.1
 axis = 0

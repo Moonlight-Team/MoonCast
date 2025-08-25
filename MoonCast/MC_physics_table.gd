@@ -83,6 +83,8 @@ const perf_slope:StringName = &"Ground Angle"
 @export var ground_min_speed:float = 0.2
 ##The minimum speed the player needs to be moving at to not slip down slopes.
 @export var ground_stick_speed:float = 0.2
+##The maximum angle at which ground is considered "flat".
+@export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_flat_threshold:float = deg_to_rad(23.0)
 ##The angle the floor has to be at for the player to begin to slip on it.
 @export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_slip_angle:float = deg_to_rad(35.0)
 ##The angle the floor has to be at for the player to begin to slip on it.
@@ -218,7 +220,9 @@ var is_crouching:bool
 ##If true, the player is balacing on the edge of a platform.
 ##This causes certain core abilities to be disabled.
 var is_balancing:bool = false
-##If true, the player is pushing a wall they are up against.
+##If true, the player is against a wall.
+var is_on_wall:bool = false
+##If true, the player is pushing the wall they are up against.
 var is_pushing:bool = false
 ##If true, the player is jumping.
 var is_jumping:bool = false
@@ -226,8 +230,6 @@ var is_jumping:bool = false
 var is_slipping:bool = false
 ##If the player is in an attacking state.
 var is_attacking:bool = false
-##If the player is on a wall.
-var is_on_wall:bool = false
 
 ##The name of the custom performance monitor for vertical_velocity.
 var self_perf_vertical_velocity:StringName
@@ -462,6 +464,8 @@ func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool)
 		#activate rolling if the player can activate in midair
 		is_rolling = control_roll_midair_activate
 		current_animation = AnimationTypes.ROLL
+	else:
+		current_animation = AnimationTypes.FREE_FALL
 	
 	if is_rolling and not is_jumping:
 		can_be_moving = control_jump_roll_lock
@@ -528,11 +532,11 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		var abs_vertical:float = absf(vertical_velocity)
 		
 		#TODO: Make this a configurable variable, ofc
-		const flat_ground_threshold:float = 1.0 - (23.0 / 90.0)
+		var flat_ground_threshold:float = 1.0 - ground_flat_threshold
 		
 		#landing code for normal ground
 		if slope_mag > 0:
-			print("GROUNDING: Ground floored")
+			
 			is_grounded = true
 			ground_velocity = abs_forward
 			
@@ -542,6 +546,8 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 					ground_velocity = maxf(abs_forward, abs_vertical)
 				else:
 					ground_velocity = maxf(abs_forward, abs_vertical / 2.0)
+			
+			printt("GROUNDING: Ground floored, on angle of", acos(slope_mag))
 			
 			contact_ground.emit(self)
 		
@@ -556,6 +562,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 					contact_ground.emit(self)
 				else:
 					print("GROUNDING: Ceiling grounding failed")
+					is_grounded = false #contextually redundant?
 					#*bonk*, no landing for you
 					vertical_velocity = 0.0
 		
@@ -590,15 +597,20 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 		if ground_velocity < ground_stick_speed and slope_mag < slip_dot:
 			#if the ground is steep enough, fall off entirely
 			if slope_mag < fall_dot:
+				printt("FALL/SLIP: Falling, entering air")
 				set_air_state()
 				ground_velocity = 0.0
 			
 			if not is_slipping:
+				printt("FALL/SLIP: Slipping")
 				is_slipping = true
 				slip_lock_timer = start_delta_timer(ground_slip_time)
 				ground_velocity = 0.0
 	else:
 		set_air_state()
+		
+		if not is_jumping:
+			printt("FALL/SLIP: Ground not detected")
 		
 		if is_jumping:
 			current_animation = AnimationTypes.JUMP
