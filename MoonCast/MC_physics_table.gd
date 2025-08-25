@@ -386,16 +386,21 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 		else: 
 			#slope factors for being on foot
 			
-			var applied_slope:float = - (ground_slope_factor * sin(ground_slope) * slope_dir)
+			var applied_slope:float = ground_slope_factor * sin(ground_slope) * slope_dir
 			
 			if not is_zero_approx(sin(ground_slope)):
 				if slope_dir > 0:
-					printt("SLOPE: UPHILL", sin(ground_slope), applied_slope)
+					printt("SLOPE: UPHILL")
+					#ground_velocity -= ground_slope_factor * sin(ground_slope)
 				elif slope_dir < 0: 
-					printt("SLOPE: DOWNHILL", sin(ground_slope), applied_slope)
-			
+					
+					#ground_velocity += ground_slope_factor * sin(ground_slope)
+					
+					printt("SLOPE: DOWNHILL")
+				
+				
 				#ground_velocity -= ground_slope_factor * sin(ground_slope) * slope_dir
-				ground_velocity -= sin(ground_slope)
+				ground_velocity -= applied_slope
 
 ##Process ground movement. 
 ##[param velocity_dot] is the dot product between the direction of the inputs in space and the 

@@ -210,7 +210,7 @@ signal state_air(player:MoonCastPlayer3D)
 func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 	#only set the animation if it is forced or not set this frame
 	if (force or not animation_set) and is_instance_valid(anim):
-		#anim.player = self
+		anim.player = self
 		if anim != current_anim:
 			#setup custom collision
 			for default_owners:int in user_collision_owners:
@@ -409,7 +409,7 @@ func update_animations() -> void:
 	match physics.current_animation:
 		MoonCastPhysicsTable.AnimationTypes.RUN:
 			for speeds:float in anim_run_sorted_keys:
-				if physics.abs_ground_velocity > physics.ground_top_speed * speeds:
+				if physics.ground_velocity > physics.ground_top_speed * speeds:
 					#They were snapped earlier, but I find that it still won't work
 					#unless I snap them here
 					play_animation(anim_run.get(snappedf(speeds, 0.001), anim_stand))
@@ -858,7 +858,7 @@ func new_physics_process(delta: float) -> void:
 	add_debug_info("Cam move dot: " + readable_float(cam_move_dot))
 	
 	# Predict intended direction if no new move_dir yet
-	if has_input and camera_input_direction.is_zero_approx():
+	if has_input and not camera_input_direction.is_zero_approx():
 		move_dir = camera_input_direction
 	
 	var slope_mag_angle:float = acos(slope_mag_dot)
@@ -878,15 +878,11 @@ func new_physics_process(delta: float) -> void:
 		#TODO: Turn delay
 		var model_basis:Basis = node_anim_model.global_basis
 		
-		model_facing_direction = Vector3(-move_dir.x, 0.0, -move_dir.z)
-		
 		model_basis = model_basis.rotated(ground_normal, atan2(move_dir.x, move_dir.z))
 		
-		node_anim_model.global_basis = model_basis
+		player_input_dir = Vector3(-move_dir.x, 0.0, -move_dir.z)
 		
-		#add_debug_info("TURNING: " + readable_float(turn_angle))
-	
-	#process turning with input
+		node_anim_model.global_basis = model_basis
 	
 	if physics.is_grounded:
 		#STEP 1: Check for crouching, balancing, etc.
@@ -899,7 +895,7 @@ func new_physics_process(delta: float) -> void:
 		
 		# positive if movement and gravity are in the same direction;
 		#ie. if the player is facing uphill
-		var slope_dir_dot: float = player_input_dir.dot(gravity_up_direction)
+		var slope_dir_dot: float = player_input_dir.dot(ground_normal)
 		
 		add_debug_info("Ground Angle " + readable_float(rad_to_deg(slope_mag_angle)))
 		add_debug_info("Slope magnitude: " + readable_float(slope_mag_dot))
@@ -945,9 +941,12 @@ func new_physics_process(delta: float) -> void:
 		#STEP 9: Handle camera bounds (not gonna worry about that)
 		
 		#STEP 10: Move the player (apply physics.ground_velocity to velocity)
+		physics.process_apply_ground_velocity(slope_mag_dot)
 		add_debug_info("Ground Speed: " + readable_float(physics.ground_velocity))
 		
-		var move_vector: Vector3 = move_dir * physics.ground_velocity
+		var move_vector:Vector3 = Vector3.BACK.rotated(ground_normal, atan2(move_dir.x, move_dir.z)) * physics.ground_velocity
+		#var move_vector: Vector3 = move_dir * physics.ground_velocity
+		#velocity = move_vector * space_scale
 		velocity = move_vector * space_scale
 		
 		move_and_slide()
@@ -1013,7 +1012,13 @@ func new_physics_process(delta: float) -> void:
 		physics.process_air_drag()
 		
 		#STEP 5: Move the player
-		velocity = Vector3(physics.forward_velocity * move_dir.x, physics.vertical_velocity, physics.forward_velocity * move_dir.z) * space_scale
+		var move_vector:Vector3 = Vector3.BACK.rotated(ground_normal, atan2(move_dir.x, move_dir.z)) * physics.forward_velocity
+		
+		move_vector.y = physics.vertical_velocity
+		
+		velocity = move_vector * space_scale
+		
+		
 		
 		move_and_slide()
 		physics.forward_velocity = velocity.z / space_scale

@@ -57,7 +57,7 @@ class_name MoonCastAnimation
 var next_animation:StringName
 ##The player node for this MoonCastAnimation. Eventually this will not be a thing, and the 
 ##player properties will be exposed natively like they are in MoonCastAbility.
-var player:MoonCastPlayer2D
+var player
 
 var mode_2d:bool = true
 
