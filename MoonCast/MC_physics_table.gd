@@ -372,8 +372,6 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 					#rolling uphill
 					ground_velocity -= rolling_uphill_factor * ground_slope
 			
-			
-			
 			#Stop the player if they turn around
 			#if prev_ground_vel_sign != 0.0 and not is_equal_approx(prev_ground_vel_sign, signf(ground_velocity)):
 			#	ground_velocity = 0.0
@@ -391,16 +389,14 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 			if not is_zero_approx(sin(ground_slope)):
 				if slope_dir > 0:
 					printt("SLOPE: UPHILL")
-					#ground_velocity -= ground_slope_factor * sin(ground_slope)
+					ground_velocity -= ground_slope_factor * sin(ground_slope)
 				elif slope_dir < 0: 
 					
-					#ground_velocity += ground_slope_factor * sin(ground_slope)
+					ground_velocity += ground_slope_factor * sin(ground_slope)
 					
 					printt("SLOPE: DOWNHILL")
 				
-				
-				#ground_velocity -= ground_slope_factor * sin(ground_slope) * slope_dir
-				ground_velocity -= applied_slope
+				#ground_velocity -= applied_slope
 
 ##Process ground movement. 
 ##[param velocity_dot] is the dot product between the direction of the inputs in space and the 
@@ -587,9 +583,10 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 ##Apply [member ground_velocity] to [member forward_velocity] and [member vertical_velocity] so that
 ##momentum can be properly transfered into physical space speeds.
 func process_apply_ground_velocity(slope_mag:float) -> void:
-	ground_slope = acos(slope_mag) #TODO: Optimize
-	forward_velocity = absf(cos(ground_slope)) * ground_velocity
-	vertical_velocity = absf(cos(ground_slope)) * ground_velocity
+	var ground_vec2:Vector2 = Vector2.from_angle(acos(slope_mag))
+	
+	forward_velocity = absf(ground_vec2.x) * ground_velocity
+	vertical_velocity = absf(ground_vec2.y) * ground_velocity
 
 ##Run updates for the player falling or slipping down slopes and leaving the ground.
 ##[param ground_detected] is the status of being on the ground according to the player implementation's 

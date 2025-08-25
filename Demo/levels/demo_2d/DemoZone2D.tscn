@@ -56,6 +56,7 @@ texture_filter = 1
 
 [node name="mrmooncastmouse" parent="." node_paths=PackedStringArray("node_camera") instance=ExtResource("1_37ogv")]
 position = Vector2(-2, 29)
+legacy_enabled = false
 node_camera = NodePath("Cam")
 
 [node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse"]

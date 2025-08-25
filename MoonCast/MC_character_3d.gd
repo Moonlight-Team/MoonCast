@@ -115,7 +115,11 @@ var camera_input_direction:Vector3
 ##The direction the player is facing
 var model_facing_direction:Vector3
 
+var momentum_forward_direction:Vector3
+
 var default_facing_direction:Vector3
+##The player's physical rotation. This is calculated regardless of visual effects, and applies both input and slope inclines.
+var physics_rotation:Basis
 
 ##The normal of the ground. This value automatically recomputes [member slope_mag_dot] when set.
 var ground_normal:Vector3 = gravity_up_direction:
@@ -248,6 +252,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 		if is_instance_valid(node_animation_player) and node_animation_player.has_animation(played_anim):
 			node_animation_player.play(played_anim, -1, anim.speed)
 			animation_set = true
+		elif not node_animation_player.has_animation(played_anim):
+			push_error("The animation ", played_anim, " could not be found for ", node_animation_player.name)
 
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
@@ -476,6 +482,7 @@ func update_collision() -> bool:
 	#Sidenote: I think this could be handled more efficiently with bitfields, but 
 	
 	var is_now_grounded:bool = false
+	var apply_snap:bool = false
 	
 	var forward_axis_contact:bool = ray_ground_forward.is_colliding() and ray_ground_back.is_colliding()
 	var side_axis_contact:bool = ray_ground_left.is_colliding() and ray_ground_right.is_colliding()
@@ -504,6 +511,8 @@ func update_collision() -> bool:
 				if not physics.is_grounded:
 					#we just ran off a ledge; don't update collision rotation
 					ground_normal.slerp(gravity_up_direction, 0.01)
+					
+					is_now_grounded = false
 			else:
 				#we aren't grounded; still calculate angles, because we may land
 				if ray_ground_forward.is_colliding():
@@ -514,17 +523,22 @@ func update_collision() -> bool:
 					ground_normal = ray_ground_left.get_collision_normal()
 				elif ray_ground_right.is_colliding():
 					ground_normal = ray_ground_right.get_collision_normal()
+				
+				apply_snap = true
 		2:
 			if central_contact:
 				#we are grounded, likely standing on the edge of some small fence or smth
 				ground_normal = ray_ground_central.get_collision_normal()
 				is_now_grounded = true
+				apply_snap = true
 			elif forward_axis_contact:
 				ground_normal = (ray_ground_forward.get_collision_normal() + ray_ground_back.get_collision_normal()) / 2.0
 				is_now_grounded = true
+				apply_snap = true
 			elif side_axis_contact:
 				ground_normal = (ray_ground_left.get_collision_normal() + ray_ground_right.get_collision_normal()) / 2.0
 				is_now_grounded = true
+				apply_snap = true
 			else:
 				#we are NOT grounded, because the two contacting rays do not span an axis
 				#(ie. we are on the edge of something)
@@ -536,6 +550,8 @@ func update_collision() -> bool:
 			else:
 				#This realistically shouldn't happen, but
 				pass
+			
+			apply_snap = true
 		4, 5:
 			physics.is_balancing = false
 			
@@ -544,10 +560,15 @@ func update_collision() -> bool:
 				ground_normal = ray_ground_central.get_collision_normal()
 			
 			is_now_grounded = true
+			apply_snap = true
 	
 	#patchfix for slope launching
 	if not physics.is_grounded:
 		is_now_grounded = is_now_grounded and get_slide_collision_count() > 0
+	
+	if apply_snap:
+		apply_floor_snap()
+	
 	
 	return is_now_grounded
 
@@ -656,7 +677,6 @@ func _ready() -> void:
 	setup_children()
 	
 	default_facing_direction = model_forward_direction.rotated(gravity_up_direction, atan2(node_camera.global_rotation.z, node_camera.global_rotation.x))
-	
 	
 	#Find collision points. Run this after children
 	#setup so that the raycasts can be placed properly.
@@ -834,7 +854,6 @@ func readable_float(num:float) -> String:
 func readable_vector3(num:Vector3) -> String:
 	return str(num.snappedf(0.01))
 
-var move_dir:Vector3
 
 #physics implementation based loosely on Hyper Framework (which I also did programming for)
 func new_physics_process(delta: float) -> void:
@@ -843,25 +862,20 @@ func new_physics_process(delta: float) -> void:
 	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	
 	camera_input_direction = (node_camera.global_basis * raw_input_vec3).normalized()
-	var player_input_dir:Vector3 = (node_anim_model.global_basis * raw_input_vec3).normalized()
 	var has_input: bool = not camera_input_direction.is_zero_approx() if not raw_input_vec2.is_zero_approx() else false
 	
-	add_debug_info("Input: " + str(raw_input_vec2.snappedf(0.01)))
-	add_debug_info("Camera-localized Input: " + readable_vector3(camera_input_direction))
-	add_debug_info("Player-localized Input: " + readable_vector3(player_input_dir))
-	
 	#This is used for measuring the change between the 
-	var cam_move_dot: float = move_dir.dot(camera_input_direction)
-	var movement_dot:float
+	var cam_move_dot: float = model_facing_direction.dot(camera_input_direction)
 	var vel_move_dot: float = camera_input_direction.dot(velocity.normalized())
 	
 	add_debug_info("Cam move dot: " + readable_float(cam_move_dot))
 	
-	# Predict intended direction if no new move_dir yet
 	if has_input and not camera_input_direction.is_zero_approx():
-		move_dir = camera_input_direction
+		model_facing_direction = camera_input_direction
 	
 	var slope_mag_angle:float = acos(slope_mag_dot)
+	
+	#calculate rotations
 	
 	if current_anim.can_turn_vertically:
 		# Find the localized "x" axis by getting the cross product between the gravity and slope vectors.
@@ -876,13 +890,26 @@ func new_physics_process(delta: float) -> void:
 	
 	if current_anim.can_turn_horizontal:
 		#TODO: Turn delay
-		var model_basis:Basis = node_anim_model.global_basis
+		var model_basis:Basis = node_anim_model.basis
 		
-		model_basis = model_basis.rotated(ground_normal, atan2(move_dir.x, move_dir.z))
+		if physics.is_grounded:
+			model_basis = model_basis.rotated(ground_normal, atan2(model_facing_direction.x, model_facing_direction.z))
+		else:
+			model_basis = Basis(Quaternion(gravity_up_direction, atan2(model_facing_direction.x, model_facing_direction.z)))
 		
-		player_input_dir = Vector3(-move_dir.x, 0.0, -move_dir.z)
-		
-		node_anim_model.global_basis = model_basis
+		node_anim_model.basis = model_basis
+	
+	if has_input:
+		if momentum_forward_direction.is_zero_approx():
+			momentum_forward_direction = node_anim_model.global_rotation
+		else:
+			momentum_forward_direction.slerp(node_anim_model.global_rotation, 0.01)
+	
+	var player_input_dir:Vector3 = node_anim_model.global_rotation
+	
+	add_debug_info("Input: " + str(raw_input_vec2.snappedf(0.01)))
+	add_debug_info("Camera-localized Input: " + readable_vector3(camera_input_direction))
+	add_debug_info("Player-localized Input: " + readable_vector3(player_input_dir))
 	
 	if physics.is_grounded:
 		#STEP 1: Check for crouching, balancing, etc.
@@ -913,9 +940,9 @@ func new_physics_process(delta: float) -> void:
 		if current_anim.can_turn_horizontal:
 			var turn_speed: float = clampf(1.0 - (physics.ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
 			
-			move_dir = move_dir.slerp(camera_input_direction, turn_speed).normalized()
+			model_facing_direction = model_facing_direction.slerp(camera_input_direction, turn_speed).normalized()
 			#recompute this
-			cam_move_dot = move_dir.dot(camera_input_direction)
+			cam_move_dot = model_facing_direction.dot(camera_input_direction)
 		
 		physics.process_ground_input(vel_move_dot, cam_move_dot)
 		
@@ -943,16 +970,19 @@ func new_physics_process(delta: float) -> void:
 		#STEP 10: Move the player (apply physics.ground_velocity to velocity)
 		physics.process_apply_ground_velocity(slope_mag_dot)
 		add_debug_info("Ground Speed: " + readable_float(physics.ground_velocity))
+		add_debug_info("Forward vel " + readable_float(physics.forward_velocity))
+		add_debug_info("Vertical vel " + readable_float(physics.vertical_velocity))
 		
-		var move_vector:Vector3 = Vector3.BACK.rotated(ground_normal, atan2(move_dir.x, move_dir.z)) * physics.ground_velocity
-		#var move_vector: Vector3 = move_dir * physics.ground_velocity
+		var move_vector:Vector3 = Vector3.BACK.rotated(ground_normal, atan2(model_facing_direction.x, model_facing_direction.z)) * physics.forward_velocity
+		#move_vector = Vector3(0.0, physics.vertical_velocity, physics.forward_velocity).rotated(ground_normal, atan2(model_facing_direction.x, model_facing_direction.z))
+		
 		#velocity = move_vector * space_scale
 		velocity = move_vector * space_scale
 		
 		move_and_slide()
 		
-		physics.forward_velocity = velocity.z / space_scale
-		physics.vertical_velocity = velocity.y / space_scale
+		physics.forward_velocity = absf(velocity.z) / space_scale
+		physics.vertical_velocity = absf(velocity.y) / space_scale
 		
 		#STEP 11: Check ground angles
 		
@@ -979,13 +1009,13 @@ func new_physics_process(delta: float) -> void:
 				
 				var jump_vector:Vector3 = ground_normal * physics.jump_velocity
 				
-				velocity = jump_vector * space_scale
+				#velocity = jump_vector * space_scale
 				
-				var jump_direction:Vector3 = jump_vector.abs()
+				var jump_vec2:Vector2 = Vector2.from_angle(acos(slope_mag_dot))
 				
-				physics.vertical_velocity += jump_direction.y
-				#TODO: Better determination of horizontal velocity
-				physics.forward_velocity += jump_direction.z + jump_direction.x / 2.0
+				#TODO: Somehow, for some reason, the player's forward velocity is set to 0 when they jump and becomes impossible to change.
+				physics.forward_velocity = jump_vec2.y * physics.jump_velocity
+				physics.vertical_velocity = jump_vec2.x * physics.jump_velocity
 				
 				jump.emit(self)
 			
@@ -1005,22 +1035,24 @@ func new_physics_process(delta: float) -> void:
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
 		#STEP 3: Directional input
-		physics.process_air_input(raw_input_vec2.y, cam_move_dot)
+		physics.process_air_input(vel_move_dot, 1.0)
 		
 		#STEP 4: Air drag
 		
 		physics.process_air_drag()
 		
+		add_debug_info("Forward vel " + readable_float(physics.forward_velocity))
+		add_debug_info("Vertical vel " + readable_float(physics.vertical_velocity))
+		
 		#STEP 5: Move the player
-		var move_vector:Vector3 = Vector3.BACK.rotated(ground_normal, atan2(move_dir.x, move_dir.z)) * physics.forward_velocity
+		var move_vector:Vector3 = Vector3.BACK.rotated(gravity_up_direction, atan2(model_facing_direction.x, model_facing_direction.z)) * physics.forward_velocity
 		
 		move_vector.y = physics.vertical_velocity
 		
 		velocity = move_vector * space_scale
 		
-		
-		
 		move_and_slide()
+		
 		physics.forward_velocity = velocity.z / space_scale
 		physics.vertical_velocity = velocity.y / space_scale
 		
