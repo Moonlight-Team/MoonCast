@@ -865,7 +865,7 @@ space_scale = 2.5
 camera_sensitivity = Vector2(0.1, 0.1)
 
 [node name="Camera3D" type="Camera3D" parent="MC_3D"]
-transform = Transform3D(78.4197, 0, 0, 0, 73.6435, 26.9497, 0, -26.9497, 73.6435, 0, 8.74905, 14.3469)
+transform = Transform3D(-78.4197, 2.35602e-06, -6.43812e-06, 0, 73.6435, 26.9497, 6.85567e-06, 26.9497, -73.6435, 0, 8.749, -14.347)
 
 [node name="TestLevel" type="Node3D" parent="."]
 

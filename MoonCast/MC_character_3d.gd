@@ -76,10 +76,10 @@ class_name MoonCastPlayer3D
 @export var anim_death_custom:Dictionary[StringName, MoonCastAnimation] = {}
 @export_group("Camera", "camera_")
 ##The camera node for the player.
-@export var camera_node:Camera3D:
+@export var node_camera:Camera3D:
 	set(new_cam):
 		if is_instance_valid(new_cam) and new_cam.get_parent() == self:
-			camera_node = new_cam
+			node_camera = new_cam
 		else:
 			push_error("The camera node for ", name, " must be a direct child!")
 
@@ -118,7 +118,7 @@ var model_facing_direction:Vector3
 var default_facing_direction:Vector3
 
 ##The normal of the ground. This value automatically recomputes [member slope_mag_dot] when set.
-var ground_normal:Vector3:
+var ground_normal:Vector3 = gravity_up_direction:
 	set(new_normal):
 		ground_normal = new_normal
 		slope_mag_dot = new_normal.dot(gravity_up_direction)
@@ -252,8 +252,8 @@ func play_animation(anim:MoonCastAnimation, force:bool = false) -> void:
 ##Detect specific child nodes and properly set them up, such as setting
 ##internal node references and automatically setting up abilties.
 func setup_children() -> void:
-	if not is_instance_valid(camera_node):
-		camera_node = get_viewport().get_camera_3d()
+	if not is_instance_valid(node_camera):
+		node_camera = get_viewport().get_camera_3d()
 	
 	#find the animationPlayer and other nodes
 	for nodes:Node in get_children():
@@ -471,8 +471,6 @@ func rotate_model(new_rotation:Vector3) -> void:
 		node_anim_model.global_rotation.y = new_rotation.y
 	if current_anim.can_turn_vertically:
 		node_anim_model.global_rotation.x = new_rotation.x
-	
-	model_facing_direction = node_anim_model.global_rotation
 
 func update_collision() -> bool:
 	#Sidenote: I think this could be handled more efficiently with bitfields, but 
@@ -653,13 +651,12 @@ func refresh_raycasts() -> void:
 func _ready() -> void: 
 	Input.mouse_mode = camera_mouse_capture_mode
 	
-	model_facing_direction = model_forward_direction
-	
 	set_meta(&"is_player", true)
 	#Set up nodes
 	setup_children()
 	
-	default_facing_direction = model_forward_direction.rotated(gravity_up_direction, atan2(camera_node.global_rotation.z, camera_node.global_rotation.x))
+	default_facing_direction = model_forward_direction.rotated(gravity_up_direction, atan2(node_camera.global_rotation.z, node_camera.global_rotation.x))
+	
 	
 	#Find collision points. Run this after children
 	#setup so that the raycasts can be placed properly.
@@ -690,7 +687,7 @@ func _ready() -> void:
 
 
 func pan_camera(pan_strength:Vector2) -> void:
-	if not is_instance_valid(camera_node):
+	if not is_instance_valid(node_camera):
 		return
 	
 	var camera_movement:Vector2 = camera_sensitivity * pan_strength
@@ -703,11 +700,11 @@ func pan_camera(pan_strength:Vector2) -> void:
 	base_quat = base_quat * Quaternion(gravity_up_direction, camera_movement.x)
 	
 	#TODO: Y axis (pitch) rotation, ie. full SADX-styled camera control
-	base_transform = base_transform.rotated_local(camera_node.global_basis.x.normalized(), camera_movement.y)
-	base_quat = base_quat * Quaternion(camera_node.global_basis.x.normalized(), camera_movement.y)
+	base_transform = base_transform.rotated_local(node_camera.global_basis.x.normalized(), camera_movement.y)
+	base_quat = base_quat * Quaternion(node_camera.global_basis.x.normalized(), camera_movement.y)
 	
-	camera_node.global_transform = base_transform * camera_node.transform
-	#camera_node.rotation = base_quat.get_euler()
+	node_camera.global_transform = base_transform * node_camera.transform
+	#node_camera.rotation = base_quat.get_euler()
 
 func _input(event:InputEvent) -> void:
 	#camera
@@ -734,7 +731,7 @@ func _physics_process(delta: float) -> void:
 	)
 	
 	if not raw_input_vec2.is_zero_approx():
-		camera_input_direction = (camera_node.basis * raw_input_vec3).normalized()
+		camera_input_direction = (node_camera.basis * raw_input_vec3).normalized()
 	
 	#old_physics_process(delta)
 	new_physics_process(delta)
@@ -763,7 +760,7 @@ func old_physics_process(delta:float) -> void:
 		if not raw_input_vec3.is_zero_approx():
 			#We multiply the input direction, now turned into a Vector3, by the camera basis so that it's "rotated" to match the 
 			#camera direction; y axis of raw_input_vec2 is now forward to the camera, and x is to the side.
-			camera_input_direction = (camera_node.basis * raw_input_vec3).normalized()
+			camera_input_direction = (node_camera.basis * raw_input_vec3).normalized()
 	
 	var skip_builtin_states:bool = false
 	#Check for custom abilities
@@ -800,7 +797,7 @@ func old_physics_process(delta:float) -> void:
 	var converted_velocity:Vector3
 	converted_velocity.y = -physics.vertical_velocity
 	
-	velocity = camera_node.basis * space_velocity #* physics_tick_adjust
+	velocity = node_camera.basis * space_velocity #* physics_tick_adjust
 	
 	move_and_slide()
 	
@@ -838,7 +835,6 @@ func readable_vector3(num:Vector3) -> String:
 	return str(num.snappedf(0.01))
 
 var move_dir:Vector3
-var visual_rotation:Vector3
 
 #physics implementation based loosely on Hyper Framework (which I also did programming for)
 func new_physics_process(delta: float) -> void:
@@ -846,7 +842,7 @@ func new_physics_process(delta: float) -> void:
 	var jump_pressed:bool = Input.is_action_pressed(controls.action_jump)
 	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	
-	camera_input_direction = (camera_node.global_basis * raw_input_vec3).normalized()
+	camera_input_direction = (node_camera.global_basis * raw_input_vec3).normalized()
 	var player_input_dir:Vector3 = (node_anim_model.global_basis * raw_input_vec3).normalized()
 	var has_input: bool = not camera_input_direction.is_zero_approx() if not raw_input_vec2.is_zero_approx() else false
 	
@@ -862,7 +858,7 @@ func new_physics_process(delta: float) -> void:
 	add_debug_info("Cam move dot: " + readable_float(cam_move_dot))
 	
 	# Predict intended direction if no new move_dir yet
-	if has_input and move_dir > Vector3.ZERO:
+	if has_input and camera_input_direction.is_zero_approx():
 		move_dir = camera_input_direction
 	
 	var slope_mag_angle:float = acos(slope_mag_dot)
@@ -880,24 +876,15 @@ func new_physics_process(delta: float) -> void:
 	
 	if current_anim.can_turn_horizontal:
 		#TODO: Turn delay
-		
-		
-		
 		var model_basis:Basis = node_anim_model.global_basis
 		
-		var camera_angle:float = atan2(camera_node.global_rotation.z, camera_node.global_rotation.x)
+		model_facing_direction = Vector3(-move_dir.x, 0.0, -move_dir.z)
 		
-		camera_angle = default_facing_direction.angle_to(camera_node.global_rotation)
-		
-		var cam_local:Vector2 = raw_input_vec2.rotated(camera_angle)
-		
-		var turn_angle:float = (cam_local.x + signf(cam_local.y))
-		
-		model_basis = model_basis.rotated(ground_normal, -turn_angle)
+		model_basis = model_basis.rotated(ground_normal, atan2(move_dir.x, move_dir.z))
 		
 		node_anim_model.global_basis = model_basis
 		
-		add_debug_info("TURNING: " + readable_float(turn_angle))
+		#add_debug_info("TURNING: " + readable_float(turn_angle))
 	
 	#process turning with input
 	
@@ -1026,7 +1013,7 @@ func new_physics_process(delta: float) -> void:
 		physics.process_air_drag()
 		
 		#STEP 5: Move the player
-		velocity = Vector3(physics.forward_velocity, physics.vertical_velocity, physics.forward_velocity) * space_scale
+		velocity = Vector3(physics.forward_velocity * move_dir.x, physics.vertical_velocity, physics.forward_velocity * move_dir.z) * space_scale
 		
 		move_and_slide()
 		physics.forward_velocity = velocity.z / space_scale
