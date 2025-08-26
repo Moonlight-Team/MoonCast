@@ -276,6 +276,15 @@ func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_vertical_velocity)
 	Performance.remove_custom_monitor(self_perf_ground_velocity)
 
+##This checks if the player has a directional lock active. This means they are either traveling in a direction,
+##or there is an external lock placed on their direction. When a directional lock is active, the player cannot turn
+##around. However, this does not mean they can't still turn (in 3D) and decelerate.
+func check_directional_lock() -> bool:
+	if is_grounded:
+		return is_moving
+	else:
+		#TODO: Give this a specific value instead of ground_min_speed
+		return forward_velocity > ground_min_speed
 
 func start_delta_timer(seconds:float) -> float:
 	return seconds * ProjectSettings.get("physics/common/physics_ticks_per_second")

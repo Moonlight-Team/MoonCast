@@ -86,7 +86,9 @@ class_name MoonCastPlayer3D
 ##The look sensitivity of the camera.
 @export var camera_sensitivity:Vector2 = Vector2.ONE
 ##If true, looking around uses the mouse.
-@export var camera_use_mouse:bool = false
+@export var camera_default_use_mouse:bool = false
+##The action name for toggling mouse look for the camera.
+@export var camera_mouse_toggle:StringName = &"ui_cancel"
 ##The capture mode of the mouse when using mouse look.
 @export var camera_mouse_capture_mode:Input.MouseMode
 @export_group("Sound Effects", "sfx_")
@@ -112,24 +114,42 @@ var raw_input_vec2:Vector2:
 var raw_input_vec3:Vector3
 ##the input direction adjusted to reflect the current y rotation of the camera.
 var camera_input_direction:Vector3
-##The direction the player is facing
-var model_facing_direction:Vector3
 
-var momentum_forward_direction:Vector3
+var gravity_normal:Vector3
+
+var flat_input_direction:Vector3
+var flat_facing_direction:Vector3
+var input_direction:Vector3
+##The direction the player is facing
+var forward_vector:Vector3
+
 
 var default_facing_direction:Vector3
 ##The player's physical rotation. This is calculated regardless of visual effects, and applies both input and slope inclines.
 var physics_rotation:Basis
 
-##The normal of the ground. This value automatically recomputes [member slope_mag_dot] when set.
+##The normal of the ground. This value automatically recomputes [member slope_dot] when set.
 var ground_normal:Vector3 = gravity_up_direction:
 	set(new_normal):
 		ground_normal = new_normal
-		slope_mag_dot = new_normal.dot(gravity_up_direction)
+		slope_dot = new_normal.dot(gravity_up_direction)
+		slope_angle = acos(slope_dot)
+
+var slope_angle:float
 ##The dot product between [member ground_normal] and [member gravity_up_direction]; 
 ##Positive if the ground is normal, negative if the ground is a ceiling, and approximately 
 ##0 if the ground is a wall.
-var slope_mag_dot: float
+var slope_dot:float
+
+var velocity_dot:float
+
+var facing_dot:float
+
+var wall_dot:float
+
+var push_dot:float
+
+
 
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
@@ -150,6 +170,8 @@ var animation_custom:bool = false
 var current_anim:MoonCastAnimation = MoonCastAnimation.new()
 
 var camera_vector:Vector2
+
+var camera_use_mouse:bool = camera_default_use_mouse
 
 #sorted arrays of the keys for anim_run and anim_skid
 var anim_run_sorted_keys:PackedFloat32Array = []
@@ -728,6 +750,8 @@ func pan_camera(pan_strength:Vector2) -> void:
 
 func _input(event:InputEvent) -> void:
 	#camera
+	if event.is_action(camera_mouse_toggle):
+		camera_use_mouse = not camera_use_mouse
 	
 	if camera_use_mouse:
 		if event is InputEventMouseMotion:
@@ -865,15 +889,35 @@ func new_physics_process(delta: float) -> void:
 	var has_input: bool = not camera_input_direction.is_zero_approx() if not raw_input_vec2.is_zero_approx() else false
 	
 	#This is used for measuring the change between the 
-	var cam_move_dot: float = model_facing_direction.dot(camera_input_direction)
-	var vel_move_dot: float = camera_input_direction.dot(velocity.normalized())
+	var cam_move_dot: float = forward_vector.dot(camera_input_direction)
+	
+	#This measures the change in the player's input compared to their current velocity, which is used to detect turn deceleration, 
+	#skidding/air deceleration, etc.
+	velocity_dot = camera_input_direction.dot(velocity.normalized())
 	
 	add_debug_info("Cam move dot: " + readable_float(cam_move_dot))
 	
-	if has_input and not camera_input_direction.is_zero_approx():
-		model_facing_direction = camera_input_direction
+	var input_angle:float = atan2(camera_input_direction.x, camera_input_direction.z)
+	var facing_angle:float
 	
-	var slope_mag_angle:float = acos(slope_mag_dot)
+	flat_input_direction = Quaternion(gravity_up_direction, input_angle).get_euler()
+	input_direction = Quaternion(ground_normal, input_angle).get_euler()
+	
+	if has_input and not camera_input_direction.is_zero_approx():
+		forward_vector = camera_input_direction
+		facing_angle = input_angle
+		
+		flat_facing_direction = Quaternion(gravity_up_direction, facing_angle).get_euler()
+		forward_vector = Quaternion(ground_normal, facing_angle).get_euler()
+	else:
+		facing_angle = atan2(forward_vector.x, forward_vector.z)
+	
+	
+	#define a vector for the camera's up direction, the "camera normal". Use this angle compared to the ground normal. 
+	#This is compared so that input cannot get messed up with the camera at very steep angles. With *that*, we can properly use the camera
+	#for input adjustement so that atan2 is accurate for directional angles for axis-angle matrices.
+	#var cam_ang_dot:float = node_camera.global_basis.get_rotation_quaternion().dot(Quaternion(gravity_up_direction, 0.0))
+	
 	
 	#calculate rotations
 	
@@ -883,27 +927,25 @@ func new_physics_process(delta: float) -> void:
 		var hinge_axis: Vector3 = gravity_up_direction.cross(ground_normal).normalized()
 		
 		if not hinge_axis.is_zero_approx():
-			node_anim_model.rotation = Quaternion(hinge_axis, slope_mag_angle).get_euler()
+			node_anim_model.basis = Basis(Quaternion(hinge_axis, slope_angle))
 		else:
 			# Floor normal and up vector are the same (flat ground)
-			node_anim_model.rotation = Vector3.ZERO
+			node_anim_model.basis.x = Vector3.ZERO
+			node_anim_model.basis.z = Vector3.ZERO
 	
 	if current_anim.can_turn_horizontal:
 		#TODO: Turn delay
 		var model_basis:Basis = node_anim_model.basis
 		
 		if physics.is_grounded:
-			model_basis = model_basis.rotated(ground_normal, atan2(model_facing_direction.x, model_facing_direction.z))
+			model_basis = model_basis.rotated(ground_normal, facing_angle)
 		else:
-			model_basis = Basis(Quaternion(gravity_up_direction, atan2(model_facing_direction.x, model_facing_direction.z)))
+			model_basis = Basis(Quaternion(gravity_up_direction, facing_angle))
 		
 		node_anim_model.basis = model_basis
 	
 	if has_input:
-		if momentum_forward_direction.is_zero_approx():
-			momentum_forward_direction = node_anim_model.global_rotation
-		else:
-			momentum_forward_direction.slerp(node_anim_model.global_rotation, 0.01)
+		node_anim_model.global_rotation = node_anim_model.global_rotation.slerp(forward_vector, 0.01)
 	
 	var player_input_dir:Vector3 = node_anim_model.global_rotation
 	
@@ -922,13 +964,13 @@ func new_physics_process(delta: float) -> void:
 		
 		# positive if movement and gravity are in the same direction;
 		#ie. if the player is facing uphill
-		var slope_dir_dot: float = player_input_dir.dot(ground_normal)
+		facing_dot = player_input_dir.dot(ground_normal)
 		
-		add_debug_info("Ground Angle " + readable_float(rad_to_deg(slope_mag_angle)))
-		add_debug_info("Slope magnitude: " + readable_float(slope_mag_dot))
-		add_debug_info("Slope direction: " + readable_float(slope_dir_dot))
+		add_debug_info("Ground Angle " + readable_float(rad_to_deg(slope_angle)))
+		add_debug_info("Slope magnitude: " + readable_float(slope_dot))
+		add_debug_info("Slope direction: " + readable_float(facing_dot))
 		
-		physics.process_ground_slope(slope_mag_dot, slope_dir_dot)
+		physics.process_ground_slope(slope_dot, facing_dot)
 		
 		#STEP 4: Check for starting a jump
 		if jump_pressed:
@@ -940,11 +982,11 @@ func new_physics_process(delta: float) -> void:
 		if current_anim.can_turn_horizontal:
 			var turn_speed: float = clampf(1.0 - (physics.ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
 			
-			model_facing_direction = model_facing_direction.slerp(camera_input_direction, turn_speed).normalized()
+			#forward_vector = forward_vector.slerp(camera_input_direction, turn_speed).normalized()
 			#recompute this
-			cam_move_dot = model_facing_direction.dot(camera_input_direction)
+			#cam_move_dot = forward_vector.dot(camera_input_direction)
 		
-		physics.process_ground_input(vel_move_dot, cam_move_dot)
+		physics.process_ground_input(velocity_dot, snappedf(velocity_dot, 0.01))
 		
 		#STEP 6: Check crouching, balancing, etc.
 		
@@ -968,13 +1010,13 @@ func new_physics_process(delta: float) -> void:
 		#STEP 9: Handle camera bounds (not gonna worry about that)
 		
 		#STEP 10: Move the player (apply physics.ground_velocity to velocity)
-		physics.process_apply_ground_velocity(slope_mag_dot)
+		physics.process_apply_ground_velocity(slope_dot)
 		add_debug_info("Ground Speed: " + readable_float(physics.ground_velocity))
 		add_debug_info("Forward vel " + readable_float(physics.forward_velocity))
 		add_debug_info("Vertical vel " + readable_float(physics.vertical_velocity))
 		
-		var move_vector:Vector3 = Vector3.BACK.rotated(ground_normal, atan2(model_facing_direction.x, model_facing_direction.z)) * physics.forward_velocity
-		#move_vector = Vector3(0.0, physics.vertical_velocity, physics.forward_velocity).rotated(ground_normal, atan2(model_facing_direction.x, model_facing_direction.z))
+		var move_vector:Vector3 = forward_vector * physics.ground_velocity
+		#move_vector = Vector3(0.0, physics.vertical_velocity, physics.forward_velocity).rotated(ground_normal, facing_angle)
 		
 		#velocity = move_vector * space_scale
 		velocity = move_vector * space_scale
@@ -982,7 +1024,7 @@ func new_physics_process(delta: float) -> void:
 		move_and_slide()
 		
 		physics.forward_velocity = absf(velocity.z) / space_scale
-		physics.vertical_velocity = absf(velocity.y) / space_scale
+		physics.vertical_velocity = velocity.y / space_scale
 		
 		#STEP 11: Check ground angles
 		
@@ -990,7 +1032,7 @@ func new_physics_process(delta: float) -> void:
 		
 		#STEP 12: Check slipping/falling
 		
-		physics.process_fall_slip_checks(now_grounded, slope_mag_dot)
+		physics.process_fall_slip_checks(now_grounded, slope_dot)
 		
 		
 		if physics.is_grounded:
@@ -1011,7 +1053,7 @@ func new_physics_process(delta: float) -> void:
 				
 				#velocity = jump_vector * space_scale
 				
-				var jump_vec2:Vector2 = Vector2.from_angle(acos(slope_mag_dot))
+				var jump_vec2:Vector2 = Vector2.from_angle(acos(slope_dot))
 				
 				#TODO: Somehow, for some reason, the player's forward velocity is set to 0 when they jump and becomes impossible to change.
 				physics.forward_velocity = jump_vec2.y * physics.jump_velocity
@@ -1035,7 +1077,8 @@ func new_physics_process(delta: float) -> void:
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
 		#STEP 3: Directional input
-		physics.process_air_input(vel_move_dot, 1.0)
+		
+		physics.process_air_input(raw_input_vec2.length(), velocity_dot)
 		
 		#STEP 4: Air drag
 		
@@ -1045,7 +1088,7 @@ func new_physics_process(delta: float) -> void:
 		add_debug_info("Vertical vel " + readable_float(physics.vertical_velocity))
 		
 		#STEP 5: Move the player
-		var move_vector:Vector3 = Vector3.BACK.rotated(gravity_up_direction, atan2(model_facing_direction.x, model_facing_direction.z)) * physics.forward_velocity
+		var move_vector:Vector3 = flat_facing_direction * physics.forward_velocity
 		
 		move_vector.y = physics.vertical_velocity
 		
@@ -1068,7 +1111,7 @@ func new_physics_process(delta: float) -> void:
 		#STEP 9: Collision checks
 		var now_grounded:bool = update_collision()
 		
-		physics.process_landing(now_grounded, slope_mag_dot)
+		physics.process_landing(now_grounded, slope_dot)
 		
 		if physics.is_grounded:
 			contact_ground.emit(self)
