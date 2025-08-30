@@ -117,12 +117,14 @@ var camera_input_direction:Vector3
 
 var gravity_normal:Vector3
 
-var flat_input_direction:Vector3
-var flat_facing_direction:Vector3
 var input_direction:Vector3
 ##The direction the player is facing
-var forward_vector:Vector3
+var facing_direction:Vector3
+var flat_input_direction:Vector3
+var flat_facing_direction:Vector3
 
+
+var forward_vector:Vector3
 
 var default_facing_direction:Vector3
 ##The player's physical rotation. This is calculated regardless of visual effects, and applies both input and slope inclines.
@@ -591,7 +593,6 @@ func update_collision() -> bool:
 	if apply_snap:
 		apply_floor_snap()
 	
-	
 	return is_now_grounded
 
 func reposition_raycasts(forward_point:Vector3, back_point:Vector3, left_point:Vector3, right_point:Vector3, center:Vector3) -> void:
@@ -691,43 +692,6 @@ func refresh_raycasts() -> void:
 	
 	ground_normal = ground_normal.normalized()
 
-func _ready() -> void: 
-	Input.mouse_mode = camera_mouse_capture_mode
-	
-	set_meta(&"is_player", true)
-	#Set up nodes
-	setup_children()
-	
-	default_facing_direction = model_forward_direction.rotated(gravity_up_direction, atan2(node_camera.global_rotation.z, node_camera.global_rotation.x))
-	
-	#Find collision points. Run this after children
-	#setup so that the raycasts can be placed properly.
-	setup_collision()
-	#setup performance montiors
-	physics.setup_performance_monitors(name)
-	
-	#After all, why [i]not[/i] use our own API?
-	#connect(&"contact_air", enter_air)
-	#connect(&"contact_ground", land_on_ground)
-	
-	var load_dictionary:Callable = func(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
-		var sorted_keys:PackedFloat32Array
-		#check the anim_run keys for valid values
-		for keys:float in dict.keys():
-			var snapped_key:float = snappedf(keys, 0.001)
-			if not is_equal_approx(keys, snapped_key):
-				push_warning("Key ", keys, " is more precise than the precision cutoff")
-			sorted_keys.append(snapped_key)
-		#sort the keys (from least to greatest)
-		sorted_keys.sort()
-		
-		sorted_keys.reverse()
-		return sorted_keys
-	
-	anim_run_sorted_keys = load_dictionary.call(anim_run)
-	anim_skid_sorted_keys = load_dictionary.call(anim_skid)
-
-
 func pan_camera(pan_strength:Vector2) -> void:
 	if not is_instance_valid(node_camera):
 		return
@@ -748,6 +712,69 @@ func pan_camera(pan_strength:Vector2) -> void:
 	node_camera.global_transform = base_transform * node_camera.transform
 	#node_camera.rotation = base_quat.get_euler()
 
+func _notification(what: int) -> void:
+	if Engine.is_editor_hint():
+		return
+	
+	match what:
+		NOTIFICATION_READY:
+			set_physics_process(true)
+			Input.mouse_mode = camera_mouse_capture_mode
+			
+			set_meta(&"is_player", true)
+			#Set up nodes
+			setup_children()
+			
+			default_facing_direction = model_forward_direction.rotated(gravity_up_direction, atan2(node_camera.global_rotation.z, node_camera.global_rotation.x))
+			
+			#Find collision points. Run this after children
+			#setup so that the raycasts can be placed properly.
+			setup_collision()
+			#setup performance montiors
+			physics.setup_performance_monitors(name)
+			
+			#After all, why [i]not[/i] use our own API?
+			#connect(&"contact_air", enter_air)
+			#connect(&"contact_ground", land_on_ground)
+			
+			var load_dictionary:Callable = func(dict:Dictionary[float, MoonCastAnimation]) -> PackedFloat32Array: 
+				var sorted_keys:PackedFloat32Array
+				#check the anim_run keys for valid values
+				for keys:float in dict.keys():
+					var snapped_key:float = snappedf(keys, 0.001)
+					if not is_equal_approx(keys, snapped_key):
+						push_warning("Key ", keys, " is more precise than the precision cutoff")
+					sorted_keys.append(snapped_key)
+				#sort the keys (from least to greatest)
+				sorted_keys.sort()
+				
+				sorted_keys.reverse()
+				return sorted_keys
+			
+			anim_run_sorted_keys = load_dictionary.call(anim_run)
+			anim_skid_sorted_keys = load_dictionary.call(anim_skid)
+		NOTIFICATION_PHYSICS_PROCESS:
+			if Engine.is_editor_hint():
+				return
+			
+			debug_label.text = ""
+			animation_set = false
+			
+			raw_input_vec2 = Input.get_vector(
+				controls.direction_left, controls.direction_right, 
+				controls.direction_down, controls.direction_up
+			)
+			
+			if not raw_input_vec2.is_zero_approx():
+				camera_input_direction = (node_camera.basis * raw_input_vec3).normalized()
+			
+			var delta:float = get_physics_process_delta_time()
+			
+			#old_physics_process(delta)
+			new_physics_process(delta)
+	pass
+
+
 func _input(event:InputEvent) -> void:
 	#camera
 	if event.is_action(camera_mouse_toggle):
@@ -761,24 +788,6 @@ func _input(event:InputEvent) -> void:
 		controls.camera_down, controls.camera_up)
 	
 	pan_camera(camera_vector)
-
-func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		return
-	
-	debug_label.text = ""
-	animation_set = false
-	
-	raw_input_vec2 = Input.get_vector(
-		controls.direction_left, controls.direction_right, 
-		controls.direction_down, controls.direction_up
-	)
-	
-	if not raw_input_vec2.is_zero_approx():
-		camera_input_direction = (node_camera.basis * raw_input_vec3).normalized()
-	
-	#old_physics_process(delta)
-	new_physics_process(delta)
 
 func old_physics_process(delta:float) -> void:
 	physics.tick_down_timers(delta)
@@ -868,7 +877,7 @@ func old_physics_process(delta:float) -> void:
 @onready var debug_label:Label = $Label
 const enable_onscreen_info:bool = true
 
-func add_debug_info(info:String) -> void:
+func append_frame_log(info:String) -> void:
 	if enable_onscreen_info:
 		debug_label.text += info + "\n"
 
@@ -895,7 +904,7 @@ func new_physics_process(delta: float) -> void:
 	#skidding/air deceleration, etc.
 	velocity_dot = camera_input_direction.dot(velocity.normalized())
 	
-	add_debug_info("Cam move dot: " + readable_float(cam_move_dot))
+	append_frame_log("Cam move dot: " + readable_float(cam_move_dot))
 	
 	var input_angle:float = atan2(camera_input_direction.x, camera_input_direction.z)
 	var facing_angle:float
@@ -949,9 +958,9 @@ func new_physics_process(delta: float) -> void:
 	
 	var player_input_dir:Vector3 = node_anim_model.global_rotation
 	
-	add_debug_info("Input: " + str(raw_input_vec2.snappedf(0.01)))
-	add_debug_info("Camera-localized Input: " + readable_vector3(camera_input_direction))
-	add_debug_info("Player-localized Input: " + readable_vector3(player_input_dir))
+	append_frame_log("Input: " + str(raw_input_vec2.snappedf(0.01)))
+	append_frame_log("Camera-localized Input: " + readable_vector3(camera_input_direction))
+	append_frame_log("Player-localized Input: " + readable_vector3(player_input_dir))
 	
 	if physics.is_grounded:
 		#STEP 1: Check for crouching, balancing, etc.
@@ -966,9 +975,9 @@ func new_physics_process(delta: float) -> void:
 		#ie. if the player is facing uphill
 		facing_dot = player_input_dir.dot(ground_normal)
 		
-		add_debug_info("Ground Angle " + readable_float(rad_to_deg(slope_angle)))
-		add_debug_info("Slope magnitude: " + readable_float(slope_dot))
-		add_debug_info("Slope direction: " + readable_float(facing_dot))
+		append_frame_log("Ground Angle " + readable_float(rad_to_deg(slope_angle)))
+		append_frame_log("Slope magnitude: " + readable_float(slope_dot))
+		append_frame_log("Slope direction: " + readable_float(facing_dot))
 		
 		physics.process_ground_slope(slope_dot, facing_dot)
 		
@@ -1011,9 +1020,9 @@ func new_physics_process(delta: float) -> void:
 		
 		#STEP 10: Move the player (apply physics.ground_velocity to velocity)
 		physics.process_apply_ground_velocity(slope_dot)
-		add_debug_info("Ground Speed: " + readable_float(physics.ground_velocity))
-		add_debug_info("Forward vel " + readable_float(physics.forward_velocity))
-		add_debug_info("Vertical vel " + readable_float(physics.vertical_velocity))
+		append_frame_log("Ground Speed: " + readable_float(physics.ground_velocity))
+		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
+		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
 		
 		var move_vector:Vector3 = forward_vector * physics.ground_velocity
 		#move_vector = Vector3(0.0, physics.vertical_velocity, physics.forward_velocity).rotated(ground_normal, facing_angle)
@@ -1041,11 +1050,11 @@ func new_physics_process(delta: float) -> void:
 			state_ground.emit(self)
 			
 			if physics.ground_velocity > physics.ground_stick_speed:
-				add_debug_info("GROUND STICK")
+				append_frame_log("GROUND STICK")
 			elif physics.is_slipping:
-				add_debug_info("GROUND SLIPPING")
+				append_frame_log("GROUND SLIPPING")
 			else:
-				add_debug_info("GROUND NEUTRAL")
+				append_frame_log("GROUND NEUTRAL")
 		else:
 			if physics.is_jumping:
 				
@@ -1065,14 +1074,14 @@ func new_physics_process(delta: float) -> void:
 			
 			contact_air.emit(self)
 			
-			add_debug_info("GROUND UNSTICK")
+			append_frame_log("GROUND UNSTICK")
 
 	else: #not physics.is_grounded
 		#STEP 1: check for jump button release
 		
 		physics.update_air_actions(jump_pressed, crouch_pressed, has_input)
 		
-		add_debug_info("Jumping: " + str(physics.is_jumping))
+		append_frame_log("Jumping: " + str(physics.is_jumping))
 		
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
@@ -1084,13 +1093,11 @@ func new_physics_process(delta: float) -> void:
 		
 		physics.process_air_drag()
 		
-		add_debug_info("Forward vel " + readable_float(physics.forward_velocity))
-		add_debug_info("Vertical vel " + readable_float(physics.vertical_velocity))
+		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
+		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
 		
 		#STEP 5: Move the player
-		var move_vector:Vector3 = flat_facing_direction * physics.forward_velocity
-		
-		move_vector.y = physics.vertical_velocity
+		var move_vector:Vector3 = (flat_facing_direction * physics.forward_velocity) + (gravity_up_direction * physics.vertical_velocity)
 		
 		velocity = move_vector * space_scale
 		

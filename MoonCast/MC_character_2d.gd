@@ -194,19 +194,27 @@ var anim_skid_sorted_keys:PackedFloat32Array = []
 #region physics vars
 ##The direction the player is facing. Either -1 for left or 1 for right.
 var facing_direction:float = 1.0
-##The direction the player is accelerating in space, relative to their orientation to the ground.
-##For example, this vector would be pointing up if they are running up a wall, and down if they are
-##running down a wall.
-var forward_velocity_dir:Vector2 = anim_default_forward:
-	set(new_dir):
-		forward_velocity_dir = new_dir
-		
-		facing_behind = anim_default_forward.rotated(ground_angle).dot(new_dir) < 0
+##The direction the player is accelerating in space.
+var acceleration_vector:Vector2 = anim_default_forward
 
 ##This is the velocity direction regardless of ground rotation but aligned to gravity rotation.
 var flat_input_dir:Vector2
+##The direction the player is facing in space relative to the direction of gravity.
+var flat_facing_dir:Vector2 = anim_default_forward:
+	set(new_dir):
+		flat_facing_dir = new_dir
+		
+		facing_behind = anim_default_forward.rotated(gravity_angle).dot(new_dir) < 0
+var slope_input_dir:Vector2
+##The direction the player is facing in space relative to their orientation to the ground.
+##For example, this vector would be pointing up if they are running up a wall, and down if they are
+##running down a wall.
+var slope_facing_dir:Vector2 = anim_default_forward
 
 var gravity_angle:float
+
+##This is a string record used for recording events that happen during a physics frame, for usage in live debug info.
+var frame_log:String
 
 ##True if the player is facing the opposite direction to their [member anim_default_forward] direction.
 var facing_behind:bool
@@ -366,8 +374,17 @@ var ground_normal:Vector2:
 		ground_dot = ground_normal.dot(gravity_up_direction)
 		ground_angle = limitAngle(-atan2(ground_normal.x, ground_normal.y) - PI)
 
+var wall_normal:Vector2:
+	set(new_normal):
+		wall_normal = new_normal.normalized()
+		pass
+
 ##The dot product of [member ground_normal] and [member gravity_up_direction].
 var ground_dot:float
+##This represents the dot product between the direction the player is facing and
+##the normal of the slope, for determining if the current slope is considered
+##"uphill" or "downhill". Uphill is positive.
+var facing_dot:float
 
 ##The rotation of the sprites. This is seperate than the physics
 ##rotation so that physics remain consistent despite certain rotation
@@ -1266,7 +1283,7 @@ func refresh_raycasts() -> int:
 	#update the state data of all our raycasts
 	var space:PhysicsDirectSpaceState2D = PhysicsServer2D.space_get_direct_state(PhysicsServer2D.body_get_space(get_rid()))
 	
-	if forward_velocity_dir.x < 0.0:
+	if flat_facing_dir.x < 0.0:
 		ray_query.from = global_position + ray_wall_left.position
 		ray_query.to = global_position + ray_wall_left.target_position
 	else:
@@ -1331,11 +1348,11 @@ func refresh_raycasts() -> int:
 				if ground_left_colliding:
 					ground_normal = ground_left_data.get("normal", ground_normal).normalized()
 					
-					forward_velocity_dir = Vector2.RIGHT.rotated(ground_angle) #slope is to the left, face right
+					acceleration_vector = Vector2.RIGHT.rotated(ground_angle) #slope is to the left, face right
 				elif ground_right_colliding:
 					ground_normal = ground_right_data.get("normal", ground_normal)
 					
-					forward_velocity_dir = Vector2.LEFT.rotated(ground_angle) #slope is to the right, face left
+					acceleration_vector = Vector2.LEFT.rotated(ground_angle) #slope is to the right, face left
 		2:
 			var left_normal:Vector2 = ground_left_data.get("normal", ground_normal)
 			var right_normal:Vector2 = ground_right_data.get("normal", ground_normal)
@@ -1360,8 +1377,9 @@ func refresh_raycasts() -> int:
 				#ground_normal = new_ground_normal
 				
 				#check to make sure the new "ground" is not basically a wall compared to the current ground
-				if ground_normal.dot(new_ground_normal) > wall_comparison:
-					ground_normal = new_ground_normal
+				#if ground_normal.dot(new_ground_normal) > wall_comparison:
+				#	ground_normal = new_ground_normal
+				ground_normal = new_ground_normal
 			
 			else:
 				#the CharacterBody2D system has no idea what the ground normal is when its
@@ -1496,8 +1514,11 @@ func new_update_animations() -> void:
 					play_animation(anim_look_up)
 			else:
 				play_animation(anim_stand)
+		MoonCastPhysicsTable.AnimationTypes.ROLL:
+			play_animation(anim_roll)
+		
 		_:
-			pass
+			push_warning("Implement anim ", physics.current_animation)
 
 ##Draw debug information, like the current hitbox.
 func draw_debug_info() -> void:
@@ -1506,7 +1527,6 @@ func draw_debug_info() -> void:
 		current_anim.collision_shape_2D.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
 	else:
 		RenderingServer.canvas_item_clear(get_canvas_item())
-	
 	#Draw the ray sensor lines
 	
 	#const order: left, then right; down, up, and wall
@@ -1522,7 +1542,7 @@ func draw_debug_info() -> void:
 	var target_vec:Vector2
 	var origin_vec:Vector2
 	
-	if physics.forward_velocity < 0.0:
+	if flat_facing_dir.x < 0.0:
 		#draw left side rays
 		origin_vec = ground_left_origin
 		target_vec = Vector2(origin_vec.x, ground_left_target.y)
@@ -1550,6 +1570,26 @@ func draw_debug_info() -> void:
 		origin_vec = wall_right_origin
 		target_vec = wall_right_target
 		draw_line(origin_vec, target_vec, sensor_f, line_thickness)
+	
+	#draw directions
+	
+	const length_mult:float = 10.0
+	const thickness_2:float = 1.5
+	
+	var origin_point:Vector2 = Vector2(0.0, -5.0)
+	
+	draw_line(origin_point, (acceleration_vector * length_mult * 6.0) + origin_point, sensor_b, thickness_2)
+	origin_point.y += 2.0
+	
+	draw_line(origin_point, (flat_facing_dir * length_mult * 4.0) + origin_point, sensor_d, thickness_2)
+	origin_point.y += 2.0
+	draw_line(origin_point, (flat_input_dir * length_mult * 2.0) + origin_point, sensor_a, thickness_2)
+	origin_point.y += 2.0
+	if physics.is_grounded:
+		draw_line(origin_point, (slope_facing_dir * length_mult * 4.0) + origin_point, sensor_e, thickness_2)
+		origin_point.y += 2.0
+		draw_line(origin_point, (slope_input_dir * length_mult * 2.0) + origin_point, sensor_f, thickness_2)
+		
 
 ##Flip the sprites for the player based on the direction the player is facing.
 ##If [check_speed] is set to true, it will also check that the player is moving.
@@ -1640,6 +1680,16 @@ func move_camera(target:Vector2 = Vector2.ZERO, speed:float = 0.0) -> void:
 	#
 	#if not is_equal_approx(camera.offset.y, camera_dest_pos):
 		#camera.offset.y = move_toward(camera.offset.y, camera_dest_pos, camera_move_speed)
+
+func append_frame_log(message:String) -> void:
+	frame_log += message + "\n"
+	pass
+
+func readable_float(num:float) -> String:
+	return str(snappedf(num, 0.01))
+
+func readable_vector2(num:Vector2) -> String:
+	return str(num.snappedf(0.01))
 
 #endregion
 
@@ -1842,6 +1892,7 @@ func legacy_physics_process(_delta:float) -> void:
 
 ##Process physics movement and input
 func new_physics_process(delta:float) -> void:
+	frame_log = ""
 	
 	var extern_adjust:float = physics_adjust * space_scale
 	
@@ -1858,30 +1909,51 @@ func new_physics_process(delta:float) -> void:
 	
 	
 	flat_input_dir = input_vector.rotated(gravity_angle)
-	var n_input_direction:Vector2 = input_vector.rotated(ground_angle)
+	slope_input_dir = input_vector.rotated(ground_angle)
+	
+	#TODO: Optimize these checks, a lot of redundant checks happening here
+	if has_input:
+		if physics.is_grounded:
+			if not physics.is_moving:
+				flat_facing_dir = flat_input_dir
+		else:
+			if physics.forward_velocity < physics.ground_min_speed:
+				flat_facing_dir = flat_input_dir
+	
+	facing_dot = - signf(flat_facing_dir.dot(ground_normal))
+	
+	slope_facing_dir = flat_facing_dir.rotated(ground_angle)
+	
+	if physics.is_grounded:
+		if not physics.is_moving:
+			if has_input:
+				acceleration_vector = slope_input_dir
+				
+				sprites_set_rotation(ground_angle)
+			else:
+				#make the acceleration vector point downhill
+				if facing_dot < 0:
+					acceleration_vector = flat_facing_dir
+				else:
+					acceleration_vector = -flat_facing_dir
+				
+				sprite_rotation = gravity_angle
+		else:
+			acceleration_vector = slope_facing_dir
+			
+			sprites_set_rotation(ground_angle)
+	else:
+		if physics.forward_velocity < physics.ground_min_speed and has_input:
+			acceleration_vector = flat_input_dir
+		else:
+			acceleration_vector = flat_facing_dir
+		
+		sprites_set_rotation(gravity_angle)
+	
+	var velocity_dot:float = velocity.normalized().dot(slope_input_dir)
 	
 	#TODO: Use this to properly flip inputs to match the camera
 	var cam_input_dir: Vector2 = input_vector.rotated(node_camera.global_rotation * signf(input_dir))
-	
-	var turn_locked:bool = physics.check_directional_lock()
-	
-	var velocity_dot:float = velocity.normalized().dot(n_input_direction)
-	
-	if not turn_locked:
-		if velocity_dot < 0:
-			if input_dir > 0:
-				printt("2D: FLIP RIGHT", forward_velocity_dir, n_input_direction)
-				facing_direction = 1
-			
-			elif input_dir < 0:
-				printt("2D: FLIP LEFT", forward_velocity_dir, n_input_direction)
-				facing_direction = -1
-		
-		forward_velocity_dir = n_input_direction
-		
-		velocity_dot = 1.0
-	else:
-		printt("2D: Turn locked")
 	
 	#emit pre-physics before running any state functions
 	activate_ability("pre_physics")
@@ -1913,10 +1985,9 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 3: Slope factors
 		
-		#This represents the dot product between the direction the player is facing and
-		#the normal of the slope, for determining if the current slope is considered
-		#"uphill" or "downhill"
-		var facing_dot:float = -signf(flat_input_dir.dot(ground_normal))
+		append_frame_log("Ground Angle " + readable_float(rad_to_deg(ground_angle)))
+		append_frame_log("Slope magnitude: " + readable_float(ground_dot))
+		append_frame_log("Slope direction: " + ("Uphill" if facing_dot > 0 else "Downhill/Neutral"))
 		
 		physics.process_ground_slope(ground_dot, facing_dot)
 		
@@ -1931,12 +2002,14 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 7: Push/wall sensors
 		
-		var wall_normal:Vector2 = wall_data.get("normal", forward_velocity_dir)
+		wall_normal = Vector2(wall_data.get("normal", Vector2.ZERO))
 		
-		var wall_dot:float
+		var wall_dot:float = 1.0
+		var push_dot:float = 1.0
 		
-		wall_dot = forward_velocity_dir.dot(wall_normal)
-		var push_dot:float = n_input_direction.dot(wall_normal)
+		if not wall_normal.is_zero_approx():
+			wall_dot = acceleration_vector.dot(wall_normal)
+			push_dot = slope_input_dir.dot(wall_normal)
 		
 		physics.update_wall_contact(wall_dot, push_dot)
 		
@@ -1950,7 +2023,12 @@ func new_physics_process(delta:float) -> void:
 		
 		#velocity = facing_direction * physics.ground_velocity * space_scale
 		physics.process_apply_ground_velocity(ground_dot)
-		velocity = forward_velocity_dir * Vector2(physics.forward_velocity, -physics.vertical_velocity) * extern_adjust
+		
+		append_frame_log("Ground Speed: " + readable_float(physics.ground_velocity))
+		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
+		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
+		
+		velocity = acceleration_vector * Vector2(physics.forward_velocity, -physics.vertical_velocity) * extern_adjust
 		
 		move_and_slide()
 		
@@ -1967,25 +2045,41 @@ func new_physics_process(delta:float) -> void:
 			up_direction = ground_normal
 			apply_floor_snap()
 			activate_ability("state_ground")
-		else:
-			if physics.is_jumping:
-				var jump_direction:Vector2 = ground_normal * physics.jump_velocity
-				
-				physics.vertical_velocity += -jump_direction.y
-				physics.forward_velocity += absf(jump_direction.x)
-				
-				#physics.jump.emit()
-				activate_ability("jump")
 			
+			if physics.ground_velocity > physics.ground_stick_speed:
+				append_frame_log("GROUND STICK")
+			elif physics.is_slipping:
+				append_frame_log("GROUND SLIPPING")
+			else:
+				append_frame_log("GROUND NEUTRAL")
+		else:
 			up_direction = gravity_up_direction
 			
+			if physics.is_jumping:
+				var local_ground_normal:Vector2 = ground_normal.rotated(-gravity_angle)
+				
+				
+				
+				var jump_direction:Vector2 = ground_normal * physics.jump_velocity
+				
+				#velocity = jump_direction * extern_adjust
+				
+				physics.vertical_velocity += -jump_direction.y
+				physics.forward_velocity += jump_direction.x
+				
+				activate_ability("jump")
+			
 			activate_ability("contact_air")
+			
+			append_frame_log("GROUND UNSTICK")
 	
 	else: #not grounded
 		physics.reset_timers()
 		
 		#STEP 1: check for jump button release
 		physics.update_air_actions(jump_pressed, crouch_pressed, has_input)
+		
+		append_frame_log("Jumping: " + str(physics.is_jumping))
 		
 		#STEP 2: Super Sonic checks (not gonna worry about that)
 		
@@ -1995,8 +2089,14 @@ func new_physics_process(delta:float) -> void:
 		#STEP 4: Air drag
 		physics.process_air_drag()
 		
+		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
+		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
+		
 		#STEP 5: Move the player
-		velocity = Vector2(physics.forward_velocity * facing_direction, -physics.vertical_velocity) * extern_adjust
+		
+		var move_vector:Vector2 = (acceleration_vector * physics.forward_velocity) + (gravity_up_direction * physics.vertical_velocity)
+		
+		velocity = move_vector * extern_adjust
 		
 		move_and_slide()
 		
@@ -2014,10 +2114,14 @@ func new_physics_process(delta:float) -> void:
 		#STEP 9: Collision checks
 		var raycast_collision:int = refresh_raycasts()
 		
-		var wall_normal:Vector2 = wall_data.get("normal", forward_velocity_dir)
+		wall_normal = Vector2(wall_data.get("normal", Vector2.ZERO))
 		
-		var wall_dot:float = forward_velocity_dir.dot(wall_normal)
-		var push_dot:float = n_input_direction.dot(wall_normal)
+		var wall_dot:float = 1.0
+		var push_dot:float = 1.0
+		
+		if not wall_normal.is_zero_approx():
+			wall_dot = acceleration_vector.dot(wall_normal)
+			push_dot = slope_input_dir.dot(wall_normal)
 		
 		physics.update_wall_contact(wall_dot, push_dot)
 		
@@ -2027,7 +2131,6 @@ func new_physics_process(delta:float) -> void:
 			#TODO: Determine left/right direction of slope in order to properly flip direction for
 			#landing momentum
 			
-			var facing_dot:float = -signf(input_vector.dot(ground_normal))
 			
 			if facing_dot > 0:
 				#uphill

@@ -163,13 +163,11 @@ var forward_velocity:float
 ##is traveling backwards or forwards.
 var ground_velocity:float:
 	set(new_gsp):
-		if new_gsp > ground_min_speed:
-			ground_velocity = new_gsp
-			is_moving = true
-		else:
-			is_moving = false
-			ground_velocity = maxf(new_gsp, 0.0)
+		ground_velocity = new_gsp
+		is_moving = new_gsp > ground_min_speed
+		abs_ground_velocity = absf(ground_velocity)
 
+var abs_ground_velocity:float
 
 var ground_slope:float
 
@@ -240,6 +238,8 @@ var self_perf_ground_velocity:StringName
 ##The name of the custom performance monitor for ground slope.
 var self_perf_slope:StringName
 
+var frame_log:String
+
 ##Emitted when the player makes contact with the ground
 signal contact_ground(physics:MoonCastPhysicsTable)
 ##Emitted when the player makes contact with a wall
@@ -276,16 +276,6 @@ func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_vertical_velocity)
 	Performance.remove_custom_monitor(self_perf_ground_velocity)
 
-##This checks if the player has a directional lock active. This means they are either traveling in a direction,
-##or there is an external lock placed on their direction. When a directional lock is active, the player cannot turn
-##around. However, this does not mean they can't still turn (in 3D) and decelerate.
-func check_directional_lock() -> bool:
-	if is_grounded:
-		return is_moving
-	else:
-		#TODO: Give this a specific value instead of ground_min_speed
-		return forward_velocity > ground_min_speed
-
 func start_delta_timer(seconds:float) -> float:
 	return seconds * ProjectSettings.get("physics/common/physics_ticks_per_second")
 
@@ -314,7 +304,7 @@ func set_air_state() -> void:
 
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	if roll_pressed:
-		if control_roll_enabled and ground_velocity > rolling_min_speed:
+		if control_roll_enabled and abs_ground_velocity > rolling_min_speed:
 			if (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
 				is_rolling = true
 				current_animation = AnimationTypes.ROLL
@@ -337,7 +327,7 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 func update_rolling_crouching(button_pressed:bool) -> void:
 	if button_pressed:
 		if is_grounded:
-			if ground_velocity > rolling_min_speed and control_roll_enabled:
+			if abs_ground_velocity > rolling_min_speed and control_roll_enabled:
 				is_rolling = true
 				is_crouching = false
 			else:
@@ -370,7 +360,7 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 	if slope_mag > -0.5:
 		if is_rolling:
 			#Calculate rolling
-			#var prev_ground_vel_sign:float = signf(ground_velocity) if ground_velocity > ground_min_speed else 0.0
+			#var prev_ground_vel_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
 			
 			#apply slope factors if we're on a hill
 			if not is_equal_approx(slope_mag, 1.0):
@@ -412,7 +402,7 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 ##velocity of the player, used for detection and strength of acceleration/deceleration.
 ##[param camera_dot] 
 func process_ground_input(velocity_dot:float, acceleration:float) -> void:
-	var prev_ground_sign:float = signf(ground_velocity) if ground_velocity > ground_min_speed else 0.0
+	var prev_ground_sign:float = signf(ground_velocity) if abs_ground_velocity > ground_min_speed else 0.0
 	
 	if is_rolling:
 		#slow down the player if their input is pointed in the opposite direction of their velocity
@@ -431,12 +421,12 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 			#because if it's always checked, the player won't be allowed to move from a standstill 
 			#if their ground_acceleration isn't high enough to make abs_ground_velocity larger than
 			# ground_min_speed within one frame.
-			if ground_velocity < ground_min_speed:
+			if not is_moving:
 				ground_velocity = 0.0
 				current_animation = AnimationTypes.STAND
 		
 		#acceleration is not zero, ie. the player is trying to move
-		elif ground_velocity < ground_top_speed and velocity_dot >= 0:
+		elif abs_ground_velocity < ground_top_speed and velocity_dot >= 0:
 			# Accelerate
 			ground_velocity += ground_acceleration * acceleration
 			current_animation = AnimationTypes.RUN
@@ -490,7 +480,7 @@ func process_air_input(acceleration:float, input_dot:float) -> void:
 		if control_jump_roll_lock and is_rolling:
 			can_air_move = can_air_move and not is_jumping
 		
-		if ground_velocity < air_top_speed and can_air_move:
+		if absf(forward_velocity) < air_top_speed and can_air_move:
 			#accelerate in midair
 			forward_velocity += air_acceleration * acceleration * input_dot
 
@@ -548,7 +538,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		if slope_mag > 0:
 			
 			is_grounded = true
-			ground_velocity = abs_forward
+			ground_velocity = forward_velocity
 			
 			#if the player is on a "steeper than flat" slope
 			if slope_mag < flat_ground_threshold:
@@ -577,7 +567,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 					vertical_velocity = 0.0
 		
 		if is_grounded:
-			if ground_velocity > ground_min_speed:
+			if is_moving:
 				current_animation = AnimationTypes.RUN
 			else:
 				current_animation = AnimationTypes.STAND
@@ -605,7 +595,7 @@ func process_apply_ground_velocity(slope_mag:float) -> void:
 func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 	if ground_detected and not is_jumping:
 		#if the ground is steep enough to slip on, and the player is too slow, slip
-		if ground_velocity < ground_stick_speed and slope_mag < slip_dot:
+		if abs_ground_velocity < ground_stick_speed and slope_mag < slip_dot:
 			#if the ground is steep enough, fall off entirely
 			if slope_mag < fall_dot:
 				printt("FALL/SLIP: Falling, entering air")
@@ -627,3 +617,10 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 			current_animation = AnimationTypes.JUMP
 		else:
 			current_animation = AnimationTypes.FREE_FALL
+
+func process_apply_jump() -> void:
+	
+	
+	
+	forward_velocity += jump_velocity
+	vertical_velocity += jump_velocity

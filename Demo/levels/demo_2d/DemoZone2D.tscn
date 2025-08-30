@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=18 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="1_37ogv"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="2_u7ekt"]
@@ -8,6 +8,9 @@
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/levels/demo_2d/2d_background.tscn" id="6_762on"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/levels/demo_2d/demo_zone_tiles.tres" id="7_hbk0i"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/global_objects/item_monitor/item_box.tscn" id="8_m2338"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_a8hy1"]
+font_size = 5
 
 [sub_resource type="Resource" id="Resource_dqorc"]
 script = ExtResource("4_dnqel")
@@ -59,12 +62,27 @@ position = Vector2(-2, 29)
 legacy_enabled = false
 node_camera = NodePath("Cam")
 
-[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse"]
+[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse" node_paths=PackedStringArray("onscreen_info_label")]
 script = ExtResource("2_u7ekt")
+onscreen_info_label = NodePath("CanvasLayer/Label")
 button_enable_debug = &"x"
 button_scene_pause = &"y"
 button_scene_frame_advance = &"z"
 metadata/_custom_type_script = "uid://chxrofx7moh6c"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/MoonCastDebugMode"]
+
+[node name="Label" type="Label" parent="mrmooncastmouse/MoonCastDebugMode/CanvasLayer"]
+top_level = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -30.0
+offset_bottom = 8.0
+grow_horizontal = 0
+text = "Default Text"
+label_settings = SubResource("LabelSettings_a8hy1")
+horizontal_alignment = 2
 
 [node name="Cam" type="Camera2D" parent="mrmooncastmouse"]
 limit_left = -256

@@ -397,6 +397,7 @@ metadata/is_player = true
 shape = SubResource("RectangleShape2D_x7kbe")
 
 [node name="SpritesheetMoon" type="AnimatedSprite2D" parent="."]
+show_behind_parent = true
 texture_filter = 1
 position = Vector2(2, 0)
 sprite_frames = ExtResource("7_o1ngo")
