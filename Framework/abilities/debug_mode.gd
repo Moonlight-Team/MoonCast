@@ -84,9 +84,10 @@ func _physics_process(_delta: float) -> void:
 				if glob_player_2D.frame_log != "":
 					onscreen_info_label.text += glob_player_2D.frame_log
 			elif glob_player_3D:
-				pass
+				if glob_player_3D.frame_log != "":
+					onscreen_info_label.text += glob_player_3D.frame_log
 		
 		if onscreen_info_physics_info:
-			pass
+			onscreen_info_label.text += "\n" + glob_physics.frame_log
 		
 		pass

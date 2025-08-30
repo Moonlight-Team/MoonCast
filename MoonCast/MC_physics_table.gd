@@ -276,6 +276,17 @@ func cleanup_performance_monitors() -> void:
 	Performance.remove_custom_monitor(self_perf_vertical_velocity)
 	Performance.remove_custom_monitor(self_perf_ground_velocity)
 
+func append_frame_log(message:String) -> void:
+	frame_log += message + "\n"
+	pass
+
+func readable_float(num:float) -> String:
+	return str(snappedf(num, 0.01))
+
+func readable_vector2(num:Vector2) -> String:
+	return str(num.snappedf(0.01))
+
+
 func start_delta_timer(seconds:float) -> float:
 	return seconds * ProjectSettings.get("physics/common/physics_ticks_per_second")
 
@@ -433,7 +444,7 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 		#we also don't want the player to be able to accidentally moonwalk into negative infinity
 		#if they manage to go into negative ground_velocity and then *also* decelerate
 		elif velocity_dot < 0 and ground_velocity > 0:
-			printt("physics: skid")
+			append_frame_log("Physics: Skidding")
 			#skid to a stop
 			ground_velocity -= ground_skid_speed * acceleration
 			
@@ -463,6 +474,10 @@ func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool)
 	if not is_rolling and roll_pressed and control_roll_enabled:
 		#activate rolling if the player can activate in midair
 		is_rolling = control_roll_midair_activate
+	
+	if is_jumping:
+		current_animation = AnimationTypes.JUMP
+	elif is_rolling:
 		current_animation = AnimationTypes.ROLL
 	else:
 		current_animation = AnimationTypes.FREE_FALL
@@ -481,8 +496,19 @@ func process_air_input(acceleration:float, input_dot:float) -> void:
 			can_air_move = can_air_move and not is_jumping
 		
 		if absf(forward_velocity) < air_top_speed and can_air_move:
+			var air_acc_delta:float = air_acceleration * acceleration * input_dot
+			
+			append_frame_log("Air input delta: " + readable_float(air_acc_delta) + " input dot: " + readable_float(input_dot))
+			
+			if is_zero_approx(air_acc_delta):
+				append_frame_log("Air: Neutral accel")
+			elif air_acc_delta > 0:
+				append_frame_log("Air: Accelerating")
+			else:
+				append_frame_log("Air: Deceleration")
+			
 			#accelerate in midair
-			forward_velocity += air_acceleration * acceleration * input_dot
+			forward_velocity += air_acc_delta
 
 ##Apply gravity to the player.
 func process_apply_gravity() -> void:
@@ -492,6 +518,7 @@ func process_apply_gravity() -> void:
 ##slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 func process_air_drag() -> void:
 	if vertical_velocity > 0 and vertical_velocity < jump_short_limit:
+		append_frame_log("Air: Applying air drag")
 		forward_velocity -= forward_velocity * air_drag_effect
 
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 
@@ -547,6 +574,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 				else:
 					ground_velocity = maxf(abs_forward, abs_vertical / 2.0)
 			
+			
 			printt("GROUNDING: Ground floored, on angle of", acos(slope_mag))
 			
 			contact_ground.emit(self)
@@ -556,12 +584,12 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 			if slope_mag > -0.5:
 				#player can only land when they're traveling more up than forward
 				if abs_forward < abs_vertical:
-					print("GROUNDING: Ceiling floored")
+					append_frame_log("GROUNDING: Ceiling floored")
 					is_grounded = true
 					ground_velocity = abs_vertical
 					contact_ground.emit(self)
 				else:
-					print("GROUNDING: Ceiling grounding failed")
+					append_frame_log("GROUNDING: Ceiling grounding failed")
 					is_grounded = false #contextually redundant?
 					#*bonk*, no landing for you
 					vertical_velocity = 0.0
@@ -598,12 +626,12 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 		if abs_ground_velocity < ground_stick_speed and slope_mag < slip_dot:
 			#if the ground is steep enough, fall off entirely
 			if slope_mag < fall_dot:
-				printt("FALL/SLIP: Falling, entering air")
+				append_frame_log("FALL/SLIP: Falling, entering air")
 				set_air_state()
 				ground_velocity = 0.0
 			
 			if not is_slipping:
-				printt("FALL/SLIP: Slipping")
+				append_frame_log("FALL/SLIP: Slipping")
 				is_slipping = true
 				slip_lock_timer = start_delta_timer(ground_slip_time)
 				ground_velocity = 0.0
@@ -611,16 +639,14 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 		set_air_state()
 		
 		if not is_jumping:
-			printt("FALL/SLIP: Ground not detected")
+			append_frame_log("FALL/SLIP: Ground not detected")
 		
 		if is_jumping:
 			current_animation = AnimationTypes.JUMP
 		else:
 			current_animation = AnimationTypes.FREE_FALL
 
-func process_apply_jump() -> void:
+func process_apply_jump(forward_force:float, vertical_force:float) -> void:
 	
-	
-	
-	forward_velocity += jump_velocity
-	vertical_velocity += jump_velocity
+	forward_velocity += forward_force * jump_velocity
+	vertical_velocity += vertical_force * jump_velocity

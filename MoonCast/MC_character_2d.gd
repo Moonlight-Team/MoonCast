@@ -197,16 +197,21 @@ var facing_direction:float = 1.0
 ##The direction the player is accelerating in space.
 var acceleration_vector:Vector2 = anim_default_forward
 
-##This is the velocity direction regardless of ground rotation but aligned to gravity rotation.
-var flat_input_dir:Vector2
-##The direction the player is facing in space relative to the direction of gravity.
+##The direction player input is pointed in space, aligned to the gravity plane.
+var flat_input_dir:Vector2:
+	set(new_dir):
+		flat_input_dir = new_dir
+		
+		slope_input_dir = new_dir.rotated(ground_angle)
+##The direction that player input is pointed in space, aligned to the ground plane.
+var slope_input_dir:Vector2
+##The direction the player is facing in space relative to the gravity plane.
 var flat_facing_dir:Vector2 = anim_default_forward:
 	set(new_dir):
 		flat_facing_dir = new_dir
 		
 		facing_behind = anim_default_forward.rotated(gravity_angle).dot(new_dir) < 0
-var slope_input_dir:Vector2
-##The direction the player is facing in space relative to their orientation to the ground.
+##The direction the player is facing in space relative to the ground plane.
 ##For example, this vector would be pointing up if they are running up a wall, and down if they are
 ##running down a wall.
 var slope_facing_dir:Vector2 = anim_default_forward
@@ -385,6 +390,8 @@ var ground_dot:float
 ##the normal of the slope, for determining if the current slope is considered
 ##"uphill" or "downhill". Uphill is positive.
 var facing_dot:float
+
+var velocity_dot:float
 
 ##The rotation of the sprites. This is seperate than the physics
 ##rotation so that physics remain consistent despite certain rotation
@@ -1893,6 +1900,7 @@ func legacy_physics_process(_delta:float) -> void:
 ##Process physics movement and input
 func new_physics_process(delta:float) -> void:
 	frame_log = ""
+	physics.frame_log = ""
 	
 	var extern_adjust:float = physics_adjust * space_scale
 	
@@ -1907,9 +1915,7 @@ func new_physics_process(delta:float) -> void:
 	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	var has_input:bool = not is_zero_approx(input_dir)
 	
-	
 	flat_input_dir = input_vector.rotated(gravity_angle)
-	slope_input_dir = input_vector.rotated(ground_angle)
 	
 	#TODO: Optimize these checks, a lot of redundant checks happening here
 	if has_input:
@@ -1920,9 +1926,8 @@ func new_physics_process(delta:float) -> void:
 			if physics.forward_velocity < physics.ground_min_speed:
 				flat_facing_dir = flat_input_dir
 	
-	facing_dot = - signf(flat_facing_dir.dot(ground_normal))
-	
 	slope_facing_dir = flat_facing_dir.rotated(ground_angle)
+	facing_dot = - signf(flat_facing_dir.dot(ground_normal))
 	
 	if physics.is_grounded:
 		if not physics.is_moving:
@@ -1931,26 +1936,30 @@ func new_physics_process(delta:float) -> void:
 				
 				sprites_set_rotation(ground_angle)
 			else:
-				#make the acceleration vector point downhill
-				if facing_dot < 0:
-					acceleration_vector = flat_facing_dir
-				else:
-					acceleration_vector = -flat_facing_dir
+				if not is_zero_approx(ground_angle):
+					#make the acceleration vector point downhill
+					if facing_dot < 0:
+						acceleration_vector = flat_facing_dir
+					else:
+						acceleration_vector = -flat_facing_dir
 				
-				sprite_rotation = gravity_angle
+				sprites_set_rotation(gravity_angle)
 		else:
 			acceleration_vector = slope_facing_dir
 			
 			sprites_set_rotation(ground_angle)
+		
+		velocity_dot = acceleration_vector.dot(slope_input_dir)
 	else:
-		if physics.forward_velocity < physics.ground_min_speed and has_input:
+		if has_input and physics.forward_velocity < physics.ground_min_speed:
 			acceleration_vector = flat_input_dir
 		else:
 			acceleration_vector = flat_facing_dir
 		
 		sprites_set_rotation(gravity_angle)
+		
+		velocity_dot = acceleration_vector.dot(flat_input_dir)
 	
-	var velocity_dot:float = velocity.normalized().dot(slope_input_dir)
 	
 	#TODO: Use this to properly flip inputs to match the camera
 	var cam_input_dir: Vector2 = input_vector.rotated(node_camera.global_rotation * signf(input_dir))
@@ -2056,16 +2065,7 @@ func new_physics_process(delta:float) -> void:
 			up_direction = gravity_up_direction
 			
 			if physics.is_jumping:
-				var local_ground_normal:Vector2 = ground_normal.rotated(-gravity_angle)
-				
-				
-				
-				var jump_direction:Vector2 = ground_normal * physics.jump_velocity
-				
-				#velocity = jump_direction * extern_adjust
-				
-				physics.vertical_velocity += -jump_direction.y
-				physics.forward_velocity += jump_direction.x
+				physics.process_apply_jump(absf(ground_normal.x), -ground_normal.y)
 				
 				activate_ability("jump")
 			
