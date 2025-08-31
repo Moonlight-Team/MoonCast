@@ -255,8 +255,8 @@ func _init() -> void:
 	cache_calculations()
 
 func cache_calculations() -> void:
-	fall_dot = 1.0 - (ground_fall_angle / deg_to_rad(90.0))
-	slip_dot = 1.0 - (ground_slip_angle / deg_to_rad(90.0))
+	fall_dot = 1.0 - (ground_fall_angle / PI)
+	slip_dot = 1.0 - (ground_slip_angle / PI)
 
 ##Set up physics value monitors for this PhysicsTable, under the category of
 ##[param name] in the Performance Monitors debugger tab.
@@ -286,10 +286,6 @@ func readable_float(num:float) -> String:
 func readable_vector2(num:Vector2) -> String:
 	return str(num.snappedf(0.01))
 
-
-func start_delta_timer(seconds:float) -> float:
-	return seconds * ProjectSettings.get("physics/common/physics_ticks_per_second")
-
 func reset_timers() -> void:
 	slip_lock_timer = 0
 	is_slipping = false
@@ -301,11 +297,15 @@ func tick_down_timers(delta:float) -> void:
 	if slip_lock_timer < 0 or is_zero_approx(slip_lock_timer):
 		slip_lock_timer = 0
 		is_slipping = false
+	else:
+		append_frame_log("Control timers; Slip: " + readable_float(slip_lock_timer))
 	
 	jump_spam_timer -= delta
 	if jump_spam_timer < 0 or is_zero_approx(jump_spam_timer):
 		jump_spam_timer = 0
 		can_jump = true
+	else:
+		append_frame_log("Control timers; Jump lock: " + readable_float(jump_spam_timer))
 
 ##A small function to clear several state flags when enterting the air state.
 func set_air_state() -> void:
@@ -605,7 +605,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 			is_jumping = false
 			can_jump = false
 			
-			jump_timer = start_delta_timer(jump_spam_timer)
+			jump_timer = jump_spam_timer
 
 ##Apply [member ground_velocity] to [member forward_velocity] and [member vertical_velocity] so that
 ##momentum can be properly transfered into physical space speeds.
@@ -623,27 +623,42 @@ func process_apply_ground_velocity(slope_mag:float) -> void:
 func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 	if ground_detected and not is_jumping:
 		#if the ground is steep enough to slip on, and the player is too slow, slip
-		if abs_ground_velocity < ground_stick_speed and slope_mag < slip_dot:
+		if abs_ground_velocity < ground_stick_speed:
+			append_frame_log("FALL/SLIP: Not fast enough to stick...")
+			
+			var dots:PackedStringArray = [
+				readable_float(slope_mag), 
+				readable_float(slip_dot), 
+				readable_float(fall_dot)
+			]
+			
+			append_frame_log("FALL/SLIP: " + " ".join(dots) )
+			
+			
 			#if the ground is steep enough, fall off entirely
-			if slope_mag < fall_dot:
+			if slope_mag < fall_dot and not is_slipping:
 				append_frame_log("FALL/SLIP: Falling, entering air")
 				set_air_state()
 				ground_velocity = 0.0
 			
-			if not is_slipping:
+			if not is_slipping and slope_mag < slip_dot:
 				append_frame_log("FALL/SLIP: Slipping")
 				is_slipping = true
-				slip_lock_timer = start_delta_timer(ground_slip_time)
+				slip_lock_timer = ground_slip_time
 				ground_velocity = 0.0
+		else:
+			append_frame_log("FALL/SLIP: Sticking to ground")
 	else:
-		set_air_state()
 		
-		if not is_jumping:
-			append_frame_log("FALL/SLIP: Ground not detected")
+		
+		set_air_state()
 		
 		if is_jumping:
 			current_animation = AnimationTypes.JUMP
+			append_frame_log("FALL/SLIP: Ground ignored for jump")
 		else:
+			append_frame_log("FALL/SLIP: Ground not detected")
+			
 			current_animation = AnimationTypes.FREE_FALL
 
 func process_apply_jump(forward_force:float, vertical_force:float) -> void:

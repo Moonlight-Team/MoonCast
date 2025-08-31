@@ -1331,6 +1331,10 @@ func refresh_raycasts() -> int:
 	
 	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
 	
+	var contact_str:PackedStringArray = [str(ground_left_colliding), str(ground_center_colliding), str(ground_right_colliding)]
+	
+	append_frame_log("Ray contacts: " + " ".join(contact_str))
+	
 	#player balances when two of the raycasts are over the edge
 	physics.is_balancing = contact_point_count == 1
 	
@@ -1583,19 +1587,21 @@ func draw_debug_info() -> void:
 	const length_mult:float = 10.0
 	const thickness_2:float = 1.5
 	
+	const semiclear:Color = Color8(255, 255, 255, 127)
+	
 	var origin_point:Vector2 = Vector2(0.0, -5.0)
 	
-	draw_line(origin_point, (acceleration_vector * length_mult * 6.0) + origin_point, sensor_b, thickness_2)
+	draw_line(origin_point, (acceleration_vector * length_mult * 6.0) + origin_point, sensor_b * semiclear, thickness_2)
 	origin_point.y += 2.0
 	
-	draw_line(origin_point, (flat_facing_dir * length_mult * 4.0) + origin_point, sensor_d, thickness_2)
+	draw_line(origin_point, (flat_facing_dir * length_mult * 4.0) + origin_point, sensor_d * semiclear, thickness_2)
 	origin_point.y += 2.0
-	draw_line(origin_point, (flat_input_dir * length_mult * 2.0) + origin_point, sensor_a, thickness_2)
+	draw_line(origin_point, (flat_input_dir * length_mult * 2.0) + origin_point, sensor_a * semiclear, thickness_2)
 	origin_point.y += 2.0
 	if physics.is_grounded:
-		draw_line(origin_point, (slope_facing_dir * length_mult * 4.0) + origin_point, sensor_e, thickness_2)
+		draw_line(origin_point, (slope_facing_dir * length_mult * 4.0) + origin_point, sensor_e * semiclear, thickness_2)
 		origin_point.y += 2.0
-		draw_line(origin_point, (slope_input_dir * length_mult * 2.0) + origin_point, sensor_f, thickness_2)
+		draw_line(origin_point, (slope_input_dir * length_mult * 2.0) + origin_point, sensor_f * semiclear, thickness_2)
 		
 
 ##Flip the sprites for the player based on the direction the player is facing.
@@ -1931,7 +1937,7 @@ func new_physics_process(delta:float) -> void:
 	
 	if physics.is_grounded:
 		if not physics.is_moving:
-			if has_input:
+			if has_input and not physics.is_slipping:
 				acceleration_vector = slope_input_dir
 				
 				sprites_set_rotation(ground_angle)
@@ -1939,13 +1945,20 @@ func new_physics_process(delta:float) -> void:
 				if not is_zero_approx(ground_angle):
 					#make the acceleration vector point downhill
 					if facing_dot < 0:
-						acceleration_vector = flat_facing_dir
+						acceleration_vector = slope_facing_dir
 					else:
-						acceleration_vector = -flat_facing_dir
+						acceleration_vector = -slope_facing_dir
 				
 				sprites_set_rotation(gravity_angle)
 		else:
-			acceleration_vector = slope_facing_dir
+			if physics.is_slipping:
+				#make the acceleration vector point downhill
+				if facing_dot < 0:
+					acceleration_vector = slope_facing_dir
+				else:
+					acceleration_vector = -slope_facing_dir
+			else:
+				acceleration_vector = slope_facing_dir
 			
 			sprites_set_rotation(ground_angle)
 		
@@ -2030,14 +2043,13 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 10: Move the player (apply ground_velocity to velocity)
 		
-		#velocity = facing_direction * physics.ground_velocity * space_scale
 		physics.process_apply_ground_velocity(ground_dot)
 		
 		append_frame_log("Ground Speed: " + readable_float(physics.ground_velocity))
 		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
 		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
 		
-		velocity = acceleration_vector * Vector2(physics.forward_velocity, -physics.vertical_velocity) * extern_adjust
+		velocity = acceleration_vector * physics.ground_velocity * extern_adjust
 		
 		move_and_slide()
 		
@@ -2048,24 +2060,28 @@ func new_physics_process(delta:float) -> void:
 		
 		var raycast_collision:int = refresh_raycasts()
 		
+		append_frame_log("Ground normal " + readable_vector2(ground_normal))
+		
 		physics.process_fall_slip_checks(raycast_collision > 1, ground_dot)
 		
 		if physics.is_grounded:
 			up_direction = ground_normal
 			apply_floor_snap()
-			activate_ability("state_ground")
 			
-			if physics.ground_velocity > physics.ground_stick_speed:
-				append_frame_log("GROUND STICK")
-			elif physics.is_slipping:
-				append_frame_log("GROUND SLIPPING")
-			else:
-				append_frame_log("GROUND NEUTRAL")
+			if physics.is_slipping: 
+				if facing_dot > 0:
+					acceleration_vector = -acceleration_vector
+			
+			activate_ability("state_ground")
 		else:
 			up_direction = gravity_up_direction
 			
 			if physics.is_jumping:
-				physics.process_apply_jump(absf(ground_normal.x), -ground_normal.y)
+				physics.process_apply_jump(ground_normal.x * facing_dot, -ground_normal.y)
+				
+				#flip the player to send them in the downhill direction if they aren't actively going uphill
+				if facing_dot > 0 and not has_input:
+					flat_facing_dir = -flat_facing_dir
 				
 				activate_ability("jump")
 			
@@ -2074,8 +2090,6 @@ func new_physics_process(delta:float) -> void:
 			append_frame_log("GROUND UNSTICK")
 	
 	else: #not grounded
-		physics.reset_timers()
-		
 		#STEP 1: check for jump button release
 		physics.update_air_actions(jump_pressed, crouch_pressed, has_input)
 		

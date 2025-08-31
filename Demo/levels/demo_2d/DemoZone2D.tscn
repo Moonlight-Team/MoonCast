@@ -1,9 +1,7 @@
-[gd_scene load_steps=18 format=4 uid="uid://bytxq44ex4la0"]
+[gd_scene load_steps=15 format=4 uid="uid://bytxq44ex4la0"]
 
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="1_37ogv"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="2_u7ekt"]
-[ext_resource type="Script" uid="uid://dngbkto8dafn8" path="res://Framework/abilities/sonic_standard/drop_dash.gd" id="3_musv3"]
-[ext_resource type="Script" uid="uid://fdx1trw4r1d" path="res://MoonCast/MC_player_anim.gd" id="4_dnqel"]
 [ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/audio/Music/2DStage.ogg" id="5_867ew"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/levels/demo_2d/2d_background.tscn" id="6_762on"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/levels/demo_2d/demo_zone_tiles.tres" id="7_hbk0i"]
@@ -11,27 +9,6 @@
 
 [sub_resource type="LabelSettings" id="LabelSettings_a8hy1"]
 font_size = 5
-
-[sub_resource type="Resource" id="Resource_dqorc"]
-script = ExtResource("4_dnqel")
-animation = &"drop_dash"
-speed = 1.0
-can_turn_vertically = false
-can_turn_horizontal = true
-override_rotation = false
-override_collision = false
-collision_center = Vector2(0, 0)
-colision_2d_left = Vector2(0, 0)
-collision_2d_center = Vector2(0, 0)
-collision_2d_right = Vector2(0, 0)
-collision_3d_ahead = Vector3(0, 0, 0)
-collision_3d_back = Vector3(0, 0, 0)
-collision_3d_left = Vector3(0, 0, 0)
-collision_3d_right = Vector3(0, 0, 0)
-collision_3d_center = Vector3(0, 0, 0)
-rotation_snap = 0.523599
-rotation_smooth = true
-metadata/_custom_type_script = ExtResource("4_dnqel")
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ppmtc"]
 normal = Vector2(1, 0)
@@ -91,12 +68,6 @@ drag_vertical_enabled = true
 drag_bottom_margin = 0.1
 editor_draw_limits = true
 editor_draw_drag_margin = true
-
-[node name="DropDash2" type="Node" parent="mrmooncastmouse"]
-script = ExtResource("3_musv3")
-charge_button = &"jump"
-anim_charge = SubResource("Resource_dqorc")
-metadata/_custom_type_script = "uid://dngbkto8dafn8"
 
 [node name="StageMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("5_867ew")

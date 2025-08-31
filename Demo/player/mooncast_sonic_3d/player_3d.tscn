@@ -1,4 +1,4 @@
-[gd_scene load_steps=69 format=4 uid="uid://b77028pqpk7il"]
+[gd_scene load_steps=68 format=4 uid="uid://b77028pqpk7il"]
 
 [ext_resource type="Script" uid="uid://ck5ru1un6s2iy" path="res://MoonCast/MC_character_3d.gd" id="1_g6lm5"]
 [ext_resource type="Resource" uid="uid://cjiy0147ccmy3" path="res://Framework/abilities/sonic_standard/mooncast_physics.tres" id="2_8cqfv"]
@@ -297,9 +297,6 @@ metadata/_custom_type_script = ExtResource("4_cd8xi")
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_43aj2"]
 size = Vector3(4, 8, 4)
-
-[sub_resource type="LabelSettings" id="LabelSettings_n4tke"]
-font_size = 5
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ki4w7"]
 resource_name = "Material.006"
@@ -2580,17 +2577,6 @@ anim_death = SubResource("Resource_pf76a")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
 shape = SubResource("BoxShape3D_43aj2")
 debug_color = Color(0, 0, 1, 1)
-
-[node name="Label" type="Label" parent="."]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -60.0
-offset_bottom = 23.0
-grow_horizontal = 0
-text = "Default Text"
-label_settings = SubResource("LabelSettings_n4tke")
-horizontal_alignment = 2
 
 [node name="Model" type="Node3D" parent="."]
 

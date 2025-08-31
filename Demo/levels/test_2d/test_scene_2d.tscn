@@ -1,7 +1,7 @@
-[gd_scene load_steps=28 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=29 format=3 uid="uid://l6j7c0hm73c"]
 
-[ext_resource type="PackedScene" uid="uid://h5b7bs6th3qc" path="res://Demo/player/classic_sonic/classic_sonic.tscn" id="2_ul801"]
-[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_yu4ht"]
+[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_cngma"]
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="3_yu4ht"]
 [ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
@@ -80,6 +80,9 @@ friction = 0.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ao618"]
 size = Vector2(40, 40)
+
+[sub_resource type="LabelSettings" id="LabelSettings_nuj5t"]
+font_size = 5
 
 [node name="TestScene" type="Node2D"]
 metadata/movie_file = "res://test_scene_2d.avi"
@@ -273,14 +276,30 @@ repeat_times = 6
 show_behind_parent = true
 texture = ExtResource("7_2q626")
 
-[node name="mrneedlemouse_direct" parent="." node_paths=PackedStringArray("camera_node") instance=ExtResource("2_ul801")]
-floor_stop_on_slope = false
-floor_constant_speed = true
-floor_block_on_wall = false
-camera_node = NodePath("Camera2D2")
+[node name="mrmooncastmouse" parent="." node_paths=PackedStringArray("node_camera") instance=ExtResource("3_yu4ht")]
+legacy_enabled = false
+node_camera = NodePath("Camera2D2")
 
-[node name="Camera2D2" type="Camera2D" parent="mrneedlemouse_direct"]
+[node name="Camera2D2" type="Camera2D" parent="mrmooncastmouse"]
 
-[node name="MoonCastDebugMode" type="Node" parent="mrneedlemouse_direct"]
-script = ExtResource("3_yu4ht")
+[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse" node_paths=PackedStringArray("onscreen_info_label")]
+script = ExtResource("3_cngma")
+onscreen_info_label = NodePath("CanvasLayer/Label")
+button_enable_debug = &"x"
+button_scene_pause = &"y"
+button_scene_frame_advance = &"z"
 metadata/_custom_type_script = "uid://chxrofx7moh6c"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/MoonCastDebugMode"]
+
+[node name="Label" type="Label" parent="mrmooncastmouse/MoonCastDebugMode/CanvasLayer"]
+top_level = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -30.0
+offset_bottom = 8.0
+grow_horizontal = 0
+text = "Default Text"
+label_settings = SubResource("LabelSettings_nuj5t")
+horizontal_alignment = 2

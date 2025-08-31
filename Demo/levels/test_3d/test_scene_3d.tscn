@@ -1,7 +1,8 @@
-[gd_scene load_steps=57 format=4 uid="uid://cevdou1y8kc5k"]
+[gd_scene load_steps=59 format=4 uid="uid://cevdou1y8kc5k"]
 
 [ext_resource type="AudioStream" uid="uid://dn1rok6xv488k" path="res://Demo/audio/Music/3Dstage.ogg" id="1_3m87s"]
 [ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/player/mooncast_sonic_3d/player_3d.tscn" id="1_73jpb"]
+[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="4_m8sid"]
 [ext_resource type="Texture2D" uid="uid://beba5e0x6inxn" path="res://Demo/levels/test_3d/3DtestLevel/Textures/4435f9ba.png" id="5_3m87s"]
 [ext_resource type="Texture2D" uid="uid://b8sjw50jqxtyq" path="res://Demo/levels/test_3d/3DtestLevel/Textures/5a67bd19.png" id="6_1pam8"]
 [ext_resource type="Shader" uid="uid://c5tbcwf8ixnu4" path="res://Demo/levels/test_3d/skybox.gdshader" id="7_frwh0"]
@@ -29,6 +30,9 @@ background_mode = 1
 background_color = Color(0, 0.454902, 0.839216, 1)
 ambient_light_source = 3
 ambient_light_color = Color(0.817521, 0.817521, 0.817521, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_2vm02"]
+font_size = 5
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y7b7r"]
 resource_name = "10___Default"
@@ -866,6 +870,28 @@ camera_sensitivity = Vector2(0.1, 0.1)
 
 [node name="Camera3D" type="Camera3D" parent="MC_3D"]
 transform = Transform3D(-78.4197, 2.35602e-06, -6.43812e-06, 0, 73.6435, 26.9497, 6.85567e-06, 26.9497, -73.6435, 0, 8.749, -14.347)
+
+[node name="MoonCastDebugMode" type="Node" parent="MC_3D" node_paths=PackedStringArray("onscreen_info_label")]
+script = ExtResource("4_m8sid")
+onscreen_info_label = NodePath("CanvasLayer/Label")
+button_enable_debug = &"x"
+button_scene_pause = &"y"
+button_scene_frame_advance = &"z"
+metadata/_custom_type_script = "uid://chxrofx7moh6c"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="MC_3D/MoonCastDebugMode"]
+
+[node name="Label" type="Label" parent="MC_3D/MoonCastDebugMode/CanvasLayer"]
+top_level = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -30.0
+offset_bottom = 8.0
+grow_horizontal = 0
+text = "Default Text"
+label_settings = SubResource("LabelSettings_2vm02")
+horizontal_alignment = 2
 
 [node name="TestLevel" type="Node3D" parent="."]
 
