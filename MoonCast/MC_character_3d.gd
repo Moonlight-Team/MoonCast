@@ -1179,15 +1179,8 @@ func new_physics_process(delta: float) -> void:
 				append_frame_log("GROUND NEUTRAL")
 		else:
 			if physics.is_jumping:
-				
-				var jump_vector:Vector3 = ground_normal * physics.jump_velocity
-				
-				#velocity = jump_vector * space_scale
-				
-				var jump_vec2:Vector2 = Vector2.from_angle(acos(slope_dot))
-				
 				#TODO: Somehow, for some reason, the player's forward velocity is set to 0 when they jump and becomes impossible to change.
-				physics.process_apply_jump(jump_vec2.x, jump_vec2.y)
+				physics.process_apply_jump(slope_dot, facing_dot)
 				
 				up_direction = gravity_up_direction
 				

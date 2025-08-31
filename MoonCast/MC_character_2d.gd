@@ -401,15 +401,25 @@ var sprite_rotation:float
 ##In the air, this should be 0.
 var ground_angle:float:
 	get:
-		if rotation_static_collision:
-			return raycast_wheel.rotation
+		if legacy_enabled:
+			if rotation_static_collision:
+				return raycast_wheel.rotation
+			else:
+				return rotation
 		else:
-			return rotation
+			return ground_angle
 	set(new_rot):
-		if rotation_static_collision:
-			raycast_wheel.rotation = new_rot
+		if legacy_enabled:
+			if rotation_static_collision:
+				raycast_wheel.rotation = new_rot
+			else:
+				rotation = new_rot
 		else:
-			rotation = new_rot
+			ground_angle = new_rot
+		
+		relative_ground_angle = new_rot - gravity_angle
+
+var relative_ground_angle:float
 
 
 #TODO: Recompute these two if their physics table value changes at runtime.
@@ -1316,6 +1326,15 @@ func refresh_raycasts() -> int:
 	var ground_center_colliding:bool = not ground_center_data.is_empty()
 	
 	#TODO: Make the direct raycasts work again
+	if physics.is_grounded:
+		raycast_wheel.global_rotation = ground_angle
+	else:
+		if physics.vertical_velocity > 0:
+			raycast_wheel.global_rotation = gravity_angle + PI
+		else:
+			raycast_wheel.global_rotation = gravity_angle
+	
+	
 	ray_ground_left.force_update_transform()
 	ray_ground_left.force_raycast_update()
 	ground_left_colliding = ray_ground_left.is_colliding()
@@ -1401,13 +1420,13 @@ func refresh_raycasts() -> int:
 				
 				ground_normal = (left_normal + right_normal) / 2.0
 	
-	if physics.is_grounded:
-		raycast_wheel.global_rotation = ground_angle
-	else:
-		if velocity.y < 0:
-			raycast_wheel.global_rotation = PI
-		else:
-			raycast_wheel.global_rotation = 0.0
+	#if physics.is_grounded:
+		#raycast_wheel.global_rotation = ground_angle
+	#else:
+		#if physics.vertical_velocity > 0:
+			#raycast_wheel.global_rotation = gravity_angle + PI
+		#else:
+			#raycast_wheel.global_rotation = gravity_angle
 	
 	return contact_point_count
 
@@ -1922,18 +1941,22 @@ func new_physics_process(delta:float) -> void:
 	var has_input:bool = not is_zero_approx(input_dir)
 	
 	flat_input_dir = input_vector.rotated(gravity_angle)
+	slope_input_dir = input_vector.rotated(ground_angle)
 	
 	#TODO: Optimize these checks, a lot of redundant checks happening here
-	if has_input:
-		if physics.is_grounded:
-			if not physics.is_moving:
-				flat_facing_dir = flat_input_dir
-		else:
-			if physics.forward_velocity < physics.ground_min_speed:
-				flat_facing_dir = flat_input_dir
 	
-	slope_facing_dir = flat_facing_dir.rotated(ground_angle)
-	facing_dot = - signf(flat_facing_dir.dot(ground_normal))
+	#allow user to change facing direction when they aren't moving
+	if has_input and (not physics.is_moving if physics.is_grounded else physics.forward_velocity < physics.ground_min_speed):
+		flat_facing_dir = flat_input_dir
+		slope_facing_dir = slope_input_dir
+	else:
+		#align slope facing dir to flat facing dir
+		slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
+	
+	facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
+	
+	var facing_uphill:bool = facing_dot > 0
+	var facing_downhill:bool = facing_dot < 0
 	
 	if physics.is_grounded:
 		if not physics.is_moving:
@@ -1944,7 +1967,7 @@ func new_physics_process(delta:float) -> void:
 			else:
 				if not is_zero_approx(ground_angle):
 					#make the acceleration vector point downhill
-					if facing_dot < 0:
+					if facing_uphill:
 						acceleration_vector = slope_facing_dir
 					else:
 						acceleration_vector = -slope_facing_dir
@@ -1953,7 +1976,7 @@ func new_physics_process(delta:float) -> void:
 		else:
 			if physics.is_slipping:
 				#make the acceleration vector point downhill
-				if facing_dot < 0:
+				if facing_uphill:
 					acceleration_vector = slope_facing_dir
 				else:
 					acceleration_vector = -slope_facing_dir
@@ -2007,9 +2030,15 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 3: Slope factors
 		
-		append_frame_log("Ground Angle " + readable_float(rad_to_deg(ground_angle)))
+		append_frame_log("Ground Angle " + readable_float(rad_to_deg(relative_ground_angle)))
 		append_frame_log("Slope magnitude: " + readable_float(ground_dot))
-		append_frame_log("Slope direction: " + ("Uphill" if facing_dot > 0 else "Downhill/Neutral"))
+		
+		if is_zero_approx(facing_dot):
+			append_frame_log("Slope direction: N/A (flat)")
+		elif facing_uphill:
+			append_frame_log("Slope direction: Uphill")
+		else:
+			append_frame_log("Slope direction: Downhill")
 		
 		physics.process_ground_slope(ground_dot, facing_dot)
 		
@@ -2053,8 +2082,10 @@ func new_physics_process(delta:float) -> void:
 		
 		move_and_slide()
 		
-		physics.forward_velocity = absf(velocity.x) / extern_adjust
-		physics.vertical_velocity = -velocity.y / extern_adjust
+		var return_vel:Vector2 = velocity.rotated(gravity_angle)
+		
+		#physics.forward_velocity = absf(return_vel.x) / extern_adjust
+		#physics.vertical_velocity = -return_vel.y / extern_adjust
 		
 		#STEP 11: Check ground angles
 		
@@ -2069,7 +2100,7 @@ func new_physics_process(delta:float) -> void:
 			apply_floor_snap()
 			
 			if physics.is_slipping: 
-				if facing_dot > 0:
+				if facing_downhill:
 					acceleration_vector = -acceleration_vector
 			
 			activate_ability("state_ground")
@@ -2077,10 +2108,10 @@ func new_physics_process(delta:float) -> void:
 			up_direction = gravity_up_direction
 			
 			if physics.is_jumping:
-				physics.process_apply_jump(ground_normal.x * facing_dot, -ground_normal.y)
+				physics.process_apply_jump(ground_dot, facing_dot)
 				
 				#flip the player to send them in the downhill direction if they aren't actively going uphill
-				if facing_dot > 0 and not has_input:
+				if facing_uphill and not has_input:
 					flat_facing_dir = -flat_facing_dir
 				
 				activate_ability("jump")
@@ -2108,14 +2139,21 @@ func new_physics_process(delta:float) -> void:
 		
 		#STEP 5: Move the player
 		
-		var move_vector:Vector2 = (acceleration_vector * physics.forward_velocity) + (gravity_up_direction * physics.vertical_velocity)
+		var gravity_force:Vector2 = gravity_up_direction * physics.vertical_velocity
+		var acceleration_force:Vector2 = acceleration_vector * physics.forward_velocity
+		
+		var move_vector:Vector2 = acceleration_force + gravity_force
+		
+		append_frame_log("Gravity vector: " + readable_vector2(gravity_force))
 		
 		velocity = move_vector * extern_adjust
 		
 		move_and_slide()
 		
-		physics.forward_velocity = absf(velocity.x) / (extern_adjust)
-		physics.vertical_velocity = -velocity.y / (extern_adjust)
+		var return_vel:Vector2 = velocity.rotated(gravity_angle)
+		
+		physics.forward_velocity = absf(return_vel.x) / extern_adjust
+		#physics.vertical_velocity = -return_vel.y / extern_adjust
 		
 		#STEP 6: Apply gravity
 		physics.process_apply_gravity()
@@ -2146,7 +2184,7 @@ func new_physics_process(delta:float) -> void:
 			#landing momentum
 			
 			
-			if facing_dot > 0:
+			if facing_uphill:
 				#uphill
 				pass
 			

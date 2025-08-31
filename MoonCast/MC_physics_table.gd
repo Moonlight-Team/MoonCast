@@ -525,7 +525,7 @@ func process_air_drag() -> void:
 ##player is facing and the normal of the wall.
 func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 	if wall_dot < -wall_threshold:  # Almost head-on into wall
-		printt("WALL CONTACT")
+		append_frame_log("Wall: Contact")
 		
 		if not is_on_wall:
 			contact_wall.emit(self)
@@ -535,6 +535,7 @@ func update_wall_contact(wall_dot:float, input_dot:float) -> void:
 		if is_grounded:
 			ground_velocity = 0.0
 			if can_be_pushing and input_dot < -wall_threshold:
+				append_frame_log("Wall: Pushing")
 				is_pushing = true
 				current_animation = AnimationTypes.PUSH
 			else:
@@ -661,7 +662,9 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 			
 			current_animation = AnimationTypes.FREE_FALL
 
-func process_apply_jump(forward_force:float, vertical_force:float) -> void:
+func process_apply_jump(ground_dot:float, facing_dot:float) -> void:
 	
-	forward_velocity += forward_force * jump_velocity
-	vertical_velocity += vertical_force * jump_velocity
+	var jump_direction:Vector2 = Vector2.from_angle(acos(ground_dot))
+	
+	forward_velocity += (jump_direction.y * facing_dot) * jump_velocity
+	vertical_velocity += (jump_direction.x) * jump_velocity
