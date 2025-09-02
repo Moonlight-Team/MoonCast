@@ -963,24 +963,29 @@ func new_physics_process(delta: float) -> void:
 	var crouch_pressed:bool = Input.is_action_pressed(controls.action_roll)
 	
 	camera_input_direction = (node_camera.global_basis * raw_input_vec3).normalized()
-	var has_input: bool = not camera_input_direction.is_zero_approx() if not raw_input_vec2.is_zero_approx() else false
+	var has_input: bool = not raw_input_vec2.is_zero_approx()
 	
 	#This is used for measuring the change between the 
-	var cam_move_dot: float = acceleration_vector.dot(camera_input_direction)
+	#var cam_move_dot: float = acceleration_vector.dot(camera_input_direction)
 	
-	#This measures the change in the player's input compared to their current velocity, which is used to detect turn deceleration, 
-	#skidding/air deceleration, etc.
-	velocity_dot = camera_input_direction.dot(velocity.normalized())
-	
-	append_frame_log("Cam move dot: " + readable_float(cam_move_dot))
+	#append_frame_log("Cam move dot: " + readable_float(cam_move_dot))
 	
 	var input_angle:float = atan2(camera_input_direction.x, camera_input_direction.z)
 	var facing_angle:float
-	
-	flat_input_dir = Quaternion(gravity_up_direction, input_angle).get_euler()
-	slope_input_dir = Quaternion(ground_normal, input_angle).get_euler()
-	
 	var hinge_axis: Vector3 = gravity_up_direction.cross(ground_normal).normalized()
+	
+	append_frame_log("Input angle: " + readable_float(input_angle))
+	
+	#flat_input_dir = Quaternion(gravity_up_direction, input_angle).get_euler(EULER_ORDER_ZXY)
+	#slope_input_dir = Quaternion(ground_normal, input_angle).get_euler(EULER_ORDER_ZXY)
+	
+	flat_input_dir = Vector3.BACK.rotated(gravity_up_direction, input_angle)
+	
+	slope_input_dir = Vector3.BACK.rotated(ground_normal, input_angle)
+	
+	#This measures the change in the player's input compared to their current velocity, which is used to detect turn deceleration, 
+	#skidding/air deceleration, etc.
+	velocity_dot = camera_input_direction.dot(acceleration_vector.normalized())
 	
 	#TODO: Optimize these checks, a lot of redundant checks happening here
 	if has_input:
@@ -991,12 +996,10 @@ func new_physics_process(delta: float) -> void:
 			if physics.forward_velocity < physics.ground_min_speed:
 				flat_facing_dir = flat_input_dir
 	
-	if not hinge_axis.is_zero_approx():
+	if not hinge_axis.is_zero_approx() and physics.is_grounded:
 		slope_facing_dir = flat_facing_dir.rotated(hinge_axis, ground_angle)
-	else:
-		slope_facing_dir = flat_facing_dir
 	
-	facing_dot = - signf(flat_facing_dir.dot(ground_normal))
+	facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
 	
 	if physics.is_grounded:
 		if not physics.is_moving:
@@ -1038,6 +1041,9 @@ func new_physics_process(delta: float) -> void:
 		acceleration_vector = Quaternion(ground_normal, facing_angle).get_euler()
 	else:
 		facing_angle = atan2(acceleration_vector.x, acceleration_vector.z)
+	
+	
+	acceleration_vector = slope_input_dir
 	
 	append_frame_log("Accel dir " + readable_vector3(acceleration_vector))
 	append_frame_log("Flat facing dir " + readable_vector3(flat_facing_dir))
@@ -1127,7 +1133,7 @@ func new_physics_process(delta: float) -> void:
 		ray_wall_forward.force_raycast_update()
 		
 		if ray_wall_forward.is_colliding() and get_slide_collision_count() > 0:
-			var wall_dot: float = ray_wall_forward.target_position.dot(ray_wall_forward.get_collision_normal())
+			wall_dot = ray_wall_forward.target_position.dot(ray_wall_forward.get_collision_normal())
 			
 			#physics.update_wall_contact(wall_dot, is_on_wall_only())
 		

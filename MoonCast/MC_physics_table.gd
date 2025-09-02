@@ -4,7 +4,7 @@ extends Resource
 ##but dimensionally agnostic, values, for both 3D and 2D physics in MoonCast.
 class_name MoonCastPhysicsTable
 
-##Animation types returned by [process_animations].
+##Animation types detected by MoonCast.
 enum AnimationTypes {
 	##Custom animations
 	CUSTOM,
@@ -30,6 +30,24 @@ enum AnimationTypes {
 	RUN,
 	##Skidding animation
 	SKID,
+}
+
+##Slope types recognized by MoonCast.
+enum SlopeTypes {
+	##There is no ground in this context.
+	NONE,
+	##The ground is flat.
+	FLAT,
+	##The ground has enough of an incline to not be large, but not a large enough one to be slippery.
+	SHALLOW,
+	##The ground is steep enough to slip on.
+	SLIPPERY,
+	##The ground is steep enough to fall off of if not moving fast enough.
+	STEEP,
+	##The ground is steep enough to be a ceiling/steep wall; the player can land on this if traveling up.
+	CEILING_SHALLOW,
+	##The ground is so steep that it is considered a ceiling; the player cannot ever land on this.
+	CEILING
 }
 
 const perf_forward_velocity:StringName = &"Forward Velocity"
@@ -113,6 +131,8 @@ const perf_slope:StringName = &"Ground Angle"
 
 ##The top horizontal speed the player can reach in the air by input alone.
 @export var air_top_speed:float = 6.0
+##The minimum horizontal speed the player needs to be traveling forwards in order to be considered moving by input.
+@export var air_min_speed:float = 0.2
 ##How much the player will accelerate in the air each physics frame.
 @export var air_acceleration:float = 0.1
 ##The drag effect that is applied to the player.
@@ -176,6 +196,8 @@ var current_animation:AnimationTypes
 #angle values
 #a dot product between the ground normal and gravity normal must be *larger* than these, eg.
 #if it's less than slip_dot, the slope is slippable.
+
+var flat_thresh_dot:float
 ##A value representing the value that a ground dot has to be greater than in order to be considered
 ##a shallow enough slope to not slip on.
 var slip_dot:float 
@@ -257,6 +279,7 @@ func _init() -> void:
 func cache_calculations() -> void:
 	fall_dot = 1.0 - (ground_fall_angle / PI)
 	slip_dot = 1.0 - (ground_slip_angle / PI)
+	flat_thresh_dot = 1.0 - (ground_flat_threshold / PI)
 
 ##Set up physics value monitors for this PhysicsTable, under the category of
 ##[param name] in the Performance Monitors debugger tab.
@@ -318,12 +341,10 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 		if control_roll_enabled and abs_ground_velocity > rolling_min_speed:
 			if (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
 				is_rolling = true
-				current_animation = AnimationTypes.ROLL
 			
 			is_crouching = false
 		else:
 			is_crouching = true
-			current_animation = AnimationTypes.CROUCH
 			can_be_moving = false
 			is_rolling = false
 	else:
@@ -332,7 +353,6 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 	
 	if can_jump and jump_pressed:
 		is_jumping = true
-		current_animation = AnimationTypes.JUMP
 
 ##Update player state for either crouching or rolling, on the ground.
 func update_rolling_crouching(button_pressed:bool) -> void:
@@ -467,20 +487,12 @@ func update_air_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool)
 	
 	#check for the jump button being released
 	if is_jumping and not jump_pressed:
-		is_jumping = false
 		#apply variable jump height
 		vertical_velocity = minf(vertical_velocity, jump_short_limit)
 	
 	if not is_rolling and roll_pressed and control_roll_enabled:
 		#activate rolling if the player can activate in midair
 		is_rolling = control_roll_midair_activate
-	
-	if is_jumping:
-		current_animation = AnimationTypes.JUMP
-	elif is_rolling:
-		current_animation = AnimationTypes.ROLL
-	else:
-		current_animation = AnimationTypes.FREE_FALL
 	
 	if is_rolling and not is_jumping:
 		can_be_moving = control_jump_roll_lock
@@ -556,27 +568,29 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		
 		#landing code based somewhat on Harmony Framework
 		
+		var slope_type:SlopeTypes = calculate_slope_type(slope_mag)
+		
 		var abs_forward:float = absf(forward_velocity)
 		var abs_vertical:float = absf(vertical_velocity)
 		
-		#TODO: Make this a configurable variable, ofc
-		var flat_ground_threshold:float = 1.0 - ground_flat_threshold
-		
 		#landing code for normal ground
 		if slope_mag > 0:
-			
 			is_grounded = true
-			ground_velocity = forward_velocity
 			
 			#if the player is on a "steeper than flat" slope
-			if slope_mag < flat_ground_threshold:
+			if slope_mag < flat_thresh_dot:
 				if slope_mag <= 0.5: #steeper than 45 degrees, could be changed to use ground_fall_angle?
 					ground_velocity = maxf(abs_forward, abs_vertical)
+					
+					append_frame_log("GROUNDING: Steep floor " + readable_float(ground_velocity))
 				else:
 					ground_velocity = maxf(abs_forward, abs_vertical / 2.0)
-			
-			
-			printt("GROUNDING: Ground floored, on angle of", acos(slope_mag))
+					
+					append_frame_log("GROUNDING: Shallow floor " + readable_float(ground_velocity))
+			else:
+				ground_velocity = forward_velocity
+				
+				append_frame_log("GROUNDING: Flat floor " + readable_float(ground_velocity))
 			
 			contact_ground.emit(self)
 		
@@ -594,12 +608,6 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 					is_grounded = false #contextually redundant?
 					#*bonk*, no landing for you
 					vertical_velocity = 0.0
-		
-		if is_grounded:
-			if is_moving:
-				current_animation = AnimationTypes.RUN
-			else:
-				current_animation = AnimationTypes.STAND
 		
 		#cleanup jumping stuff
 		if is_jumping:
@@ -621,8 +629,13 @@ func process_apply_ground_velocity(slope_mag:float) -> void:
 ##collision detection.
 ##[param slope_mag] is the dot product between the ground normal and the gravity normal, ie. how steep
 ##the slope the player might be landing on is.
-func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
+func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> SlopeTypes:
 	if ground_detected and not is_jumping:
+		
+		var slope_type:SlopeTypes = calculate_slope_type(slope_mag)
+		
+		append_frame_log("FALL/SLIP: " + str(SlopeTypes.find_key(slope_type)))
+		
 		#if the ground is steep enough to slip on, and the player is too slow, slip
 		if abs_ground_velocity < ground_stick_speed:
 			append_frame_log("FALL/SLIP: Not fast enough to stick...")
@@ -635,32 +648,31 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> void:
 			
 			append_frame_log("FALL/SLIP: " + " ".join(dots) )
 			
-			
-			#if the ground is steep enough, fall off entirely
-			if slope_mag < fall_dot and not is_slipping:
-				append_frame_log("FALL/SLIP: Falling, entering air")
-				set_air_state()
-				ground_velocity = 0.0
-			
-			if not is_slipping and slope_mag < slip_dot:
-				append_frame_log("FALL/SLIP: Slipping")
+			if not is_slipping and slope_type >= SlopeTypes.SLIPPERY:
 				is_slipping = true
 				slip_lock_timer = ground_slip_time
 				ground_velocity = 0.0
+				
+				if slope_type >= SlopeTypes.STEEP:
+					append_frame_log("FALL/SLIP: Falling, entering air")
+					set_air_state()
+				else:
+					append_frame_log("FALL/SLIP: Slipping")
+			elif is_slipping:
+				append_frame_log("FALL/SLIP: Slipping")
 		else:
 			append_frame_log("FALL/SLIP: Sticking to ground")
+		
+		return slope_type
 	else:
-		
-		
 		set_air_state()
 		
 		if is_jumping:
-			current_animation = AnimationTypes.JUMP
 			append_frame_log("FALL/SLIP: Ground ignored for jump")
 		else:
 			append_frame_log("FALL/SLIP: Ground not detected")
-			
-			current_animation = AnimationTypes.FREE_FALL
+		
+		return SlopeTypes.NONE
 
 func process_apply_jump(ground_dot:float, facing_dot:float) -> void:
 	
@@ -668,3 +680,43 @@ func process_apply_jump(ground_dot:float, facing_dot:float) -> void:
 	
 	forward_velocity += (jump_direction.y * facing_dot) * jump_velocity
 	vertical_velocity += (jump_direction.x) * jump_velocity
+
+func assess_animations() -> void:
+	#rolling is rolling, whether the player is in the air or on the ground
+	if is_rolling:
+		current_animation = AnimationTypes.ROLL
+	elif is_grounded:
+		if is_pushing:
+			AnimationTypes.PUSH
+		elif not is_zero_approx(ground_velocity) or is_slipping:
+			current_animation = AnimationTypes.RUN
+		else: #standing still
+			if is_balancing:
+				current_animation = AnimationTypes.BALANCE
+			else:
+				if is_crouching:
+					current_animation = AnimationTypes.CROUCH
+				else:
+					current_animation = AnimationTypes.STAND
+	else: #air animations
+		if is_jumping: 
+			current_animation = AnimationTypes.JUMP
+		else:
+			#This is so that slipping and falling doesn't look weird
+			if absf(vertical_velocity) > ground_min_speed:
+				current_animation = AnimationTypes.FREE_FALL
+
+func calculate_slope_type(slope_dot:float) -> SlopeTypes:
+	
+	if slope_dot < -0.5:
+		return SlopeTypes.CEILING
+	if slope_dot < 0.0:
+		return SlopeTypes.CEILING_SHALLOW
+	if slope_dot < fall_dot:
+		return SlopeTypes.STEEP
+	elif slope_dot < slip_dot:
+		return SlopeTypes.SLIPPERY
+	elif slope_dot < flat_thresh_dot:
+		return SlopeTypes.SHALLOW
+	else:
+		return SlopeTypes.FLAT

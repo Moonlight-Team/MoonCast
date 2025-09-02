@@ -23,8 +23,6 @@ func _ready() -> void:
 	
 	disclaimer.text = disclaimer.text.format({"version": proj_ver},)
 	
-	var tree:SceneTree = get_tree()
-	
 	var player = get_node_or_null(player_node)
 	
 	if is_instance_valid(player) and (player is MoonCastPlayer2D or player is MoonCastPlayer3D):
