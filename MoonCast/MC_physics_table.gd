@@ -165,9 +165,8 @@ const perf_slope:StringName = &"Ground Angle"
 var jump_timer:float = 0.0
 ##The timer for the player's ability to move directionally.
 var slip_lock_timer:float = 0.0
-##The timer for the player to be able to stick to the floor.
 
-##Variable used for stopping jumping when physics.control_jump_hold_repeat is disabled.
+##Variable used for stopping jumping when [member control_jump_hold_repeat] is disabled.
 var hold_jump_lock:bool = false
 
 ##The character's current vertical velocity relative to their rotation. This value is 
@@ -312,7 +311,7 @@ func readable_vector2(num:Vector2) -> String:
 func reset_timers() -> void:
 	slip_lock_timer = 0
 	is_slipping = false
-	jump_spam_timer = 0
+	jump_timer = 0
 	can_jump = true
 
 func tick_down_timers(delta:float) -> void:
@@ -323,12 +322,12 @@ func tick_down_timers(delta:float) -> void:
 	else:
 		append_frame_log("Control timers; Slip: " + readable_float(slip_lock_timer))
 	
-	jump_spam_timer -= delta
-	if jump_spam_timer < 0 or is_zero_approx(jump_spam_timer):
-		jump_spam_timer = 0
+	jump_timer -= delta
+	if jump_timer < 0 or is_zero_approx(jump_timer):
+		jump_timer = 0
 		can_jump = true
 	else:
-		append_frame_log("Control timers; Jump lock: " + readable_float(jump_spam_timer))
+		append_frame_log("Control timers; Jump lock: " + readable_float(jump_timer))
 
 ##A small function to clear several state flags when enterting the air state.
 func set_air_state() -> void:
@@ -351,8 +350,12 @@ func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bo
 		is_crouching = false
 		can_be_moving = true
 	
-	if can_jump and jump_pressed:
-		is_jumping = true
+	if jump_pressed:
+		#if can_jump and not hold_jump_lock:
+		if not hold_jump_lock:
+			is_jumping = true
+	else:
+		hold_jump_lock = false
 
 ##Update player state for either crouching or rolling, on the ground.
 func update_rolling_crouching(button_pressed:bool) -> void:
@@ -614,6 +617,8 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 			is_jumping = false
 			can_jump = false
 			
+			hold_jump_lock = not control_jump_hold_repeat
+			
 			jump_timer = jump_spam_timer
 
 ##Apply [member ground_velocity] to [member forward_velocity] and [member vertical_velocity] so that
@@ -707,7 +712,6 @@ func assess_animations() -> void:
 				current_animation = AnimationTypes.FREE_FALL
 
 func calculate_slope_type(slope_dot:float) -> SlopeTypes:
-	
 	if slope_dot < -0.5:
 		return SlopeTypes.CEILING
 	if slope_dot < 0.0:

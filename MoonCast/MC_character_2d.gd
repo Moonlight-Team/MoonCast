@@ -197,6 +197,8 @@ var anim_skid_sorted_keys:PackedFloat32Array = []
 var facing_direction:float = 1.0
 ##The direction the player is accelerating in space.
 var acceleration_vector:Vector2 = anim_default_forward
+##If true, [member acceleration_vector] will be forced to point downhill.
+var force_downhill:bool = false
 
 ##The direction player input is pointed in space, aligned to the gravity plane.
 var flat_input_dir:Vector2:
@@ -212,17 +214,11 @@ var flat_facing_dir:Vector2 = anim_default_forward:
 	set(new_dir):
 		flat_facing_dir = new_dir
 		
-		slope_facing_dir = new_dir.rotated(relative_ground_angle)
-		
 		facing_behind = anim_default_forward.rotated(gravity_angle).dot(new_dir) < 0
 ##The direction the player is facing in space relative to [member ground_angle].
 ##For example, this vector would be pointing up if they are running up a wall, and down if they are
 ##running down a wall.
-var slope_facing_dir:Vector2 = anim_default_forward:
-	set(new_dir):
-		slope_facing_dir = new_dir
-		
-		facing_dot = signf(new_dir.dot(gravity_up_direction))
+var slope_facing_dir:Vector2 = anim_default_forward
 
 var gravity_angle:float
 
@@ -1151,10 +1147,8 @@ func update_collision_rotation() -> void:
 					if ray_ground_left.is_colliding():
 						ground_normal = ray_ground_left.get_collision_normal().normalized()
 						facing_direction = 1.0 #slope is to the left, face right
-						flat_facing_dir = Vector2.RIGHT
 					elif ray_ground_right.is_colliding():
 						ground_normal = ray_ground_right.get_collision_normal().normalized()
-						flat_facing_dir = Vector2.LEFT
 						facing_direction = -1.0 #slope is to the right, face left
 			2:
 				is_balancing = false
@@ -1309,7 +1303,6 @@ func refresh_raycasts() -> int:
 		else:
 			raycast_wheel.global_rotation = gravity_angle
 	
-	
 	ray_ground_left.force_update_transform()
 	ray_ground_left.force_raycast_update()
 	ground_left_colliding = ray_ground_left.is_colliding()
@@ -1337,40 +1330,53 @@ func refresh_raycasts() -> int:
 	match contact_point_count:
 		0:
 			ground_normal = ground_normal.slerp(gravity_up_direction, 0.01)
+			
+			append_frame_log("Ray Contact: 0")
 		1:
 			if physics.is_grounded:
 				#This bit of code usually only runs when the player runs off an upward
 				#slope but too slowly to actually "launch". If we do nothing in this scenario,
 				#it can cause an odd situation where the player is stuck on the ground but at 
 				#the angle that they launched at, which is not good.
+				#ground_normal = ground_normal.slerp(gravity_up_direction, 0.01)
 				ground_normal.slerp(gravity_up_direction, 0.01)
+				append_frame_log("Ray Contact: 1, leaving ground")
 			else:
 				#Don't update rotation if we were already grounded. This allows for 
 				#slope launch physics while retaining slope landing physics, by eliminating
 				#false positives caused by one raycast being the remaining raycast when 
 				#launching off a slope
 				
-				if ground_left_colliding:
-					ground_normal = ground_left_data.get("normal", ground_normal).normalized()
+				
+				if absf(physics.vertical_velocity) > absf(physics.forward_velocity):
+					if ground_left_colliding:
+						ground_normal = ground_left_data.get("normal", ground_normal).normalized()
+						
+						if flat_facing_dir.x < 0:
+							flat_facing_dir = Vector2.RIGHT.rotated(gravity_angle) #slope is to the left, face right
+						
+						append_frame_log("Ray Contact: 1, left")
 					
-					if flat_facing_dir.x < 0:
-						flat_facing_dir = Vector2.RIGHT.rotated(ground_angle) #slope is to the left, face right
-					
-				elif ground_right_colliding:
-					ground_normal = ground_right_data.get("normal", ground_normal)
-					
-					if flat_facing_dir.x > 0:
-						flat_facing_dir = Vector2.LEFT.rotated(ground_angle) #slope is to the right, face left
+					elif ground_right_colliding:
+						ground_normal = ground_right_data.get("normal", ground_normal)
+						
+						if flat_facing_dir.x > 0:
+							flat_facing_dir = Vector2.LEFT.rotated(gravity_angle) #slope is to the right, face left
+						
+						append_frame_log("Ray Contact: 1, right")
 		2:
 			var left_normal:Vector2 = ground_left_data.get("normal", ground_normal)
 			var right_normal:Vector2 = ground_right_data.get("normal", ground_normal)
 			
 			if ground_left_colliding and ground_right_colliding:
+				append_frame_log("Ray Contact: 2, left and right")
 				ground_normal = (left_normal + right_normal) / 2.0
 			#in these next two cases, the other contact point is the center
 			elif ground_left_colliding:
+				append_frame_log("Ray Contact: 1, left and center")
 				ground_normal = left_normal
 			elif ground_right_colliding:
+				append_frame_log("Ray Contact: 1, right and center")
 				ground_normal = right_normal
 		3:
 			if physics.is_grounded:
@@ -1387,6 +1393,8 @@ func refresh_raycasts() -> int:
 				#check to make sure the new "ground" is not basically a wall compared to the current ground
 				if ground_normal.dot(new_ground_normal) > wall_comparison:
 					ground_normal = new_ground_normal
+				
+				append_frame_log("Ray Contact: 3, grounded")
 			
 			else:
 				#the CharacterBody2D system has no idea what the ground normal is when its
@@ -1396,6 +1404,8 @@ func refresh_raycasts() -> int:
 				var right_normal:Vector2 = ground_right_data.get("normal", Vector2.ZERO)
 				
 				ground_normal = (left_normal + right_normal) / 2.0
+				
+				append_frame_log("Ray Contact: 3, landing")
 	
 	#if physics.is_grounded:
 		#raycast_wheel.global_rotation = ground_angle
@@ -1413,7 +1423,6 @@ func refresh_collision_shapes(anim:MoonCastAnimation) -> void:
 		shape_owner_set_disabled(default_owners, anim.override_collision)
 	
 	shape_owner_set_disabled(anim_col_owner_id, not anim.override_collision)
-	
 	
 	if anim.override_collision and is_instance_valid(anim.collision_shape_2D):
 		#clear shapes
@@ -1447,105 +1456,6 @@ func refresh_collision_shapes(anim:MoonCastAnimation) -> void:
 		
 		onscreen_checker.rect = def_vis_notif_shape
 		reposition_raycasts(def_ray_left_corner, def_ray_right_corner, def_ray_gnd_center)
-
-func calculate_accvec_slopes(force_downhill:bool = false) -> void:
-	slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
-	
-	if physics.is_grounded:
-		if force_downhill:
-			if facing_dot > 0:
-				append_frame_log("AccVec: Pointed uphill, forcing downhill")
-				slope_facing_dir = -slope_facing_dir
-			else:
-				append_frame_log("AccVec: Pointed downhill, forced downhill")
-				#acceleration_vector = slope_facing_dir
-		else:
-			append_frame_log("AccVec: Ground, accvec faces slope facing dir")
-			#acceleration_vector = slope_facing_dir
-		
-		acceleration_vector = slope_facing_dir
-		
-		velocity_dot = acceleration_vector.dot(slope_input_dir)
-	else:
-		append_frame_log("AccVec: Air, accvec faces flat facing dir")
-		
-		acceleration_vector = flat_facing_dir
-		
-		velocity_dot = acceleration_vector.dot(flat_input_dir)
-
-func calculate_accvec_inputs() -> void:
-	if physics.is_grounded:
-		if not physics.is_moving:
-			acceleration_vector = slope_input_dir
-		
-		pass
-	else:
-		
-		if physics.forward_velocity < physics.air_min_speed:
-			acceleration_vector = flat_input_dir
-	
-	pass
-
-##Refresh directional vectors to account for slopes.
-func refresh_vectors_slopes() -> void:
-	slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
-	
-	var new_facing_dot:float = signf(slope_facing_dir.dot(gravity_up_direction))
-	
-	if physics.is_grounded:
-		
-		
-		if physics.is_slipping and facing_dot > 0:
-			#force facing downhill
-			acceleration_vector = -slope_facing_dir
-		else:
-			acceleration_vector = slope_facing_dir
-	else:
-		acceleration_vector = flat_facing_dir
-
-##Refresh directional vectors to account for inputs.
-func refresh_direction_vectors(has_input:bool) -> void:
-	#TODO: Optimize these checks, a lot of redundant checks happening here
-	
-	#allow user to change facing direction when they aren't moving
-	if has_input and (not physics.is_moving if physics.is_grounded else physics.forward_velocity < physics.air_min_speed):
-		flat_facing_dir = flat_input_dir
-		slope_facing_dir = slope_input_dir
-	else:
-		#align slope facing dir to flat facing dir
-		slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
-	
-	facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
-	
-	if physics.is_grounded:
-		if not physics.is_moving:
-			if has_input and not physics.is_slipping:
-				acceleration_vector = slope_input_dir
-			else:
-				if not is_zero_approx(ground_angle):
-					#make the acceleration vector point downhill
-					if facing_dot > 0:
-						acceleration_vector = slope_facing_dir
-					else:
-						acceleration_vector = -slope_facing_dir
-		else:
-			if physics.is_slipping:
-				#make the acceleration vector point downhill
-				if facing_dot > 0:
-					acceleration_vector = slope_facing_dir
-				else:
-					acceleration_vector = -slope_facing_dir
-			else:
-				acceleration_vector = slope_facing_dir
-		
-		velocity_dot = acceleration_vector.dot(slope_input_dir)
-	else:
-		if has_input and physics.forward_velocity < physics.air_min_speed:
-			acceleration_vector = flat_input_dir
-		else:
-			acceleration_vector = flat_facing_dir
-		
-		velocity_dot = acceleration_vector.dot(flat_input_dir)
 
 ##MoonCast's custom implementation of [CharacterBody2D.move_and_slide].
 func mooncast_move_and_slide() -> void:
@@ -1583,11 +1493,9 @@ func legacy_update_animations() -> void:
 				if not ray_ground_left.is_colliding():
 					#face the ledge
 					facing_direction = -1.0
-					flat_facing_dir = Vector2.LEFT
 				elif not ray_ground_right.is_colliding():
 					#face the ledge
 					facing_direction = 1.0
-					flat_facing_dir = Vector2.RIGHT
 				check_moving = false
 				if has_animation(anim_balance):
 					play_animation(anim_balance)
@@ -1817,7 +1725,7 @@ func sprites_set_rotation(new_rotation:float, also_flip:bool = true) -> void:
 				
 				sprite_rotation = lerp_angle(sprite_rotation, new_rotation, actual_rotation_speed)
 	else:
-		sprite_rotation = 0.0
+		sprite_rotation = gravity_angle
 	
 	if also_flip and current_anim.can_turn_horizontal:
 		if legacy_enabled:
@@ -2075,21 +1983,75 @@ func new_physics_process(delta:float) -> void:
 	flat_input_dir = input_vector.rotated(gravity_angle)
 	slope_input_dir = input_vector.rotated(ground_angle)
 	
-	#allow user to change facing direction when they aren't moving
+	#TODO: Optimize these checks, a lot of redundant checks happening here
+	
 	if has_input and (not physics.is_moving if physics.is_grounded else physics.forward_velocity < physics.air_min_speed):
+		#allow user to change facing direction when they aren't moving
 		flat_facing_dir = flat_input_dir
 	
-	slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
-	
-	#if not physics.is_slipping:
-	#	acceleration_vector = slope_facing_dir
-	
-	#acceleration_vector = slope_facing_dir
-	
 	if physics.is_grounded:
+		slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle) 
+		facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
+		
+		if force_downhill:
+			if facing_dot > 0:
+				append_frame_log("AccVec: Pointed uphill, forcing downhill")
+				acceleration_vector = -slope_facing_dir
+			else:
+				append_frame_log("AccVec: Pointed downhill, forced downhill")
+				acceleration_vector = slope_facing_dir
+		else:
+			append_frame_log("AccVec: Ground, accvec faces slope facing dir")
+			acceleration_vector = slope_facing_dir
+		
 		velocity_dot = acceleration_vector.dot(slope_input_dir)
 	else:
+		slope_facing_dir = flat_facing_dir
+		facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
+		
+		append_frame_log("AccVec: Air, accvec faces flat facing dir")
+		
+		acceleration_vector = flat_facing_dir
+		
 		velocity_dot = acceleration_vector.dot(flat_input_dir)
+	
+	
+	
+	append_frame_log("Flat Input dir " + readable_vector2(flat_input_dir))
+	append_frame_log("Flat Facing dir " + readable_vector2(flat_facing_dir))
+	append_frame_log("Slope Input dir " + readable_vector2(slope_input_dir))
+	append_frame_log("Slope Facing dir " + readable_vector2(slope_facing_dir))
+	append_frame_log("Accel dir " + readable_vector2(acceleration_vector))
+	
+	#if physics.is_grounded:
+		#if not physics.is_moving:
+			#if has_input and not physics.is_slipping:
+				#acceleration_vector = slope_input_dir
+			#else:
+				#if not is_zero_approx(ground_angle):
+					##make the acceleration vector point downhill
+					#if facing_dot > 0:
+						#acceleration_vector = slope_facing_dir
+					#else:
+						#acceleration_vector = -slope_facing_dir
+		#else:
+			#if physics.is_slipping:
+				##make the acceleration vector point downhill
+				#if facing_dot > 0:
+					#acceleration_vector = slope_facing_dir
+				#else:
+					#acceleration_vector = -slope_facing_dir
+			#else:
+				#acceleration_vector = slope_facing_dir
+		#
+		#velocity_dot = acceleration_vector.dot(slope_input_dir)
+	#else:
+		#if has_input and physics.forward_velocity < physics.air_min_speed:
+			#acceleration_vector = flat_input_dir
+		#else:
+			#acceleration_vector = flat_facing_dir
+		#
+		#velocity_dot = acceleration_vector.dot(flat_input_dir)
 	
 	#TODO: Use this to properly flip inputs to match the camera
 	var cam_input_dir: Vector2 = input_vector.rotated(node_camera.global_rotation * signf(input_dir))
@@ -2126,6 +2088,9 @@ func new_physics_process(delta:float) -> void:
 		
 		append_frame_log("Ground Angle " + readable_float(rad_to_deg(relative_ground_angle)))
 		append_frame_log("Slope magnitude: " + readable_float(ground_dot))
+		
+		if physics.is_slipping:
+			facing_dot = -1.0
 		
 		if is_zero_approx(facing_dot):
 			append_frame_log("Slope direction: N/A (flat)")
@@ -2172,20 +2137,12 @@ func new_physics_process(delta:float) -> void:
 		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
 		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
 		
-		append_frame_log("Facing dir " + readable_vector2(flat_facing_dir))
-		append_frame_log("Gravity dir " + readable_vector2(gravity_up_direction))
-		
-		
-		var gravity_force:Vector2 = gravity_up_direction * physics.vertical_velocity
-		var acceleration_force:Vector2 = flat_facing_dir * physics.forward_velocity
-		
-		var move_vector:Vector2 = acceleration_force + gravity_force
+		var move_vector:Vector2 = acceleration_vector * physics.ground_velocity
 		
 		append_frame_log("Move dir " + readable_vector2(move_vector))
 		
 		velocity = move_vector * extern_adjust
 		
-		#velocity = acceleration_vector * physics.ground_velocity * extern_adjust
 		move_and_slide()
 		
 		
@@ -2203,14 +2160,11 @@ func new_physics_process(delta:float) -> void:
 		
 		physics.process_fall_slip_checks(raycast_collision > 1, ground_dot)
 		
-		#refresh_vectors_slopes()
-		#slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
-		
 		if physics.is_grounded:
 			up_direction = ground_normal
 			apply_floor_snap()
 			
-			calculate_accvec_slopes(physics.is_slipping)
+			force_downhill = physics.is_slipping
 			
 			activate_ability("state_ground")
 		else:
@@ -2220,11 +2174,11 @@ func new_physics_process(delta:float) -> void:
 				physics.process_apply_jump(ground_dot, facing_dot)
 				
 				#flip the player to send them in the downhill direction if they aren't actively going uphill
-				calculate_accvec_slopes(not has_input)
+				force_downhill = not has_input
 				
 				activate_ability("jump")
 			else:
-				calculate_accvec_slopes()
+				force_downhill = false
 			
 			activate_ability("contact_air")
 			
@@ -2290,14 +2244,12 @@ func new_physics_process(delta:float) -> void:
 		
 		physics.process_landing(raycast_collision and get_slide_collision_count() > 0, ground_dot)
 		
-		#refresh_vectors_slopes()
-		
 		if physics.is_grounded:
-			calculate_accvec_slopes(ground_dot < 0.5)
+			force_downhill = ground_dot < 0.5
 			
 			activate_ability("contact_ground")
 		else:
-			calculate_accvec_slopes()
+			force_downhill = false
 			
 			activate_ability("state_air")
 	
