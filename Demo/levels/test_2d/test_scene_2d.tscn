@@ -1,5 +1,6 @@
-[gd_scene load_steps=29 format=3 uid="uid://l6j7c0hm73c"]
+[gd_scene load_steps=31 format=3 uid="uid://l6j7c0hm73c"]
 
+[ext_resource type="Script" uid="uid://dsi6e0xiwr28r" path="res://Demo/levels/test_2d/generated_polygon.gd" id="1_cngma"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_cngma"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="3_yu4ht"]
 [ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/gui/dream.png" id="7_2q626"]
@@ -18,6 +19,13 @@ size = Vector2(200, 237)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ttkpr"]
 size = Vector2(334.253, 20)
+
+[sub_resource type="Curve2D" id="Curve2D_cngma"]
+bake_interval = 25.0
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, -3.05176e-05, -34, -8.55378, -8.52098, 8.55378, 8.52098, 8.99998, -9, 0, 0, 0, 0, 34, 0)
+}
+point_count = 3
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bdxha"]
 size = Vector2(100, 100)
@@ -126,6 +134,21 @@ debug_color = Color(0, 0.6, 0.701961, 1)
 position = Vector2(-1092.38, -129.314)
 rotation = 0.16057
 polygon = PackedVector2Array(-37, -34, -37, 0, 4, 0, -13, -5, -23, -12, -32, -21)
+
+[node name="GeneratedCornerSlope" type="CollisionPolygon2D" parent="Static Layout/Floor"]
+position = Vector2(-1099.47, -135.528)
+rotation = 0.16057
+polygon = PackedVector2Array(23.0001, 0, 34, 0, 8.99998, -9, -3.05176e-05, -34, 0.00012207, 0)
+script = ExtResource("1_cngma")
+slope_size = Vector2(34, -4)
+slope_middle = Vector2(8, -11)
+detail_level = 3.0
+metadata/_custom_type_script = "uid://dsi6e0xiwr28r"
+
+[node name="Path2D" type="Path2D" parent="Static Layout/Floor"]
+position = Vector2(-1099.47, -135.528)
+rotation = 0.16057
+curve = SubResource("Curve2D_cngma")
 
 [node name="PlatformingBlocks" type="StaticBody2D" parent="Static Layout"]
 position = Vector2(2084, 189)

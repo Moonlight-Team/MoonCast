@@ -1318,10 +1318,6 @@ func refresh_raycasts() -> int:
 	
 	var contact_point_count:int = int(ground_left_colliding) + int(ground_right_colliding) + int(ground_center_colliding)
 	
-	var contact_str:PackedStringArray = [str(ground_left_colliding), str(ground_center_colliding), str(ground_right_colliding)]
-	
-	append_frame_log("Ray contacts: " + " ".join(contact_str))
-	
 	#player balances when two of the raycasts are over the edge
 	physics.is_balancing = contact_point_count == 1
 	
@@ -1347,6 +1343,7 @@ func refresh_raycasts() -> int:
 				#false positives caused by one raycast being the remaining raycast when 
 				#launching off a slope
 				
+				append_frame_log("Ray Contact: 1, landing")
 				
 				if absf(physics.vertical_velocity) > absf(physics.forward_velocity):
 					if ground_left_colliding:
@@ -1983,8 +1980,6 @@ func new_physics_process(delta:float) -> void:
 	flat_input_dir = input_vector.rotated(gravity_angle)
 	slope_input_dir = input_vector.rotated(ground_angle)
 	
-	#TODO: Optimize these checks, a lot of redundant checks happening here
-	
 	if has_input and (not physics.is_moving if physics.is_grounded else physics.forward_velocity < physics.air_min_speed):
 		#allow user to change facing direction when they aren't moving
 		flat_facing_dir = flat_input_dir
@@ -2015,43 +2010,11 @@ func new_physics_process(delta:float) -> void:
 		
 		velocity_dot = acceleration_vector.dot(flat_input_dir)
 	
-	
-	
 	append_frame_log("Flat Input dir " + readable_vector2(flat_input_dir))
 	append_frame_log("Flat Facing dir " + readable_vector2(flat_facing_dir))
 	append_frame_log("Slope Input dir " + readable_vector2(slope_input_dir))
 	append_frame_log("Slope Facing dir " + readable_vector2(slope_facing_dir))
 	append_frame_log("Accel dir " + readable_vector2(acceleration_vector))
-	
-	#if physics.is_grounded:
-		#if not physics.is_moving:
-			#if has_input and not physics.is_slipping:
-				#acceleration_vector = slope_input_dir
-			#else:
-				#if not is_zero_approx(ground_angle):
-					##make the acceleration vector point downhill
-					#if facing_dot > 0:
-						#acceleration_vector = slope_facing_dir
-					#else:
-						#acceleration_vector = -slope_facing_dir
-		#else:
-			#if physics.is_slipping:
-				##make the acceleration vector point downhill
-				#if facing_dot > 0:
-					#acceleration_vector = slope_facing_dir
-				#else:
-					#acceleration_vector = -slope_facing_dir
-			#else:
-				#acceleration_vector = slope_facing_dir
-		#
-		#velocity_dot = acceleration_vector.dot(slope_input_dir)
-	#else:
-		#if has_input and physics.forward_velocity < physics.air_min_speed:
-			#acceleration_vector = flat_input_dir
-		#else:
-			#acceleration_vector = flat_facing_dir
-		#
-		#velocity_dot = acceleration_vector.dot(flat_input_dir)
 	
 	#TODO: Use this to properly flip inputs to match the camera
 	var cam_input_dir: Vector2 = input_vector.rotated(node_camera.global_rotation * signf(input_dir))
@@ -2170,14 +2133,26 @@ func new_physics_process(delta:float) -> void:
 		else:
 			up_direction = gravity_up_direction
 			
+			
+
+			
 			if physics.is_jumping:
 				physics.process_apply_jump(ground_dot, facing_dot)
 				
+				if absf(ground_dot) < 0.5:
+					flat_facing_dir = -flat_facing_dir
+				
 				#flip the player to send them in the downhill direction if they aren't actively going uphill
-				force_downhill = not has_input
+				#force_downhill = not has_input and absf(ground_dot) < 0.5
+				force_downhill = absf(ground_dot) < 0.5
 				
 				activate_ability("jump")
 			else:
+				
+				if ground_dot < 0:
+					#We need to flip this vector so that launching off of ceilings will work
+					flat_facing_dir = -flat_facing_dir
+				
 				force_downhill = false
 			
 			activate_ability("contact_air")
@@ -2245,7 +2220,7 @@ func new_physics_process(delta:float) -> void:
 		physics.process_landing(raycast_collision and get_slide_collision_count() > 0, ground_dot)
 		
 		if physics.is_grounded:
-			force_downhill = ground_dot < 0.5
+			force_downhill = absf(ground_dot) < 0.5
 			
 			activate_ability("contact_ground")
 		else:

@@ -1,0 +1,100 @@
+[gd_scene load_steps=8 format=4 uid="uid://1xb5osowwhbb"]
+
+[ext_resource type="Script" uid="uid://djv4h0q217njy" path="res://Demo/levels/test_2d/gravity_testing.gd" id="1_did7f"]
+[ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/levels/demo_2d/demo_zone_tiles.tres" id="2_67dd8"]
+[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="3_wy8nu"]
+[ext_resource type="Script" uid="uid://bp5ip1imqh788" path="res://Framework/abilities/bonus/gravity_control.gd" id="4_ip6qp"]
+[ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="5_xapeu"]
+[ext_resource type="Script" uid="uid://dsi6e0xiwr28r" path="res://Demo/levels/test_2d/generated_polygon.gd" id="6_ip6qp"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_wllwl"]
+font_size = 5
+
+[node name="GravityTesting" type="Node2D"]
+script = ExtResource("1_did7f")
+
+[node name="mrmooncastmouse" parent="." node_paths=PackedStringArray("node_camera") instance=ExtResource("3_wy8nu")]
+position = Vector2(-37, -48)
+legacy_enabled = false
+node_camera = NodePath("Cam")
+
+[node name="GravControl" type="Node" parent="mrmooncastmouse"]
+script = ExtResource("4_ip6qp")
+button_reset = &"cam_reset"
+button_left = &"cam_left"
+button_right = &"cam_right"
+button_up = &"cam_up"
+button_down = &"cam_down"
+button_cam_rotate_right = &"z"
+button_cam_rotate_left = &"x"
+metadata/_custom_type_script = "uid://baftbujqr3cl7"
+
+[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse" node_paths=PackedStringArray("onscreen_info_label")]
+script = ExtResource("5_xapeu")
+onscreen_info_label = NodePath("CanvasLayer/Label")
+button_enable_debug = &"x"
+button_scene_pause = &"y"
+button_scene_frame_advance = &"z"
+metadata/_custom_type_script = "uid://chxrofx7moh6c"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/MoonCastDebugMode"]
+
+[node name="Label" type="Label" parent="mrmooncastmouse/MoonCastDebugMode/CanvasLayer"]
+top_level = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -30.0
+offset_bottom = 8.0
+grow_horizontal = 0
+label_settings = SubResource("LabelSettings_wllwl")
+horizontal_alignment = 2
+
+[node name="Cam" type="Camera2D" parent="mrmooncastmouse"]
+limit_left = -256
+position_smoothing_speed = 20.0
+drag_vertical_enabled = true
+drag_bottom_margin = 0.1
+editor_draw_limits = true
+editor_draw_drag_margin = true
+
+[node name="CollisionLayer" type="TileMapLayer" parent="."]
+tile_map_data = PackedByteArray("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")
+tile_set = ExtResource("2_67dd8")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D"]
+position = Vector2(157, 0)
+polygon = PackedVector2Array(0, 0, 0, 0, 13.3594, -0.234375, 27.5801, -1.00195, 44.625, -2.625, 62.8418, -5.41992, 80.5781, -9.70312, 96.1816, -15.791, 108, -24, 116.166, -36.4629, 122.141, -53.7656, 126.264, -73.9043, 128.875, -94.875, 130.314, -114.674, 130.922, -131.297, 131, -147, 131, 0)
+script = ExtResource("6_ip6qp")
+slope_size = Vector2(131, -147)
+slope_middle = Vector2(108, -24)
+detail_level = 22.0
+
+[node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="StaticBody2D"]
+position = Vector2(-176, -131)
+rotation = 1.5708
+polygon = PackedVector2Array(0, 0, 0, 0, 13.3594, -0.234375, 27.5801, -1.00195, 44.625, -2.625, 62.8418, -5.41992, 80.5781, -9.70312, 96.1816, -15.791, 108, -24, 116.166, -36.4629, 122.141, -53.7656, 126.264, -73.9043, 128.875, -94.875, 130.314, -114.674, 130.922, -131.297, 131, -147, 131, 0)
+script = ExtResource("6_ip6qp")
+slope_size = Vector2(131, -147)
+slope_middle = Vector2(108, -24)
+detail_level = 22.0
+
+[node name="CollisionPolygon2D3" type="CollisionPolygon2D" parent="StaticBody2D"]
+position = Vector2(-45, -336)
+rotation = 3.14159
+polygon = PackedVector2Array(0, 0, 0, 0, 13.3594, -0.234375, 27.5801, -1.00195, 44.625, -2.625, 62.8418, -5.41992, 80.5781, -9.70312, 96.1816, -15.791, 108, -24, 116.166, -36.4629, 122.141, -53.7656, 126.264, -73.9043, 128.875, -94.875, 130.314, -114.674, 130.922, -131.297, 131, -147, 131, 0)
+script = ExtResource("6_ip6qp")
+slope_size = Vector2(131, -147)
+slope_middle = Vector2(108, -24)
+detail_level = 22.0
+
+[node name="CollisionPolygon2D4" type="CollisionPolygon2D" parent="StaticBody2D"]
+position = Vector2(288, -205)
+rotation = -1.5708
+polygon = PackedVector2Array(0, 0, 0, 0, 13.3594, -0.234375, 27.5801, -1.00195, 44.625, -2.625, 62.8418, -5.41992, 80.5781, -9.70312, 96.1816, -15.791, 108, -24, 116.166, -36.4629, 122.141, -53.7656, 126.264, -73.9043, 128.875, -94.875, 130.314, -114.674, 130.922, -131.297, 131, -147, 131, 0)
+script = ExtResource("6_ip6qp")
+slope_size = Vector2(131, -147)
+slope_middle = Vector2(108, -24)
+detail_level = 22.0

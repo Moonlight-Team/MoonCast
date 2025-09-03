@@ -421,13 +421,9 @@ func process_ground_slope(slope_mag:float, slope_dir:float) -> void:
 			
 			if not is_zero_approx(sin(ground_slope)):
 				if slope_dir > 0:
-					printt("SLOPE: UPHILL")
 					ground_velocity -= ground_slope_factor * sin(ground_slope)
 				elif slope_dir < 0: 
-					
 					ground_velocity += ground_slope_factor * sin(ground_slope)
-					
-					printt("SLOPE: DOWNHILL")
 				
 				#ground_velocity -= applied_slope
 
@@ -680,11 +676,22 @@ func process_fall_slip_checks(ground_detected:bool, slope_mag:float) -> SlopeTyp
 		return SlopeTypes.NONE
 
 func process_apply_jump(ground_dot:float, facing_dot:float) -> void:
+	#sqrt(1.0 - (x * x)) == sin(acos(x))
+	var cos_ground_angle:float = sqrt(1.0 - (ground_dot * ground_dot))
+	var acos_ground_angle:float = sin(acos(ground_dot))
 	
-	var jump_direction:Vector2 = Vector2.from_angle(acos(ground_dot))
+	assert(is_equal_approx(cos_ground_angle, acos_ground_angle))
 	
-	forward_velocity += (jump_direction.y * facing_dot) * jump_velocity
-	vertical_velocity += (jump_direction.x) * jump_velocity
+	if ground_dot > 0.5 and facing_dot > 0:
+		cos_ground_angle = -cos_ground_angle
+		print("sajfhksajfhakjl")
+	
+	
+	forward_velocity += jump_velocity * cos_ground_angle #* facing_dot
+	
+	printt("Jumpvel", jump_velocity * cos_ground_angle, jump_velocity * ground_dot, acos_ground_angle * jump_velocity)
+	
+	vertical_velocity += jump_velocity * ground_dot
 
 func assess_animations() -> void:
 	#rolling is rolling, whether the player is in the air or on the ground
