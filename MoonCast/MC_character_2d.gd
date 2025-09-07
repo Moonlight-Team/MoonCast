@@ -1456,6 +1456,12 @@ func refresh_collision_shapes(anim:MoonCastAnimation) -> void:
 
 ##MoonCast's custom implementation of [CharacterBody2D.move_and_slide].
 func mooncast_move_and_slide() -> void:
+	
+	for each_iter:int in 8:
+		
+		move_and_collide(acceleration_vector)
+		pass
+	
 	pass
 
 #endregion
@@ -2132,9 +2138,6 @@ func new_physics_process(delta:float) -> void:
 			activate_ability("state_ground")
 		else:
 			up_direction = gravity_up_direction
-			
-			
-
 			
 			if physics.is_jumping:
 				physics.process_apply_jump(ground_dot, facing_dot)

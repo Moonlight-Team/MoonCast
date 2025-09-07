@@ -97,7 +97,8 @@ func _ground_state_2D(player:MoonCastPlayer2D) -> void:
 
 func _post_physics(physics:MoonCastPhysicsTable) -> void:
 	if charging and physics.is_grounded:
-		physics.space_velocity = Vector3.ZERO
+		physics.forward_velocity = 0.0
+		#physics.ground_velocity = 0.0
 
 func _post_physics_2D(player:MoonCastPlayer2D) -> void:
 	if charging and player.is_grounded:
