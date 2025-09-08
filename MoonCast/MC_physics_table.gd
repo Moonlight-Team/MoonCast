@@ -576,6 +576,8 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		if slope_mag > 0:
 			is_grounded = true
 			
+			is_rolling = false
+			
 			#if the player is on a "steeper than flat" slope
 			if slope_mag < flat_thresh_dot:
 				if slope_mag <= 0.5: #steeper than 45 degrees, could be changed to use ground_fall_angle?

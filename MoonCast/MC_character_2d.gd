@@ -2139,6 +2139,8 @@ func new_physics_process(delta:float) -> void:
 		else:
 			up_direction = gravity_up_direction
 			
+			physics.process_apply_ground_velocity(ground_dot)
+			
 			if physics.is_jumping:
 				physics.process_apply_jump(ground_dot, facing_dot)
 				
