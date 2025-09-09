@@ -100,7 +100,7 @@ func collision_check(status:int, body_rid:RID, instance_id:int, body_shape_idx:i
 
 func collect() -> void:
 	set_notify_transform(false)
-	PhysicsServer2D.area_set_monitorable(area_rid, false)
+	PhysicsServer2D.call_deferred("area_set_monitorable", area_rid, false)
 	collected = true
 	queue_redraw()
 
