@@ -9,7 +9,7 @@
 [ext_resource type="Script" uid="uid://o84e4e42eqpa" path="res://Framework/objects/camera_pan_limiter.gd" id="8_a8hy1"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/global_objects/item_monitor/item_box.tscn" id="8_m2338"]
 [ext_resource type="Script" uid="uid://bsa36etineae1" path="res://Framework/objects/ring.gd" id="9_pafus"]
-[ext_resource type="SpriteFrames" uid="uid://csph0fs33wav5" path="res://Demo/player/classic_sonic/classic_sonic_spriteframes.tres" id="10_w75xg"]
+[ext_resource type="SpriteFrames" uid="uid://cuiacpqwkinmy" path="res://Demo/global_objects/ring/ring_frames.tres" id="10_w75xg"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_a8hy1"]
 font_size = 5
@@ -36,6 +36,7 @@ size = Vector2(144, 16)
 size = Vector2(128, 15.9672)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_pafus"]
+size = Vector2(16, 16)
 
 [node name="SakuraHill1" type="Node2D"]
 texture_filter = 1
@@ -78,8 +79,6 @@ label_settings = SubResource("LabelSettings_a8hy1")
 horizontal_alignment = 2
 
 [node name="Cam" type="Camera2D" parent="mrmooncastmouse"]
-limit_smoothed = true
-position_smoothing_enabled = true
 position_smoothing_speed = 20.0
 drag_vertical_enabled = true
 drag_bottom_margin = 0.1
@@ -161,67 +160,123 @@ tile_set = ExtResource("7_hbk0i")
 
 [node name="Entities" type="Node2D" parent="."]
 
-[node name="ItemBox1" parent="Entities" instance=ExtResource("8_m2338")]
+[node name="ItemBoxes" type="Node2D" parent="Entities"]
+
+[node name="ItemBox1" parent="Entities/ItemBoxes" instance=ExtResource("8_m2338")]
 position = Vector2(2800, -129)
 mode = 2
 
-[node name="ItemBox2" parent="Entities" instance=ExtResource("8_m2338")]
+[node name="ItemBox2" parent="Entities/ItemBoxes" instance=ExtResource("8_m2338")]
 position = Vector2(884, -96)
 mode = 2
 
-[node name="CameraBounds" type="VisibleOnScreenNotifier2D" parent="Entities" node_paths=PackedStringArray("target")]
+[node name="CameraCollision" type="Node2D" parent="Entities"]
+
+[node name="CameraBounds" type="VisibleOnScreenNotifier2D" parent="Entities/CameraCollision" node_paths=PackedStringArray("target")]
 position = Vector2(-278, 0)
 rect = Rect2(0, 0, 20, 20)
 script = ExtResource("8_a8hy1")
-target = NodePath("../../mrmooncastmouse/Cam")
+target = NodePath("../../../mrmooncastmouse/Cam")
 limit_y = false
 metadata/_custom_type_script = "uid://o84e4e42eqpa"
 
-[node name="CameraBounds2" type="VisibleOnScreenNotifier2D" parent="Entities" node_paths=PackedStringArray("target")]
+[node name="CameraBounds2" type="VisibleOnScreenNotifier2D" parent="Entities/CameraCollision" node_paths=PackedStringArray("target")]
 position = Vector2(152, 112)
 scale = Vector2(4.09, 1)
 rect = Rect2(0, 0, 200, 20)
 script = ExtResource("8_a8hy1")
-target = NodePath("../../mrmooncastmouse/Cam")
+target = NodePath("../../../mrmooncastmouse/Cam")
 limit_x = false
 metadata/_custom_type_script = "uid://o84e4e42eqpa"
 
-[node name="CameraBounds3" type="VisibleOnScreenNotifier2D" parent="Entities" node_paths=PackedStringArray("target")]
+[node name="CameraBounds3" type="VisibleOnScreenNotifier2D" parent="Entities/CameraCollision" node_paths=PackedStringArray("target")]
 process_mode = 4
 position = Vector2(2002, 288)
 scale = Vector2(1.695, 1)
 rect = Rect2(0, 0, 200, 20)
 script = ExtResource("8_a8hy1")
-target = NodePath("../../mrmooncastmouse/Cam")
+target = NodePath("../../../mrmooncastmouse/Cam")
 limit_x = false
 metadata/_custom_type_script = "uid://o84e4e42eqpa"
 
-[node name="CameraBounds5" type="VisibleOnScreenNotifier2D" parent="Entities" node_paths=PackedStringArray("target")]
+[node name="CameraBounds5" type="VisibleOnScreenNotifier2D" parent="Entities/CameraCollision" node_paths=PackedStringArray("target")]
 position = Vector2(1209, -40)
 scale = Vector2(0.39, 1)
 rect = Rect2(0, 0, 200, 20)
 script = ExtResource("8_a8hy1")
-target = NodePath("../../mrmooncastmouse/Cam")
+target = NodePath("../../../mrmooncastmouse/Cam")
 limit_x = false
 metadata/_custom_type_script = "uid://o84e4e42eqpa"
 
-[node name="CameraBounds4" type="VisibleOnScreenNotifier2D" parent="Entities" node_paths=PackedStringArray("target")]
+[node name="CameraBounds4" type="VisibleOnScreenNotifier2D" parent="Entities/CameraCollision" node_paths=PackedStringArray("target")]
 position = Vector2(3472, 128)
 scale = Vector2(4.09, 1)
 rect = Rect2(0, 0, 200, 20)
 script = ExtResource("8_a8hy1")
-target = NodePath("../../mrmooncastmouse/Cam")
+target = NodePath("../../../mrmooncastmouse/Cam")
 limit_x = false
 metadata/_custom_type_script = "uid://o84e4e42eqpa"
 
-[node name="Ring2D" type="Node2D" parent="Entities"]
-position = Vector2(225, -10)
+[node name="Rings" type="Node2D" parent="Entities"]
+
+[node name="Ring2D" type="Node2D" parent="Entities/Rings"]
+position = Vector2(384, 40)
 script = ExtResource("9_pafus")
 animation_sheet = ExtResource("10_w75xg")
-animation_offset = Vector2(-24, -28)
-animation_normal_name = &"drop_dash"
+animation_offset = Vector2(-8, -8)
 collision_shape = SubResource("RectangleShape2D_pafus")
-collision_debug_color = Color(0.686275, 0.788235, 0, 0.423529)
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D2" type="Node2D" parent="Entities/Rings"]
+position = Vector2(784, -228)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D3" type="Node2D" parent="Entities/Rings"]
+position = Vector2(784, -248)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D4" type="Node2D" parent="Entities/Rings"]
+position = Vector2(432, 40)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D5" type="Node2D" parent="Entities/Rings"]
+position = Vector2(784, -208)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D6" type="Node2D" parent="Entities/Rings"]
+position = Vector2(408, 40)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
 metadata/_custom_type_script = "uid://bsa36etineae1"
 
 [node name="Enemies" type="Node2D" parent="."]

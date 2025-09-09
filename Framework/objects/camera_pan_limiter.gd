@@ -27,7 +27,6 @@ func _ready() -> void:
 #here could end up being very messy. So this node only works with "snapped" values, and then if you want 
 #smooth transitions, turn on position smoothing on the Camera2D itself
 
-
 func set_bounds() -> void:
 	if limit_x and not is_equal_approx(target.global_position.x, global_position.x):
 		if target.global_position.x > global_position.x:
