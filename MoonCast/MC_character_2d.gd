@@ -210,23 +210,18 @@ var flat_input_dir:Vector2:
 var slope_input_dir:Vector2
 ##The direction the player is facing in space relative to [member gravity_angle]. This value cannot be 
 ##changed by the player unless the player is not moving, because it is used to determine acceleration/deceleration.
-var flat_facing_dir:Vector2 = anim_default_forward:
-	set(new_dir):
-		flat_facing_dir = new_dir
-		
-		facing_behind = anim_default_forward.rotated(gravity_angle).dot(new_dir) < 0
+var flat_facing_dir:Vector2 = anim_default_forward
 ##The direction the player is facing in space relative to [member ground_angle].
 ##For example, this vector would be pointing up if they are running up a wall, and down if they are
 ##running down a wall.
 var slope_facing_dir:Vector2 = anim_default_forward
 
+var visual_facing_dir:Vector2 = anim_default_forward
+
 var gravity_angle:float
 
 ##This is a string record used for recording events that happen during a physics frame, for usage in live debug info.
 var frame_log:String
-
-##True if the player is facing the opposite direction to their [member anim_default_forward] direction.
-var facing_behind:bool
 
 ##The direction the player is slipping in. If this value is 1.0, for example, 
 ##the player is slipping left (slope is on the right).
@@ -1028,7 +1023,7 @@ func land_on_ground() -> void:
 	#Transfer space_velocity to ground_velocity
 	
 	#TODO: Make this a configurable variable, ofc
-	const flat_ground_threshold:float = 1.0 - (23.0 / 90.0)
+	#const flat_ground_threshold:float = 1.0 - (23.0 / 90.0)
 	
 	#landing code for normal ground
 	if ground_dot > 0.1:
@@ -1565,10 +1560,10 @@ func new_update_animations() -> void:
 			if not physics.is_moving:
 				if not ray_ground_left.is_colliding():
 					#face the ledge
-					flat_facing_dir = Vector2.LEFT.rotated(gravity_angle)
+					visual_facing_dir = Vector2.LEFT.rotated(gravity_angle)
 				elif not ray_ground_right.is_colliding():
 					#face the ledge
-					flat_facing_dir = Vector2.RIGHT.rotated(gravity_angle)
+					visual_facing_dir = Vector2.RIGHT.rotated(gravity_angle)
 			
 			if has_animation(anim_balance):
 				play_animation(anim_balance)
@@ -1587,7 +1582,6 @@ func new_update_animations() -> void:
 			play_animation(anim_crouch)
 		MoonCastPhysicsTable.AnimationTypes.PUSH:
 			play_animation(anim_push)
-		
 		_:
 			push_warning("Implement anim ", physics.current_animation)
 	
@@ -1734,7 +1728,7 @@ func sprites_set_rotation(new_rotation:float, also_flip:bool = true) -> void:
 		if legacy_enabled:
 			flat_facing_dir = Vector2(facing_direction, 0.0).rotated(gravity_angle)
 		
-		sprites_flipped = anim_default_forward.rotated(gravity_angle).dot(flat_facing_dir) < 0
+		sprites_flipped = anim_default_forward.rotated(gravity_angle).dot(visual_facing_dir) < 0
 	
 	if is_instance_valid(node_sprite_2d):
 		node_sprite_2d.global_rotation = sprite_rotation
@@ -1991,7 +1985,10 @@ func new_physics_process(delta:float) -> void:
 		flat_facing_dir = flat_input_dir
 	
 	if physics.is_grounded:
-		slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle) 
+		slope_facing_dir = flat_facing_dir.rotated(relative_ground_angle)
+		
+		visual_facing_dir = flat_facing_dir
+		
 		facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
 		
 		if force_downhill:
@@ -2008,6 +2005,7 @@ func new_physics_process(delta:float) -> void:
 		velocity_dot = acceleration_vector.dot(slope_input_dir)
 	else:
 		slope_facing_dir = flat_facing_dir
+		visual_facing_dir = flat_input_dir
 		facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
 		
 		append_frame_log("AccVec: Air, accvec faces flat facing dir")

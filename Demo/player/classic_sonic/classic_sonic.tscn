@@ -32,6 +32,7 @@ ground_slope_factor = 0.125
 ground_speed_cap = 16.0
 air_custom_gravity = true
 air_top_speed = 6.0
+air_min_speed = 0.2
 air_acceleration = 0.1
 air_drag_effect = 0.031
 air_gravity_strength = 0.21875
@@ -353,6 +354,7 @@ anim_jump = SubResource("Resource_0wcwc")
 anim_free_fall = SubResource("Resource_0bvxg")
 anim_death = SubResource("Resource_irmiy")
 metadata/_custom_type_script = "uid://m3d0vyonycar"
+metadata/is_player = true
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 show_behind_parent = true

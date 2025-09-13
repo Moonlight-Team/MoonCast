@@ -6,9 +6,9 @@
 [ext_resource type="AudioStream" uid="uid://bsyrudqmb1xps" path="res://Demo/audio/Music/2DStage.ogg" id="5_867ew"]
 [ext_resource type="PackedScene" uid="uid://c5or4rx5y00el" path="res://Demo/levels/demo_2d/2d_background.tscn" id="6_762on"]
 [ext_resource type="TileSet" uid="uid://ci6t4vh0uto8w" path="res://Demo/levels/demo_2d/demo_zone_tiles.tres" id="7_hbk0i"]
-[ext_resource type="Script" uid="uid://o84e4e42eqpa" path="res://Framework/objects/camera_pan_limiter.gd" id="8_a8hy1"]
+[ext_resource type="Script" uid="uid://o84e4e42eqpa" path="res://Framework/2Dobjects/camera_pan_limiter.gd" id="8_a8hy1"]
 [ext_resource type="PackedScene" uid="uid://dhod8w1bksikc" path="res://Demo/global_objects/item_monitor/item_box.tscn" id="8_m2338"]
-[ext_resource type="Script" uid="uid://bsa36etineae1" path="res://Framework/objects/ring.gd" id="9_pafus"]
+[ext_resource type="Script" uid="uid://bsa36etineae1" path="res://Framework/2Dobjects/ring.gd" id="9_pafus"]
 [ext_resource type="SpriteFrames" uid="uid://cuiacpqwkinmy" path="res://Demo/global_objects/ring/ring_frames.tres" id="10_w75xg"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_a8hy1"]
@@ -167,7 +167,7 @@ position = Vector2(2800, -129)
 mode = 2
 
 [node name="ItemBox2" parent="Entities/ItemBoxes" instance=ExtResource("8_m2338")]
-position = Vector2(884, -96)
+position = Vector2(884, -93)
 mode = 2
 
 [node name="CameraCollision" type="Node2D" parent="Entities"]
@@ -271,6 +271,96 @@ metadata/_custom_type_script = "uid://bsa36etineae1"
 
 [node name="Ring2D6" type="Node2D" parent="Entities/Rings"]
 position = Vector2(408, 40)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D8" type="Node2D" parent="Entities/Rings"]
+position = Vector2(1751, -144)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D7" type="Node2D" parent="Entities/Rings"]
+position = Vector2(1625, -144)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D9" type="Node2D" parent="Entities/Rings"]
+position = Vector2(1650, -144)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D10" type="Node2D" parent="Entities/Rings"]
+position = Vector2(1675, -144)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D11" type="Node2D" parent="Entities/Rings"]
+position = Vector2(1701, -144)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D12" type="Node2D" parent="Entities/Rings"]
+position = Vector2(1726, -144)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D13" type="Node2D" parent="Entities/Rings"]
+position = Vector2(4224, -568)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D14" type="Node2D" parent="Entities/Rings"]
+position = Vector2(4256, -568)
+script = ExtResource("9_pafus")
+animation_sheet = ExtResource("10_w75xg")
+animation_offset = Vector2(-8, -8)
+collision_shape = SubResource("RectangleShape2D_pafus")
+collision_layer = 16
+collision_debug_color = Color(0.68619, 0.788139, 7.70092e-07, 0.423529)
+metadata/_custom_type_script = "uid://bsa36etineae1"
+
+[node name="Ring2D15" type="Node2D" parent="Entities/Rings"]
+position = Vector2(4193, -568)
 script = ExtResource("9_pafus")
 animation_sheet = ExtResource("10_w75xg")
 animation_offset = Vector2(-8, -8)

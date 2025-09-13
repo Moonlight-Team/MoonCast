@@ -15,19 +15,21 @@ texture_filter = 1
 script = ExtResource("1_yd0n6")
 
 [node name="DetectionArea" type="CollisionShape2D" parent="."]
-position = Vector2(0, 3.5)
+position = Vector2(0, 0.5)
 shape = SubResource("CircleShape2D_iybcx")
 
 [node name="CollisionArea" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionArea"]
-position = Vector2(0, 3.5)
+position = Vector2(0, 0.5)
 rotation = -3.14159
 shape = SubResource("RectangleShape2D_jho4s")
 debug_color = Color(1, 1, 1, 0.321569)
 
 [node name="Box" type="Sprite2D" parent="."]
+position = Vector2(0, -3)
 texture = ExtResource("2_7qcly")
 
 [node name="ItemType" type="Sprite2D" parent="."]
+position = Vector2(0, -3)
 texture = ExtResource("3_qwmmx")

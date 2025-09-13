@@ -59,6 +59,8 @@ class_name Ring2D
 		collision_debug_color = new_color
 		queue_redraw()
 
+static var collection_db:Dictionary[int, int] = {}
+
 var collected:bool = false
 
 var area_rid:RID
@@ -91,14 +93,22 @@ func _notification(what: int) -> void:
 			if Engine.is_editor_hint() or (is_visible_in_tree() and get_tree().debug_collisions_hint):
 				collision_shape.draw(get_canvas_item(), collision_debug_color)
 
-func collision_check(status:int, body_rid:RID, instance_id:int, body_shape_idx:int, _self_shape_idx:int) -> void:
+func collision_check(status:int, _body_rid:RID, instance_id:int, _body_shape_idx:int, _self_shape_idx:int) -> void:
 	
 	if status == PhysicsServer2D.AREA_BODY_ADDED:
-		#TODO: Specifically check for the player
+		var colliding_object:Object = instance_from_id(instance_id)
 		
-		collect()
+		#This could be changed to any particular check you would want to make for the player here
+		if colliding_object is MoonCastPlayer2D:
+			collect(instance_id)
 
-func collect() -> void:
+func collect(instance_id:int) -> void:
+	var collected_count:int = collection_db.get_or_add(instance_id, 0)
+	
+	collected_count += 1
+	
+	collection_db[instance_id] = collected_count
+	
 	set_notify_transform(false)
 	PhysicsServer2D.call_deferred("area_set_monitorable", area_rid, false)
 	collected = true

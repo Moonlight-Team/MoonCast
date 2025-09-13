@@ -1,4 +1,4 @@
-extends MoonCastEntity2D
+extends Area2D
 
 class_name LayerSwitcher
 
@@ -7,6 +7,8 @@ class_name LayerSwitcher
 @export_flags_2d_physics var layer_b:int
 
 @export_enum("Set Layer A", "Set Layer B", "Toggle") var mode:int
+
+
 
 func _on_player_contact(player:MoonCastPlayer2D) -> void:
 	match mode:

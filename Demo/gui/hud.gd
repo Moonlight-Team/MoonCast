@@ -41,5 +41,9 @@ func _physics_process(delta: float) -> void:
 		sec_accum = 0.0
 	
 	if is_instance_valid(valid_player_node):
+		if valid_player_node is MoonCastPlayer2D:
+			var ring_count:int = Ring2D.collection_db[valid_player_node.get_instance_id()]
+			
+			rings_label.text = str(ring_count)
+		
 		#show perf and debug out
-		pass

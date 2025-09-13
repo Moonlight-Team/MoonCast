@@ -50,6 +50,9 @@ func _air_state(physics:MoonCastPhysicsTable) -> void:
 		can_charge = false
 		charged = false
 
+func _ground_contact(physics:MoonCastPhysicsTable) -> void:
+	pass
+
 func _air_state_2D(player:MoonCastPlayer2D) -> void:
 	if can_charge:
 		var charge_held:bool = Input.is_action_pressed(charge_button)
@@ -75,7 +78,6 @@ func _air_state_2D(player:MoonCastPlayer2D) -> void:
 
 func _air_state_3D(player:MoonCastPlayer3D) -> void:
 	pass
-
 
 func _ground_contact_2D(player:MoonCastPlayer2D) -> void:
 	if charged:

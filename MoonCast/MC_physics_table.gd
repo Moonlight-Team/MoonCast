@@ -567,7 +567,7 @@ func process_landing(ground_detected:bool, slope_mag:float) -> void:
 		
 		#landing code based somewhat on Harmony Framework
 		
-		var slope_type:SlopeTypes = calculate_slope_type(slope_mag)
+		#var slope_type:SlopeTypes = calculate_slope_type(slope_mag)
 		
 		var abs_forward:float = absf(forward_velocity)
 		var abs_vertical:float = absf(vertical_velocity)
@@ -701,7 +701,7 @@ func assess_animations() -> void:
 		current_animation = AnimationTypes.ROLL
 	elif is_grounded:
 		if is_pushing:
-			AnimationTypes.PUSH
+			current_animation = AnimationTypes.PUSH
 		elif not is_zero_approx(ground_velocity) or is_slipping:
 			current_animation = AnimationTypes.RUN
 		else: #standing still
