@@ -13,6 +13,10 @@ class_name MoonCastPlayer3D
 @export var space_scale:float = 2.0
 ##The forward direction the model of the player faces when loaded in.
 @export var model_forward_direction:Vector3 = Vector3.FORWARD
+##If enabled, turning will be slower at higher speeds, allowing for better control.
+@export var turn_speed_tuning:bool = true
+##The rate at which the player can turn on the groun
+@export var turn_adjustment_speed:float = 0.1
 
 @export_group("Rotation", "rotation_")
 ##The default "forward" axis. This should be forward for your model and camera.
@@ -27,7 +31,7 @@ class_name MoonCastPlayer3D
 ##If true, classic rotation snapping will be used, for a more "Genesis" feel.
 ##Otherwise, rotation operates smoothly, like in Sonic Mania. This is purely aesthetic.
 @export var rotation_classic_snap:bool = false
-##The amount per frame, in radians, at which the player's rotation will adjust to 
+##The amount per frame, in radians, at which the player's visual rotation will adjust to 
 ##new angles, such as how fast it will move back to 0 when airborne or how fast it 
 ##will adjust to slopes.
 @export_range(0.0, 1.0) var rotation_adjustment_speed:float = 0.2
@@ -126,6 +130,7 @@ var slope_facing_dir:Vector3
 var flat_input_dir:Vector3
 var flat_facing_dir:Vector3
 
+var facing_angle:float = 0.0
 
 var acceleration_vector:Vector3
 
@@ -140,12 +145,15 @@ var ground_normal:Vector3 = gravity_up_direction:
 		slope_dot = new_normal.dot(gravity_up_direction)
 		ground_angle = acos(slope_dot)
 
+var relative_ground_angle:float
+
 var ground_angle:float
 ##The dot product between [member ground_normal] and [member gravity_up_direction]; 
 ##Positive if the ground is normal, negative if the ground is a ceiling, and approximately 
 ##0 if the ground is a wall.
 var slope_dot:float
-
+##This measures the change in the player's input compared to their current velocity, which is used to detect turn deceleration, 
+##skidding/air deceleration, etc.
 var velocity_dot:float
 
 var facing_dot:float
@@ -154,7 +162,7 @@ var wall_dot:float
 
 var push_dot:float
 
-
+var force_downhill:bool
 
 ##The names of all the abilities of this character.
 var abilities:Array[StringName]
@@ -971,79 +979,63 @@ func new_physics_process(delta: float) -> void:
 	#append_frame_log("Cam move dot: " + readable_float(cam_move_dot))
 	
 	var input_angle:float = atan2(camera_input_direction.x, camera_input_direction.z)
-	var facing_angle:float
+	
+	#If you were to place a hinge on the ground pointing directly uphill, this would be the way the pin points
 	var hinge_axis: Vector3 = gravity_up_direction.cross(ground_normal).normalized()
 	
 	append_frame_log("Input angle: " + readable_float(input_angle))
 	
-	#flat_input_dir = Quaternion(gravity_up_direction, input_angle).get_euler(EULER_ORDER_ZXY)
-	#slope_input_dir = Quaternion(ground_normal, input_angle).get_euler(EULER_ORDER_ZXY)
-	
-	flat_input_dir = Vector3.BACK.rotated(gravity_up_direction, input_angle)
-	
-	slope_input_dir = Vector3.BACK.rotated(ground_normal, input_angle)
-	
-	#This measures the change in the player's input compared to their current velocity, which is used to detect turn deceleration, 
-	#skidding/air deceleration, etc.
-	velocity_dot = camera_input_direction.dot(acceleration_vector.normalized())
-	
-	#TODO: Optimize these checks, a lot of redundant checks happening here
 	if has_input:
+		flat_input_dir = Vector3.BACK.rotated(gravity_up_direction, input_angle).normalized()
+		
 		if physics.is_grounded:
-			if not physics.is_moving:
-				flat_facing_dir = flat_input_dir
+			slope_input_dir = Vector3.BACK.rotated(ground_normal, input_angle).normalized()
+			velocity_dot = acceleration_vector.dot(slope_input_dir)
 		else:
-			if physics.forward_velocity < physics.ground_min_speed:
-				flat_facing_dir = flat_input_dir
+			slope_input_dir = flat_input_dir
+			velocity_dot = acceleration_vector.dot(flat_input_dir)
+		
+		if velocity_dot > 0 or (not physics.is_moving if physics.is_grounded else physics.forward_velocity < physics.air_min_speed):
+			
+			#allow user to change facing direction when they aren't moving or are facing in the same general direction of their current velocity
+			flat_facing_dir = flat_input_dir
 	
-	if not hinge_axis.is_zero_approx() and physics.is_grounded:
-		slope_facing_dir = flat_facing_dir.rotated(hinge_axis, ground_angle)
-	
-	facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
+	#flat_facing_dir = Vector3.BACK.rotated(gravity_up_direction, facing_angle)
 	
 	if physics.is_grounded:
-		if not physics.is_moving:
-			if has_input:
-				acceleration_vector = slope_input_dir
-				
-				model_rotate_ground(hinge_axis, ground_angle)
+		#TODO: Properly calculate relative_ground_angle
+		relative_ground_angle = ground_angle
+		#TODO: Make sure this works
+		slope_facing_dir = flat_facing_dir.rotated(hinge_axis, relative_ground_angle)
+		
+		#visual_facing_dir = flat_facing_dir
+		
+		facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
+		
+		if force_downhill:
+			if facing_dot > 0:
+				append_frame_log("AccVec: Pointed uphill, forcing downhill")
+				acceleration_vector = -slope_facing_dir
 			else:
-				if not is_zero_approx(ground_angle):
-					#make the acceleration vector point downhill
-					if facing_dot < 0:
-						acceleration_vector = flat_facing_dir
-					else:
-						acceleration_vector = -flat_facing_dir
-				
-				model_rotate_ground(hinge_axis, ground_angle)
+				append_frame_log("AccVec: Pointed downhill, forced downhill")
+				acceleration_vector = slope_facing_dir
 		else:
+			append_frame_log("AccVec: Ground, accvec faces slope facing dir")
 			acceleration_vector = slope_facing_dir
-			
-			model_rotate_ground(hinge_axis, ground_angle)
+		
+		model_rotate_ground(hinge_axis, ground_angle)
 		
 		velocity_dot = acceleration_vector.dot(slope_input_dir)
 	else:
-		if has_input and physics.forward_velocity < physics.ground_min_speed:
-			acceleration_vector = flat_input_dir
-		else:
-			acceleration_vector = flat_facing_dir
+		slope_facing_dir = flat_facing_dir
+		#visual_facing_dir = flat_input_dir
+		facing_dot = signf(slope_facing_dir.dot(gravity_up_direction))
 		
-		#sprites_set_rotation(gravity_angle)
+		append_frame_log("AccVec: Air, accvec faces flat facing dir")
+		
+		acceleration_vector = flat_facing_dir
 		
 		velocity_dot = acceleration_vector.dot(flat_input_dir)
-	
-	
-	if has_input and not camera_input_direction.is_zero_approx():
-		acceleration_vector = camera_input_direction
-		facing_angle = input_angle
-		
-		flat_facing_dir = Quaternion(gravity_up_direction, facing_angle).get_euler()
-		acceleration_vector = Quaternion(ground_normal, facing_angle).get_euler()
-	else:
-		facing_angle = atan2(acceleration_vector.x, acceleration_vector.z)
-	
-	
-	acceleration_vector = slope_input_dir
 	
 	append_frame_log("Accel dir " + readable_vector3(acceleration_vector))
 	append_frame_log("Flat facing dir " + readable_vector3(flat_facing_dir))
@@ -1060,11 +1052,9 @@ func new_physics_process(delta: float) -> void:
 	#calculate rotations
 	
 	if current_anim.can_turn_vertically:
-		# Find the localized "x" axis by getting the cross product between the gravity and slope vectors.
-		#this creates a vector that points out from the plane created by these, eg. where the "hinge" for ground alignment would be.
-		
 		if not hinge_axis.is_zero_approx():
 			node_anim_model.basis = Basis(Quaternion(hinge_axis, ground_angle))
+			model_rotate_ground(hinge_axis, ground_angle)
 		else:
 			# Floor normal and up vector are the same (flat ground)
 			node_anim_model.basis.x = Vector3.ZERO
@@ -1073,6 +1063,13 @@ func new_physics_process(delta: float) -> void:
 	if current_anim.can_turn_horizontal:
 		#TODO: Turn delay
 		var model_basis:Basis = node_anim_model.basis
+		
+		var speed:float = physics.ground_velocity if physics.is_grounded else physics.forward_velocity
+		#var turn_speed: float = clampf(1.0 - (physics.ground_velocity / physics.absolute_speed_cap.x) * physics.control_3d_turn_speed, 0.05, 1.0)
+		var turn_speed: float = clampf(1.0 - (speed / physics.absolute_speed_cap.x) * turn_adjustment_speed, 0.05, 1.0)
+		
+		facing_angle = lerp_angle(facing_angle, input_angle, turn_adjustment_speed)
+		#facing_angle = lerp_angle(facing_angle, input_angle, turn_speed)
 		
 		if physics.is_grounded:
 			model_basis = model_basis.rotated(ground_normal, facing_angle)
@@ -1084,10 +1081,8 @@ func new_physics_process(delta: float) -> void:
 	if has_input:
 		node_anim_model.global_rotation = node_anim_model.global_rotation.slerp(acceleration_vector, 0.01)
 	
-	
 	append_frame_log("Input: " + str(raw_input_vec2.snappedf(0.01)))
 	append_frame_log("Camera-localized Input: " + readable_vector3(camera_input_direction))
-	
 	
 	if physics.is_grounded:
 		#STEP 1: Check for crouching, balancing, etc.

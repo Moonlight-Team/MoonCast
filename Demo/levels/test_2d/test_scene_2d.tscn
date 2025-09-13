@@ -1,6 +1,6 @@
 [gd_scene load_steps=31 format=3 uid="uid://l6j7c0hm73c"]
 
-[ext_resource type="Script" uid="uid://dsi6e0xiwr28r" path="res://Demo/levels/test_2d/generated_polygon.gd" id="1_cngma"]
+[ext_resource type="Script" path="res://Demo/levels/test_2d/generated_polygon.gd" id="1_cngma"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_cngma"]
 [ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="3_yu4ht"]
 [ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/gui/dream.png" id="7_2q626"]
