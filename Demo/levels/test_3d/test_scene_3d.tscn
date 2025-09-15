@@ -1,7 +1,7 @@
 [gd_scene load_steps=59 format=4 uid="uid://cevdou1y8kc5k"]
 
 [ext_resource type="AudioStream" uid="uid://dn1rok6xv488k" path="res://Demo/audio/Music/3Dstage.ogg" id="1_3m87s"]
-[ext_resource type="PackedScene" uid="uid://b77028pqpk7il" path="res://Demo/player/mooncast_sonic_3d/player_3d.tscn" id="1_73jpb"]
+[ext_resource type="PackedScene" uid="uid://krbtabmdteja" path="res://Demo/player/mooncast_sonic_3d/player_3d.tscn" id="1_73jpb"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="4_m8sid"]
 [ext_resource type="Texture2D" uid="uid://beba5e0x6inxn" path="res://Demo/levels/test_3d/3DtestLevel/Textures/4435f9ba.png" id="5_3m87s"]
 [ext_resource type="Texture2D" uid="uid://b8sjw50jqxtyq" path="res://Demo/levels/test_3d/3DtestLevel/Textures/5a67bd19.png" id="6_1pam8"]

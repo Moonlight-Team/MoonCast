@@ -337,8 +337,9 @@ func set_air_state() -> void:
 
 func update_ground_actions(jump_pressed:bool, roll_pressed:bool, move_pressed:bool) -> void:
 	if roll_pressed:
-		if control_roll_enabled and abs_ground_velocity > rolling_min_speed:
-			if (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
+		
+		if abs_ground_velocity > rolling_min_speed:
+			if control_roll_enabled and (not move_pressed and control_roll_move_lock) or (not control_roll_move_lock):
 				is_rolling = true
 			
 			is_crouching = false
