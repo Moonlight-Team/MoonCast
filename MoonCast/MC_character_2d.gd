@@ -1459,6 +1459,9 @@ func mooncast_move_and_slide() -> void:
 	
 	pass
 
+func apply_delta(old_value:float, new_value:float, delta_mult:float) -> float:
+	return old_value + ((new_value - old_value) * delta_mult)
+
 #endregion
 #region Sprite/Animation processing
 func legacy_update_animations() -> void:
@@ -1831,6 +1834,8 @@ func _notification(what: int) -> void:
 			#scan for children. This can happen even in the editor.
 			scan_children()
 			
+			physics.reset()
+			
 			#everything past here should NOT happen in the editor
 			if Engine.is_editor_hint():
 				notify_property_list_changed()
@@ -1963,6 +1968,7 @@ func new_physics_process(delta:float) -> void:
 	physics.frame_log = ""
 	
 	var extern_adjust:float = physics_adjust * space_scale
+	var delta_mult:float = delta * 60 #we target 60fps
 	
 	#reset this flag specifically
 	animation_set = false
@@ -2046,6 +2052,8 @@ func new_physics_process(delta:float) -> void:
 	elif physics.is_grounded:
 		physics.tick_down_timers(delta)
 		
+		var old_ground_velocity:float = physics.ground_velocity
+		
 		#STEP 1: Check for crouching, balancing, etc.
 		physics.update_ground_actions(jump_pressed, crouch_pressed, has_input)
 		
@@ -2104,6 +2112,8 @@ func new_physics_process(delta:float) -> void:
 		append_frame_log("Forward vel " + readable_float(physics.forward_velocity))
 		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
 		
+		physics.ground_velocity = apply_delta(old_ground_velocity, physics.ground_velocity, delta_mult)
+		
 		var move_vector:Vector2 = acceleration_vector * physics.ground_velocity
 		
 		append_frame_log("Move dir " + readable_vector2(move_vector))
@@ -2118,6 +2128,7 @@ func new_physics_process(delta:float) -> void:
 		#var return_vel:Vector2 = velocity.rotated(gravity_angle)
 		#physics.forward_velocity = absf(return_vel.x) / extern_adjust
 		#physics.vertical_velocity = -return_vel.y / extern_adjust
+		#physics.ground_velocity = (absf(return_vel.x) + -return_vel.y) / extern_adjust
 		
 		#STEP 11: Check ground angles
 		
@@ -2164,6 +2175,9 @@ func new_physics_process(delta:float) -> void:
 	
 	else: #not grounded
 		#STEP 1: check for jump button release
+		var old_forward_velocity:float = physics.forward_velocity
+		var old_vertical_velocity:float = physics.vertical_velocity
+		
 		physics.update_air_actions(jump_pressed, crouch_pressed, has_input)
 		
 		append_frame_log("Jumping: " + str(physics.is_jumping))
@@ -2180,6 +2194,9 @@ func new_physics_process(delta:float) -> void:
 		append_frame_log("Vertical vel " + readable_float(physics.vertical_velocity))
 		
 		#STEP 5: Move the player
+		#TODO: Make this work better. Works perfectly for ground_velocity, not quite here though
+		physics.forward_velocity = apply_delta(old_forward_velocity, physics.forward_velocity, delta_mult)
+		physics.vertical_velocity = apply_delta(old_vertical_velocity, physics.vertical_velocity, delta_mult)
 		
 		var gravity_force:Vector2 = gravity_up_direction * physics.vertical_velocity
 		var acceleration_force:Vector2 = acceleration_vector * physics.forward_velocity

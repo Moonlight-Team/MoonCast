@@ -143,7 +143,6 @@ script = ExtResource("1_cngma")
 slope_size = Vector2(34, -4)
 slope_middle = Vector2(8, -11)
 detail_level = 3.0
-metadata/_custom_type_script = "uid://dsi6e0xiwr28r"
 
 [node name="Path2D" type="Path2D" parent="Static Layout/Floor"]
 position = Vector2(-1099.47, -135.528)

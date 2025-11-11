@@ -1079,6 +1079,8 @@ func new_physics_process(delta: float) -> void:
 		
 		move_and_slide()
 		
+		var return_velocity:Vector3 = velocity.rotated(ground_normal, facing_angle)
+		
 		#physics.forward_velocity = absf(velocity.z) / space_scale
 		#physics.vertical_velocity = velocity.y / space_scale
 		

@@ -36,7 +36,7 @@ enum AnimationTypes {
 enum SlopeTypes {
 	##There is no ground in this context.
 	NONE,
-	##The ground is flat.
+	##The ground is flat, or a very slight incline with no influence.
 	FLAT,
 	##The ground has enough of an incline to not be large, but not a large enough one to be slippery.
 	SHALLOW,
@@ -229,13 +229,13 @@ var can_be_attacking:bool = true
 ##to be the ground.
 ##A signal is emitted whenever this value is changed;
 ##contact_air when false, and contact_ground when true
-var is_grounded:bool
+var is_grounded:bool = false
 ##If true, the player is moving. This means [member ground_velocity] is greater than [member ground_min_speed].
-var is_moving:bool
+var is_moving:bool = false
 ##If true, the player is rolling.
-var is_rolling:bool
+var is_rolling:bool = false
 ##If true, the player is crouching.
-var is_crouching:bool
+var is_crouching:bool = false
 ##If true, the player is balacing on the edge of a platform.
 ##This causes certain core abilities to be disabled.
 var is_balancing:bool = false
@@ -280,6 +280,12 @@ func cache_calculations() -> void:
 	slip_dot = 1.0 - (ground_slip_angle / PI)
 	flat_thresh_dot = 1.0 - (ground_flat_threshold / PI)
 
+##Reset the physics state.
+func reset() -> void:
+	ground_velocity = 0.0
+	current_animation = AnimationTypes.STAND
+	pass
+
 ##Set up physics value monitors for this PhysicsTable, under the category of
 ##[param name] in the Performance Monitors debugger tab.
 func setup_performance_monitors(name:StringName) -> void:
@@ -300,7 +306,6 @@ func cleanup_performance_monitors() -> void:
 
 func append_frame_log(message:String) -> void:
 	frame_log += message + "\n"
-	pass
 
 func readable_float(num:float) -> String:
 	return str(snappedf(num, 0.01))
