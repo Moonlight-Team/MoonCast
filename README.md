@@ -6,6 +6,8 @@
 
 #### DISCLAIMER: THIS SOFTWARE IS IN A PRE-RELEASE STATE AND IS SUBJECT TO POTENTIALLY LARGE AND BACKWARDS COMPATIBILITY BREAKING CHANGES DURING DEVELOPMENT
 
+[Discord Server](https://discord.gg/EdVgkaaxzH)
+
 ## Features:
 * Seperate physics state implemented as a custom Resource type for easily making customized player node implementations.
 * Pre-made 2D and 3D player node types:
