@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Demo/levels/test_2d/generated_polygon.gd" id="1_cngma"]
 [ext_resource type="Script" uid="uid://chxrofx7moh6c" path="res://Framework/abilities/debug_mode.gd" id="3_cngma"]
-[ext_resource type="PackedScene" uid="uid://x0bop1i17eyt" path="res://Demo/player/mooncast_sonic_2d/mrmooncastmouse.tscn" id="3_yu4ht"]
+[ext_resource type="PackedScene" uid="uid://fqh0i1dgi84m" path="res://Demo/player/classic_sonic/mrneedlemouse.tscn" id="3_nuj5t"]
 [ext_resource type="Texture2D" uid="uid://l7qvh7h3lhg1" path="res://Demo/gui/dream.png" id="7_2q626"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fahr2"]
@@ -298,13 +298,15 @@ repeat_times = 6
 show_behind_parent = true
 texture = ExtResource("7_2q626")
 
-[node name="mrmooncastmouse" parent="." node_paths=PackedStringArray("node_camera") instance=ExtResource("3_yu4ht")]
+[node name="mrneedlemouse" parent="." node_paths=PackedStringArray("node_animated_sprite", "node_camera") instance=ExtResource("3_nuj5t")]
 legacy_enabled = false
+node_animated_sprite = NodePath("AnimatedSprite2D")
 node_camera = NodePath("Camera2D2")
+metadata/is_player = true
 
-[node name="Camera2D2" type="Camera2D" parent="mrmooncastmouse"]
+[node name="Camera2D2" type="Camera2D" parent="mrneedlemouse"]
 
-[node name="MoonCastDebugMode" type="Node" parent="mrmooncastmouse" node_paths=PackedStringArray("onscreen_info_label")]
+[node name="MoonCastDebugMode" type="Node" parent="mrneedlemouse" node_paths=PackedStringArray("onscreen_info_label")]
 script = ExtResource("3_cngma")
 onscreen_info_label = NodePath("CanvasLayer/Label")
 button_enable_debug = &"x"
@@ -312,9 +314,9 @@ button_scene_pause = &"y"
 button_scene_frame_advance = &"z"
 metadata/_custom_type_script = "uid://chxrofx7moh6c"
 
-[node name="CanvasLayer" type="CanvasLayer" parent="mrmooncastmouse/MoonCastDebugMode"]
+[node name="CanvasLayer" type="CanvasLayer" parent="mrneedlemouse/MoonCastDebugMode"]
 
-[node name="Label" type="Label" parent="mrmooncastmouse/MoonCastDebugMode/CanvasLayer"]
+[node name="Label" type="Label" parent="mrneedlemouse/MoonCastDebugMode/CanvasLayer"]
 top_level = true
 anchors_preset = 1
 anchor_left = 1.0

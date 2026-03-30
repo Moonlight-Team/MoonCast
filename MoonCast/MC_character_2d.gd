@@ -981,7 +981,7 @@ func process_ground() -> void:
 			#rolling is used as a shorthand for if the player is 
 			#"attacking". Therefore, it should not be set if the player
 			#should be vulnerable in midair
-			is_attacking = not  physics.control_jump_is_vulnerable
+			is_attacking = not physics.control_jump_is_vulnerable
 	else:
 		#apply the ground velocity to the "actual" velocity
 		
@@ -1588,10 +1588,7 @@ func new_update_animations() -> void:
 		_:
 			push_warning("Implement anim ", physics.current_animation)
 	
-	if physics.is_grounded:
-		sprites_set_rotation(ground_angle)
-	else:
-		sprites_set_rotation(gravity_angle)
+	sprites_set_rotation((ground_angle) if (physics.is_grounded) else (gravity_angle))
 
 ##Draw debug information, like the current hitbox.
 func draw_debug_info() -> void:
@@ -1605,19 +1602,20 @@ func draw_debug_info() -> void:
 			for shapes:int in shape_owner_get_shape_count(default_owners):
 				var current_shape:Shape2D = shape_owner_get_shape(default_owners, shapes)
 				
-				
-				
 				current_shape.draw(get_canvas_item(), ProjectSettings.get_setting("debug/shapes/collision/shape_color", Color.BLUE))
-		
+	
 	#Draw the ray sensor lines
 	
 	#const order: left, then right; down, up, and wall
-	const sensor_a:Color = Color8(0, 240, 0)
-	const sensor_b:Color = Color8(56, 255, 162)
-	const sensor_c:Color = Color8(0, 174, 239)
-	const sensor_d:Color = Color8(255, 242, 56)
-	const sensor_e:Color = Color8(255, 56, 255)
-	const sensor_f:Color = Color8(255, 84, 84)
+	var sensor_a:Color = Color8(0, 240, 0)
+	var sensor_b:Color = Color8(56, 255, 162)
+	var sensor_c:Color = Color8(0, 174, 239)
+	var sensor_d:Color = Color8(255, 242, 56)
+	var sensor_e:Color = Color8(255, 56, 255)
+	var sensor_f:Color = Color8(255, 84, 84)
+	
+	const halfclear:Color = Color8(255, 255, 255, 127)
+	const semiclear:Color = Color8(255, 255, 255, 192)
 	
 	const line_thickness:float = 1.0
 	
@@ -1625,40 +1623,48 @@ func draw_debug_info() -> void:
 	var origin_vec:Vector2
 	
 	if flat_facing_dir.x < 0.0:
-		#draw left side rays
-		origin_vec = ground_left_origin
-		target_vec = Vector2(origin_vec.x, ground_left_target.y)
-		
 		if physics.is_grounded or physics.vertical_velocity < 0.0:
-			draw_line(origin_vec, target_vec, sensor_a, line_thickness)
+			sensor_b *= semiclear
 		else:
-			target_vec.y = -target_vec.y + int(floor_snap_length)
-			draw_line(origin_vec, target_vec, sensor_c, line_thickness)
+			sensor_a *= semiclear
 		
-		origin_vec = wall_left_origin
-		target_vec = wall_left_target
-		draw_line(origin_vec, target_vec, sensor_e, line_thickness)
+		sensor_d *= halfclear
+		sensor_e *= halfclear
+		sensor_f *= halfclear
 	else:
-		#draw right side rays
-		
-		origin_vec = ground_right_origin
-		target_vec = Vector2(origin_vec.x, ground_right_target.y)
 		if physics.is_grounded or physics.vertical_velocity < 0.0:
-			draw_line(origin_vec, target_vec, sensor_b, line_thickness)
+			sensor_d *= semiclear
 		else:
-			target_vec.y = -target_vec.y + int(floor_snap_length)
-			draw_line(origin_vec, target_vec, sensor_d, line_thickness)
+			sensor_e *= semiclear
 		
-		origin_vec = wall_right_origin
-		target_vec = wall_right_target
-		draw_line(origin_vec, target_vec, sensor_f, line_thickness)
+		sensor_a *= halfclear
+		sensor_b *= halfclear
+		sensor_c *= halfclear
+	
+	#draw left side rays
+	origin_vec = ground_left_origin
+	target_vec = Vector2(origin_vec.x, ground_left_target.y)
+	draw_line(origin_vec, target_vec, sensor_a, line_thickness)
+	target_vec.y = -target_vec.y + int(floor_snap_length)
+	draw_line(origin_vec, target_vec, sensor_c, line_thickness)
+	origin_vec = wall_left_origin
+	target_vec = wall_left_target
+	draw_line(origin_vec, target_vec, sensor_e, line_thickness)
+	
+	#draw right side rays
+	origin_vec = ground_right_origin
+	target_vec = Vector2(origin_vec.x, ground_right_target.y)
+	draw_line(origin_vec, target_vec, sensor_b, line_thickness)
+	target_vec.y = -target_vec.y + int(floor_snap_length)
+	draw_line(origin_vec, target_vec, sensor_d, line_thickness)
+	origin_vec = wall_right_origin
+	target_vec = wall_right_target
+	draw_line(origin_vec, target_vec, sensor_f, line_thickness)
 	
 	#draw directions
 	
 	const length_mult:float = 10.0
 	const thickness_2:float = 1.5
-	
-	const semiclear:Color = Color8(255, 255, 255, 127)
 	
 	var origin_point:Vector2 = ground_normal * 5.0
 	
@@ -1796,7 +1802,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if not is_instance_valid(node_camera):
 		warnings.append("The player needs a camera node!")
 	elif not node_camera.get_parent() == self:
-		warnings.append("The Camera2D node m!st be a direct child of the MoonCastPlayer2D@")
+		warnings.append("The Camera2D node must be a direct child of the MoonCastPlayer2D@")
 	
 	return warnings
 
@@ -1862,7 +1868,6 @@ func _notification(what: int) -> void:
 				legacy_physics_process(delta)
 			else:
 				new_physics_process(delta)
-
 
 func legacy_physics_process(_delta:float) -> void:
 	update_collision_rotation()
@@ -2136,7 +2141,7 @@ func new_physics_process(delta:float) -> void:
 		
 		append_frame_log("Ground normal " + readable_vector2(ground_normal))
 		
-		physics.process_fall_slip_checks(raycast_collision > 1, ground_dot)
+		physics.process_fall_slip_checks(raycast_collision >= 1, ground_dot)
 		
 		if physics.is_grounded:
 			up_direction = ground_normal

@@ -4,6 +4,9 @@ extends Resource
 ##but dimensionally agnostic, values, for both 3D and 2D physics in MoonCast.
 class_name MoonCastPhysicsTable
 
+const subpixel: float = 256.0
+const original_framerate: float = 60.0
+
 ##Animation types detected by MoonCast.
 enum AnimationTypes {
 	##Custom animations
@@ -97,10 +100,11 @@ const perf_slope:StringName = &"Ground Angle"
 @export_group("")
 
 @export_group("Ground", "ground_")
+#@export var ground_state:MoonCastSubState = MoonCastGroundState.new()
 ##The minimum speed the player needs to be moving to not be considered to be at a standstill.
 @export var ground_min_speed:float = 0.2
 ##The minimum speed the player needs to be moving at to not slip down slopes.
-@export var ground_stick_speed:float = 0.2
+@export var ground_stick_speed:float = 2.0 + (128.0 / subpixel)
 ##The maximum angle at which ground is considered "flat".
 @export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_flat_threshold:float = deg_to_rad(23.0)
 ##The angle the floor has to be at for the player to begin to slip on it.
@@ -109,19 +113,21 @@ const perf_slope:StringName = &"Ground Angle"
 @export_custom(PROPERTY_HINT_RANGE, "radians_as_degrees, 90.0", PROPERTY_USAGE_EDITOR) var ground_fall_angle:float = deg_to_rad(45.0)
 ##The amount of time, in seconds, the player will be slipping when on a slope that is steeper than
 ##[member ground_slip_angle].
-@export var ground_slip_time:float = 0.5
+@export var ground_slip_time:float = (30.0 / original_framerate)
 ##The top speed the player can reach by input on level ground alone.
 @export var ground_top_speed:float = 6.0
 ##How much the player will accelerate on the ground each frame.
-@export var ground_acceleration:float = 0.07
+@export var ground_acceleration:float = (12.0 / subpixel)
 ##How much the player will slow down with no direction pressed on the ground.
-@export var ground_deceleration:float = 0.046875
+##This is also known as ground "friction".
+@export var ground_deceleration:float = 0.125
 ##How much the player will slow down on the ground when actively trying to stop or change direction.
-@export var ground_skid_speed:float = 0.4
+##This is also known as "decleration"
+@export var ground_skid_speed:float = (128.0 / subpixel)
 ##How much running on a slope will affect the player's speed.
 ##The player's speed will increase by this value when running downhill, and
 ##decrease by it when running uphill.
-@export var ground_slope_factor:float = 0.125
+@export var ground_slope_factor:float = (32.0 / subpixel)
 ##The absolute fastest speed the player can achieve on the ground, no matter what.
 @export var ground_speed_cap:float = 16.0
 
@@ -134,32 +140,34 @@ const perf_slope:StringName = &"Ground Angle"
 ##The minimum horizontal speed the player needs to be traveling forwards in order to be considered moving by input.
 @export var air_min_speed:float = 0.2
 ##How much the player will accelerate in the air each physics frame.
-@export var air_acceleration:float = 0.1
+@export var air_acceleration:float = (24.0 / subpixel)
 ##The drag effect that is applied to the player.
-@export var air_drag_effect:float = 0.031
+@export var air_drag_effect:float = 0.031 #TODO: (x >> 2) / subpixel
 ##How much the player will fall in the air each physics frame.
-@export var air_gravity_strength:float = 0.21875
+@export var air_gravity_strength:float = (56.0 / subpixel)
 
 @export_group("Roll", "rolling_")
 ##The minimum speed the player must be moving in order to initiate a roll.
-@export var rolling_min_speed:float = 1.0
+@export var rolling_min_speed:float = (128.0 / subpixel)
+##The minimum speed at which the player will unroll if rolling.
+@export var rolling_unroll_speed:float = (128.0 / subpixel)
 ##How much the player will additionally slow down when actively trying to stop while rolling.
-@export var rolling_active_stop:float = 0.5
+@export var rolling_active_stop:float = (32.0 / subpixel)
 ##How much the player will slow down when rolling on a level surface.
-@export var rolling_flat_factor:float = 0.05
+@export var rolling_flat_factor:float = (6.0 / subpixel)
 ##How much the player will be slowed down when rolling up a hill.
-@export var rolling_uphill_factor:float = 0.078125
+@export var rolling_uphill_factor:float = (20.0 / subpixel)
 ##How much the player will gain speed when rolling down a hill.
-@export var rolling_downhill_factor:float = 0.3125
+@export var rolling_downhill_factor:float = (80.0 / subpixel)
 
 @export_group("Jump", "jump_")
 ##The upwards velocity of jumping.
-@export var jump_velocity:float = 6.5
+@export var jump_velocity:float = 6.0 + (128.0 / subpixel)
 ##The "inactive" velocity of a jump when the jump button is released before the peak of the jump.
 @export var jump_short_limit:float = 4.0
 ##The cooldown time, in seconds, between the player landing, and when they will 
 ##next be able to jump
-@export var jump_spam_timer:float = 0.15
+@export var jump_spam_timer:float = (9.0 / original_framerate)
 
 ##The timer for the player's ability to jump after landing.
 var jump_timer:float = 0.0
@@ -444,6 +452,7 @@ func process_ground_input(velocity_dot:float, acceleration:float) -> void:
 		#slow down the player if their input is pointed in the opposite direction of their velocity
 		if velocity_dot < 0 and can_be_moving:
 			ground_velocity -= rolling_active_stop * acceleration
+			#TODO: Special "turnaround boost" condition, see https://info.sonicretro.org/SPG:Forces#Rolling
 		
 		#ground friction for rolling
 		ground_velocity -= rolling_flat_factor * prev_ground_sign
@@ -534,8 +543,11 @@ func process_apply_gravity() -> void:
 ##Apply air drag to the player. This makes it so that the player moves at a slightly 
 ##slower horizontal speed when jumping up, before hitting the [jump_short_limit].
 func process_air_drag() -> void:
+	
 	if vertical_velocity > 0 and vertical_velocity < jump_short_limit:
+		const precision: float = 0.0001
 		append_frame_log("Air: Applying air drag")
+		#forward_velocity -= (int(floorf(forward_velocity)) >> 2) / subpixel
 		forward_velocity -= forward_velocity * air_drag_effect
 
 ##Update wall contact status. [param wall_dot] is the dot product between the direction the 

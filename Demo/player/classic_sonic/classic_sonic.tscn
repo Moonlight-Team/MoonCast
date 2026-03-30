@@ -7,7 +7,7 @@
 [ext_resource type="Script" uid="uid://dwwqwut5sssky" path="res://Framework/animations/speed_varied_anim.gd" id="5_xrw7q"]
 [ext_resource type="SpriteFrames" uid="uid://csph0fs33wav5" path="res://Demo/player/classic_sonic/classic_sonic_spriteframes.tres" id="6_mtaum"]
 
-[sub_resource type="Resource" id="Resource_ta3xm"]
+[sub_resource type="Resource" id="Resource_ysavo"]
 script = ExtResource("2_bsi4n")
 control_3d_turn_around_threshold = 0.392699
 control_3d_turn_speed = 0.392699
@@ -22,28 +22,29 @@ physics_collision_power = 1.0
 physics_weight = 1.0
 wall_threshold = 0.8
 ground_min_speed = 0.2
-ground_stick_speed = 0.2
+ground_stick_speed = 2.5
 ground_slip_time = 0.5
 ground_top_speed = 6.0
-ground_acceleration = 0.07
-ground_deceleration = 0.046875
-ground_skid_speed = 0.4
+ground_acceleration = 0.046875
+ground_deceleration = 0.125
+ground_skid_speed = 0.5
 ground_slope_factor = 0.125
 ground_speed_cap = 16.0
 air_custom_gravity = true
 air_top_speed = 6.0
 air_min_speed = 0.2
-air_acceleration = 0.1
+air_acceleration = 0.09375
 air_drag_effect = 0.031
 air_gravity_strength = 0.21875
-rolling_min_speed = 1.0
-rolling_active_stop = 0.5
-rolling_flat_factor = 0.05
+rolling_min_speed = 0.148438
+rolling_active_stop = 0.125
+rolling_flat_factor = 0.0234375
 rolling_uphill_factor = 0.078125
 rolling_downhill_factor = 0.3125
 jump_velocity = 6.5
 jump_short_limit = 4.0
 jump_spam_timer = 0.15
+metadata/_custom_type_script = "uid://rkrxyjvaqm8f"
 
 [sub_resource type="Resource" id="Resource_3acpp"]
 script = ExtResource("4_3ys4t")
@@ -332,7 +333,7 @@ size = Vector2(20, 39)
 [node name="mrneedlemouse_direct" type="CharacterBody2D" node_paths=PackedStringArray("node_animated_sprite_2d")]
 floor_snap_length = 15.0
 script = ExtResource("1_722kx")
-physics = SubResource("Resource_ta3xm")
+physics = SubResource("Resource_ysavo")
 controls = ExtResource("3_ysavo")
 rotation_static_collision = true
 node_animated_sprite_2d = NodePath("AnimatedSprite2D")
