@@ -1988,6 +1988,15 @@ func new_physics_process(delta:float) -> void:
 	var cam_angle:float = node_camera.global_rotation if input_relative_to_cam else 0.0
 	var input_vector:Vector2 = Vector2(signf(input_dir), 0.0).rotated(cam_angle)
 	
+	#new vector based on absf(ground_dot) so that flipping ceiling/floor works more seamlessly
+	
+	var half_dot: float = absf(ground_dot)
+	
+	if half_dot > 0.5: #flat ground, either ceiling or floor
+		pass
+	else:
+		pass
+	
 	flat_input_dir = input_vector.rotated(gravity_angle)
 	slope_input_dir = input_vector.rotated(ground_angle)
 	
@@ -2158,8 +2167,8 @@ func new_physics_process(delta:float) -> void:
 			if physics.is_jumping:
 				physics.process_apply_jump(ground_dot, facing_dot)
 				
-				if absf(ground_dot) < 0.5:
-					flat_facing_dir = -flat_facing_dir
+				#if absf(ground_dot) < 0.5:
+				#	flat_facing_dir = -flat_facing_dir
 				
 				#flip the player to send them in the downhill direction if they aren't actively going uphill
 				#force_downhill = not has_input and absf(ground_dot) < 0.5

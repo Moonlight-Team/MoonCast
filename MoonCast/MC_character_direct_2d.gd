@@ -961,6 +961,8 @@ func new_physics_process(delta:float) -> void:
 			if physics.is_jumping:
 				var jump_direction:Vector2 = ground_normal * physics.jump_velocity
 				
+				Vector2.from_angle(ground_angle)
+				
 				physics.vertical_velocity += -jump_direction.y
 				physics.forward_velocity += jump_direction.x
 				
